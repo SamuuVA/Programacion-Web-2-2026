@@ -54,9 +54,9 @@ ItemPedido
 MovimientoInventario
 
 RegistroAuditoria
-
-Relaciones del Dominio
-
+```
+# Relaciones del Dominio
+````text
 Usuario (Abstracto)
    │
    ├── Comprador ──────────> CarritoDeCompras ──> ItemCarrito ──> Variante
@@ -75,3 +75,4 @@ Usuario (Abstracto)
 
 MovimientoInventario
    └── registrado en ──────> RegistroAuditoria
+````
