@@ -63,7 +63,7 @@ Usuario (Abstracto)
    │      │
    │      └── realiza ─────> Pedido ───────────> ItemPedido ───> Variante
    │                           		    │
-   └── UsuarioAdministrativo  └── genera ────> MovimientoInventario
+   └── UsuarioAdministrativo            └── genera ────> MovimientoInventario
           ├── Vendedor                          	  	    │
           │     │                              			    ▼
           │     ├── gestiona ──> BodegaVendedor ──> Inventario <── Variante<──Producto
