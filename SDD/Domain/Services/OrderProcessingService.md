@@ -10,7 +10,7 @@ CARRITO
   -> PENDIENTE_PAGO
   -> PAGADO
   -> DESPACHADO
-  -> ENTREGADO / FINALIZADO
+  -> ENTREGADO
 ```
 
 ## 2. Responsabilidades
@@ -30,9 +30,9 @@ CARRITO
 - `ItemPedido`
 - `Comprador`
 - `Inventario`
-- `OrderStatus`
-- `PaymentStatus`
-- `DeliveryMethod`
+- `EstadoPedido`
+- `EstadoPago`
+- `MetodoEntrega`
 - `RegistroAuditoria`
 
 ## 4. Operaciones

@@ -57,7 +57,7 @@ El núcleo **nunca** conoce el SDK, el endpoint, el token ni el proveedor
 | Métodos | `procesarPago(request: PaymentRequest)`, `consultarPago(paymentId)`, `solicitarReembolso(request: RefundRequest)` |
 | Casos de uso relacionados | `ProcessPaymentUseCase` (`Input-Ports.md`, §15.1), `ProcessRefundUseCase` (`Input-Ports.md`, §18.1) |
 | Servicio relacionado | `OrderProcessingService` (`confirmPayment`, `Domain  Servicies.md`, §7.2) |
-| Resultado interno | `PaymentStatus` con valores `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REEMBOLSADO` (`Input-Ports.md`, §15.1; `Domain Object Value.md`, §9) |
+| Resultado interno | `EstadoPago` con valores `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REEMBOLSADO` (`Input-Ports.md`, §15.1; `Domain Object Value.md`, §9) |
 | Proveedor | **No definido** |
 
 ```mermaid
@@ -114,16 +114,16 @@ El adaptador **no** almacena el envío: la información propia del envío se per
 | Condición | Solo existe si la facturación se delega a un sistema externo |
 | Alternativa | `InvoiceRepository` implementado por `SQLInvoiceRepository` (S10) |
 
-`Output-Ports.md` (§9) declara la decisión como **abierta**:
+`Output-Ports.md` (§9) fija ahora la decisión (resuelve O-12):
 
 ```text
-Facturación interna  → InvoiceRepository  → adaptador SQL (S10)
-Facturación externa  → BillingGateway     → adaptador externo (S16)
-
-La especificación funcional no determina cuál alternativa se utilizará.
+Facturación externa  → BillingGateway     → adaptador externo (S16)   [DECIDIDO]
+Facturación interna  → InvoiceRepository  → adaptador SQL (S10)       [NO utilizada inicialmente]
 ```
 
-Por lo tanto, **S10 y S16 son mutuamente excluyentes** hasta que se tome la decisión.
+**Decisión:** se implementa únicamente **S16** (`BillingGateway`). La entidad `Factura` no forma parte
+del modelo de dominio (`DomainModel .md`, §15.1), por lo que **S10** (`SQLInvoiceRepository`) queda
+documentado como alternativa no utilizada inicialmente. S10 y S16 **no coexisten**.
 
 ### 4.4 S17 — Adaptador de proveedor de identidad (condicional)
 

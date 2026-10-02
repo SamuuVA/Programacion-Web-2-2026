@@ -126,6 +126,12 @@ Para esta información, la arquitectura establece **SQL como fuente principal de
 
 MongoDB no debe convertirse en una segunda fuente autoritativa de los mismos datos sin una decisión arquitectónica explícita.
 
+### Tipo de identificador
+
+Todos los contratos usan el identificador único del dominio, representado como `string` opaco
+(`DomainModel .md`, §2.5). Las firmas de este documento (`id: string`) reflejan ya ese tipo único; no
+debe declararse `int` ni `Integer` para identificadores (resuelve O-05).
+
 ---
 
 ## 5.1 UserRepository
@@ -148,6 +154,10 @@ interface UserRepository {
 - Consultar usuarios por correo.
 - Verificar unicidad del correo.
 - Recuperar estado y rol del usuario.
+
+> La recuperación del **estado y rol** la consume el **núcleo** (caso de uso o servicio), que verifica
+> que la cuenta esté `ACTIVO` antes de operar (`Domain Object Value.md`, §5). El adaptador de entrada
+> **no** consulta este puerto directamente (resuelve O-09).
 
 ### Reglas relacionadas
 
@@ -453,6 +463,16 @@ interface BillingGateway {
 
 La especificación funcional no determina cuál alternativa se utilizará. Por tanto, la decisión corresponde al diseño técnico posterior.
 
+### Decisión (resuelve O-12)
+
+La facturación se **delega a un proveedor externo** mediante `BillingGateway`. La entidad `Factura`
+**no forma parte del modelo de dominio** (`DomainModel .md`, §15.1), por lo que `InvoiceRepository`
+(SQL) queda **documentado como alternativa no utilizada inicialmente**: si en el futuro se decide
+conservar una copia local de la factura, se modelará la entidad y se habilitará ese adaptador.
+
+Consecuencia: `SQLInvoiceRepository` (S10) y `BillingGateway` (S16) **no coexisten**; se implementa
+únicamente `BillingGateway`.
+
 ---
 
 # 10. Ports logísticos
@@ -515,6 +535,10 @@ interface ShipmentRepository {
 
 La separación es intencional:
 
+La entidad `Envio` **no forma parte del modelo de dominio** (`DomainModel .md`, §15.1): `ShipmentRepository`
+opera sobre un modelo de aplicación/integración propio de la capa de adaptadores, mientras que
+`LogisticsGateway` (S15) gestiona la comunicación con el operador logístico.
+
 ```text
 ShipmentRepository
     =
@@ -545,6 +569,9 @@ interface AuditRepository {
     ): Promise<RegistroAuditoria[]>;
 }
 ```
+
+> `entidadTipo` y `entidadId` se corresponden con los atributos homónimos de `RegistroAuditoria`
+> (`DomainModel .md`, §11), de modo que el método es construible e indexable (resuelve O-10).
 
 ### Característica
 
@@ -610,7 +637,9 @@ Puede implementarse mediante:
 - Proyecciones.
 - Consultas especializadas.
 
-La implementación debe respetar la autorización correspondiente al rol del usuario.
+La **autorización la resuelve el núcleo**: el caso de uso o servicio decide qué filtros y alcance
+corresponden al rol, y entrega al adaptador únicamente filtros ya decididos. El adaptador de consulta
+**no** implementa reglas de autorización ni de negocio; solo ejecuta la lectura (resuelve O-14).
 
 ---
 
@@ -648,33 +677,30 @@ La decisión debe quedar documentada en la arquitectura de seguridad.
 
 Los ports son contratos internos y los adapters viven fuera del núcleo.
 
-Una estructura conceptual puede ser:
+La **estructura de referencia única** es la de `Input-Ports.md` (§32). Vistos desde la raíz `src/`, los
+adaptadores de salida ocupan:
 
 ```text
 src/
-└── main/
-    └── typescript/
-        ├── domain/
-        │   ├── models/
-        │   ├── value-objects/
-        │   ├── services/
-        │   └── ports/
-        │
-        ├── application/
-        │   └── use-cases/
-        │
-        └── adapters/
-            └── out/
-                ├── persistence/
-                │   ├── sql/
-                │   └── mongo/
-                │
-                └── external/
-                    ├── payments/
-                    └── logistics/
+├── application/
+│   └── ports/
+│       └── output/          ← contratos de salida aplicados
+│
+├── domain/
+│   └── ports/               ← contratos de salida del dominio
+│
+└── adapters/
+    └── out/
+        ├── persistence/
+        │   ├── sql/
+        │   └── mongo/
+        └── external/
+            ├── payments/
+            └── logistics/
 ```
 
-La estructura física puede variar, pero la separación conceptual debe mantenerse.
+Esta descripción y la de `Input-Ports.md` (§32) son **coincidentes** (resuelve O-13). La estructura
+física puede variar, pero la separación conceptual debe mantenerse.
 
 ---
 
@@ -796,6 +822,23 @@ SQL Transaction
 ```
 
 La implementación concreta de la transacción pertenece al adapter o a la unidad de trabajo de infraestructura, no al modelo de dominio.
+
+## 19.1 Consistencia entre la transacción SQL y la auditoría en MongoDB
+
+La auditoría (`AuditRepository`) vive en MongoDB y **no** participa de la transacción SQL. Por tanto,
+no se usa una transacción distribuida. La estrategia aceptada es:
+
+```text
+1. La operación de negocio se confirma en la transacción SQL.
+2. El evento de auditoría se registra como "pendiente" dentro de la misma transacción SQL (patrón outbox).
+3. Un proceso posterior confirma la escritura en MongoDB de forma IDEMPOTENTE
+   (clave determinista derivada de la operación) y con REINTENTOS.
+4. Si la escritura en MongoDB falla, el evento permanece en la cola y se reintenta;
+   AUD-01 se satisface con consistencia eventual acotada.
+```
+
+Nivel de garantía: **consistencia eventual** para la trazabilidad, con reintento idempotente. Nunca se
+intenta una transacción distribuida SQL ↔ MongoDB (resuelve O-11).
 
 ---
 
@@ -1113,6 +1156,16 @@ PostgreSQL
 | `LogisticsGateway` | Logística | Servicio externo |
 | `ReportingQuery` | Consultas administrativas | SQL/proyección |
 | `IdentityProvider` | Identidad/autenticación, si aplica | Servicio de identidad |
+
+### Notas de alcance de los ports
+
+| Port | Estado | Motivo |
+|---|---|---|
+| `InvoiceRepository` | **No utilizado inicialmente** | La facturación se delega a `BillingGateway` (§9, O-12) |
+| `ShipmentRepository` | Contrato definido | Opera sobre un modelo de aplicación/integración; `Envio` no es entidad del dominio |
+| `ReturnRepository` | **No existe** | No hay entidad de devolución modelada (`DomainModel .md`, §15.1; O-01) |
+| `NotificationGateway` | **No existe** | No definido en el alcance actual (O-16) |
+| `DigitalDeliveryGateway` | **No existe** | La entrega digital se reconoce, pero su puerto no está definido (O-16) |
 
 ---
 

@@ -40,11 +40,42 @@ Ejemplos:
 
 ### 2.2 Objetos de valor
 
-Los conceptos que representan valores controlados del negocio se modelan como objetos de valor o catálogos de dominio. Su comportamiento y valores válidos se encuentran documentados en `Domain Objec Value.md`.
+Los conceptos que representan valores controlados del negocio se modelan como objetos de valor o catálogos de dominio. Su comportamiento y valores válidos se encuentran documentados en `Domain Object Value.md`.
 
 ### 2.3 Servicios de dominio
 
-Las operaciones que involucran varias entidades o requieren coordinar reglas entre diferentes conceptos se modelan mediante servicios de dominio. Se encuentran documentadas en `Domain Service.md`.
+Las operaciones que involucran varias entidades o requieren coordinar reglas entre diferentes conceptos se modelan mediante servicios de dominio. Se encuentran documentadas en `Domain  Servicies.md`.
+
+### 2.4 Convención de nomenclatura
+
+Para evitar divergencias entre documentos, el modelo fija la siguiente convención:
+
+| Elemento | Idioma | Ejemplo |
+|---|---|---|
+| Entidades y objetos de valor | Español | `Usuario`, `Pedido`, `EstadoPedido` |
+| Atributos de entidad | Español | `cantidadDisponible`, `estadoPago` |
+| Puertos (Input y Output Ports) | Inglés | `RegisterBuyerUseCase`, `OrderRepository` |
+| Métodos de puerto | Español | `guardar`, `buscarPorId`, `buscarPorCorreo` |
+| Métodos de servicio de dominio | Inglés (nombre de operación) | `registerBuyer`, `publishProduct`, `recordEvent` |
+| Adaptadores | Inglés con prefijo tecnológico | `SQLOrderRepository`, `MongoAuditRepository` |
+| DTOs y mappers de adaptadores | Inglés | `RegisterBuyerRequest`, `OrderMapper` |
+
+Los códigos de los catálogos de `Domain Object Value.md` son estables y no se traducen.
+
+### 2.5 Convención de identificadores
+
+Los identificadores del dominio son **opacos** y se representan con un **único tipo**, `String`
+(por ejemplo, un identificador generado tipo UUID). Este mismo tipo se utiliza de forma uniforme en
+las entidades, en las firmas de los puertos y en los contratos HTTP.
+
+Justificación:
+
+- Desacopla la identidad del mecanismo de almacenamiento (SQL o MongoDB).
+- Evita exponer identificadores secuenciales predecibles en la API.
+- Es compatible con el almacenamiento relacional (UUID/`CHAR(36)`) y con el documental.
+
+No se deben declarar identificadores con tipos distintos (`int`, `Integer`) en otros documentos.
+Los ejemplos numéricos de los contratos son ilustrativos y no fijan el tipo.
 
 ---
 
@@ -149,11 +180,11 @@ La clase concentra la información común de identificación y estado operativo.
 
 | Atributo | Tipo | Obligatorio | Restricción | Descripción |
 |---|---|---:|---|---|
-| `id` | `int` | Sí | Único | Identificador único del usuario. |
+| `id` | `String` | Sí | Único | Identificador único del usuario. |
 | `nombreCompleto` | `String` | Sí | No vacío | Nombre oficial del usuario. |
 | `correoElectronico` | `String` | Sí | Único | Medio principal de acceso y comunicación. |
 | `contraseña` | `String` | Sí | Almacenamiento seguro | Representación segura de la credencial. |
-| `rol` | `RolSistema` | Sí | Un único rol | Define responsabilidades y permisos. |
+| `rol` | `SystemRole` | Sí | Un único rol | Define responsabilidades y permisos. |
 | `estado` | `EstadoUsuario` | Sí | Valor permitido | Condición operativa de la cuenta. |
 
 ### Reglas
@@ -305,7 +336,7 @@ Representa un bien ofrecido por un vendedor.
 
 | Atributo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
-| `id` | `int` | Sí | Identificador único del producto. |
+| `id` | `String` | Sí | Identificador único del producto. |
 | `nombre` | `String` | Sí | Nombre comercial. |
 | `descripcion` | `String` | Sí | Características generales. |
 | `categoria` | `CategoriaProducto` | Sí | Clasificación comercial. |
@@ -367,7 +398,7 @@ El inventario se controla a nivel de variante y no directamente a nivel de produ
 
 | Atributo | Tipo | Obligatorio | Restricción |
 |---|---|---:|---|
-| `id` | `int` | Sí | Único |
+| `id` | `String` | Sí | Único |
 | `sku` | `String` | Sí | Único |
 | `nombreVariante` | `String` | Sí | No vacío |
 | `precio` | `BigDecimal` | Sí | Valor monetario válido |
@@ -390,7 +421,7 @@ Representa el espacio físico donde se almacena inventario.
 
 | Atributo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
-| `id` | `int` | Sí | Identificador de la bodega. |
+| `id` | `String` | Sí | Identificador de la bodega. |
 | `nombre` | `String` | Sí | Nombre de identificación. |
 | `ubicacion` | `String` | Sí | Ubicación física. |
 | `tipoBodega` | `TipoBodega` | Sí | Marketplace o Vendedor. |
@@ -412,7 +443,7 @@ Representa la existencia de una variante específica dentro de una bodega espec�
 
 | Atributo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
-| `id` | `int` | Sí | Identificador del registro. |
+| `id` | `String` | Sí | Identificador del registro. |
 | `bodega` | `Bodega` | Sí | Bodega donde se encuentra el stock. |
 | `variante` | `Variante` | Sí | Variante almacenada. |
 | `cantidadDisponible` | `int` | Sí | Unidades disponibles para comercialización. |
@@ -451,7 +482,7 @@ Representa la selección provisional realizada por un comprador antes de confirm
 
 | Atributo | Tipo | Descripción |
 |---|---|---|
-| `id` | `Integer` | Identificador del carrito. |
+| `id` | `String` | Identificador del carrito. |
 | `comprador` | `Comprador` | Propietario del carrito. |
 | `items` | `List<ItemCarrito>` | Elementos seleccionados. |
 
@@ -486,7 +517,7 @@ Representa el compromiso comercial formal generado a partir de la compra del com
 
 | Atributo | Tipo | Descripción |
 |---|---|---|
-| `id` | `int` | Identificador único. |
+| `id` | `String` | Identificador único. |
 | `comprador` | `Comprador` | Comprador que realizó la compra. |
 | `fechaCreacion` | `LocalDateTime` | Momento de creación. |
 | `estadoPedido` | `EstadoPedido` | Estado del ciclo de vida. |
@@ -542,7 +573,7 @@ Representa un evento operativo que modifica o compromete el inventario.
 
 | Atributo | Tipo | Descripción |
 |---|---|---|
-| `id` | `Integer` | Identificador del movimiento. |
+| `id` | `String` | Identificador del movimiento. |
 | `tipoMovimiento` | `TipoMovimientoInventario` | Tipo de operación realizada. |
 | `fecha` | `LocalDateTime` | Fecha y hora del movimiento. |
 | `cantidad` | `Integer` | Unidades involucradas. |
@@ -572,12 +603,21 @@ Registra, entre otros:
 
 | Atributo | Tipo | Descripción |
 |---|---|---|
-| `auditId` | Identificador | Identificador único. |
-| `tipoEvento` | Tipo de evento | Acción registrada. |
-| `marcaTiempo` | `LocalDateTime` | Momento de ejecución. |
-| `realizadoPorUsuario` | `Usuario` | Usuario responsable. |
-| `rolUsuario` | `RolSistema` | Rol vigente durante la operación. |
+| `auditId` | `String` | Identificador único del registro. |
+| `tipoEvento` | Tipo de evento | Acción registrada (¿qué ocurrió?). |
+| `marcaTiempo` | `LocalDateTime` | Momento de ejecución (¿cuándo?). |
+| `realizadoPorUsuario` | `Usuario` | Usuario responsable (¿quién?). |
+| `rolUsuario` | `SystemRole` | Rol vigente durante la operación. |
+| `entidadTipo` | `String` | Tipo de entidad afectada (¿sobre qué?). |
+| `entidadId` | `String` | Identificador de la entidad afectada (¿sobre qué?). |
+| `resultado` | `String` | Resultado de la operación (¿resultado?): éxito o fallo. |
+| `gravedad` | `GravedadAuditoria` | Severidad del evento (¿qué severidad?). |
 | `detalles` | `Map<String,Object>` | Información adicional de trazabilidad. |
+
+Estos atributos cubren la información mínima exigida por `Services/AuditService.md` (§6) y
+permiten resolver la consulta `buscarPorEntidad(entidadTipo, entidadId)` de `Output-Ports.md` (§12.1)
+y el filtro por `severity` de `QueryAuditLogUseCase` (`Input-Ports.md`, §20.1), que corresponde al
+atributo `gravedad`.
 
 ### Invariantes
 
@@ -677,3 +717,21 @@ El modelo de dominio **no define**:
 - Tecnología de almacenamiento.
 
 Estos elementos están fuera del alcance de la especificación funcional.
+
+### 15.1 Alcance funcional explícito
+
+La especificación funcional reconoce procesos que **no forman parte del modelo de dominio actual**.
+Se declaran aquí de forma explícita para evitar que los adaptadores supongan entidades inexistentes:
+
+| Proceso reconocido | Estado en el modelo | Motivo |
+|---|---|---|
+| Devoluciones | **Fuera de alcance** | No existe entidad `Devolucion`, servicio ni Output Port de persistencia asociado |
+| Reembolsos | **Fuera de alcance** | Depende de la devolución; solo `PaymentGateway` contempla la operación externa |
+| Facturación | **Fuera de alcance** | `Factura` no se modela; la facturación se delega a un proveedor externo (`Output-Ports.md`, §9) |
+| Envíos (modelo local) | **Fuera de alcance** | `Envio` no es una entidad del dominio; `ShipmentRepository` opera sobre un modelo de aplicación/integración |
+| Notificaciones | **Fuera de alcance** | No se define un Output Port de notificación |
+| Entrega de productos digitales | **Reconocido, sin puerto** | `ProductoDigital` se entrega tras el pago; el mecanismo concreto no está especificado |
+| Estado comercial del comprador (`EstadoComercial`) | **Gestionado fuera de alcance** | No existe caso de uso documentado que lo modifique |
+
+Estos procesos se documentan como responsabilidades funcionales reconocidas, pero **no se inventan
+entidades, servicios ni puertos** para ellos hasta que exista una especificación funcional adicional.

@@ -42,9 +42,9 @@ Servicio de dominio → Output Port → Adaptador → Mapper de persistencia →
 ## 4. Reglas generales
 
 1. **Un mapper por agregado persistido**, no uno por tabla.
-2. **Identidad explícita:** el identificador de la entidad se mapea al identificador almacenado;
-   el formato definitivo (`int` en `DomainModel .md` frente a `string` en las firmas de
-   `Output-Ports.md`) está pendiente de alineación.
+2. **Identidad explícita:** el identificador de la entidad se mapea al identificador almacenado. El
+   identificador es **opaco y único**, representado como `string` (`DomainModel .md`, §2.5); en SQL se
+   almacena como UUID/`CHAR(36)` y en MongoDB como `string` (resuelve O-05).
 3. **Catálogos como códigos:** los valores de `Domain Object Value.md` se almacenan con su `codigo`
    estable, nunca con textos libres ni con nombres legibles.
 4. **Objetos de valor inmutables:** al reconstruir, se crean instancias coherentes con
@@ -67,11 +67,11 @@ Jerarquía documentada (`DomainModel .md`, §3): `Usuario` (abstracto) → `Comp
 
 | Campo de dominio | Tipo documentado | Persistencia |
 |---|---|---|
-| `Usuario.id` | `int` | Identificador |
+| `Usuario.id` | `String` | Identificador opaco (UUID) |
 | `Usuario.nombreCompleto` | `String` | Texto |
 | `Usuario.correoElectronico` | `String` | Texto con restricción de unicidad |
 | `Usuario.contraseña` | `String` | Almacenamiento seguro (representación de credencial) |
-| `Usuario.rol` | `RolSistema` | Código de `SystemRole` |
+| `Usuario.rol` | `SystemRole` | Código de `SystemRole` |
 | `Usuario.estado` | `EstadoUsuario` | Código de `EstadoUsuario` |
 | `Comprador.direccionPrincipal` | `String` | Texto |
 | `Comprador.direccionesAdicionales` | `List<String>` | Colección de textos (representación física pendiente) |
@@ -165,11 +165,16 @@ persistirse como dato propio de la línea del pedido y no derivarse del catálog
 | `marcaTiempo` | Campo del documento (indexable) |
 | `realizadoPorUsuario` | Referencia al actor |
 | `rolUsuario` | Código de `SystemRole` |
+| `entidadTipo` | Campo del documento (indexable) |
+| `entidadId` | Campo del documento (indexable) |
+| `resultado` | Campo del documento |
+| `gravedad` | Código de `GravedadAuditoria` |
 | `detalles` | Mapa libre `Map<String,Object>` |
 
-Origen: `DomainModel .md` (§11). El mapper **no** añade atributos no documentados; los datos
-exigidos por `Services/AuditService.md` (§6) que no figuran como atributos (entidad afectada,
-resultado, severidad) quedan pendientes (`../observaciones-arquitectonicas.md`).
+Origen: `DomainModel .md` (§11). Los atributos `entidadTipo`, `entidadId`, `resultado` y `gravedad`
+ya forman parte de `RegistroAuditoria` (`DomainModel .md`, §11), por lo que el mapper cubre la
+información exigida por `Services/AuditService.md` (§6) y los índices de `buscarPorEntidad`
+(resuelve O-10).
 
 ---
 
@@ -246,11 +251,12 @@ agregado completo. Los adaptadores de prueba permiten validar el núcleo sin dep
 
 ## 10. Pendientes de definición
 
-- Formato definitivo de identificadores (`int` frente a `string`).
 - Representación de la herencia de usuarios, productos y bodegas.
 - Representación física de `direccionesAdicionales` y de `detalles` de auditoría.
 - Opción de representación de catálogos (§6).
-- Esquema de `Factura`, `Envio` y devoluciones/reembolsos (entidades no documentadas).
-- Alineación del mapeo de la entidad afectada, el resultado y la severidad de la auditoría.
+- Esquema de `Envio` (modelo de aplicación; `Factura` y devoluciones quedan fuera de alcance).
+
+Resueltos (ver `../observaciones-arquitectonicas.md`): formato de identificadores —`string` opaco—
+(O-05); mapeo de `entidadTipo`/`entidadId`/`resultado`/`gravedad` (O-10).
 
 

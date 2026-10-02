@@ -46,7 +46,7 @@ Los DTOs se derivan de la "Entrada conceptual" documentada para cada caso de uso
 | 5 | `CreateProductRequest` | `CreateProductUseCase` | `nombre`, `descripcion`, `categoria`, `tipoProducto`, `variantes[]` | `Input-Ports.md` §11.1 |
 | 6 | `UpdateProductStatusRequest` | `UpdateProductStatusUseCase` | `productId`, `newStatus` | `Input-Ports.md` §11.2 |
 | 7 | `ReplenishStockRequest` | `ReplenishStockUseCase` | `warehouseId`, `variantId`, `quantity` | `Input-Ports.md` §12.1 |
-| 8 | `DispatchInventoryRequest` | `DispatchInventoryUseCase` | `orderId`, `operatorId` | `Input-Ports.md` §12.3 |
+| 8 | `DispatchInventoryRequest` | `DispatchInventoryUseCase` | `orderId` (el actor proviene del `ExecutionContext`) | `Input-Ports.md` §12.3 |
 | 9 | `AddItemToCartRequest` | `AddItemToCartUseCase` | `cartId`, `variantId`, `quantity` | `Input-Ports.md` §13.1 |
 | 10 | `RemoveItemFromCartRequest` | `RemoveItemFromCartUseCase` | `cartId`, `itemId` | `Input-Ports.md` §13.2 |
 | 11 | `ConfirmCartRequest` | `ConfirmCartUseCase` | `cartId` | `Input-Ports.md` §13.3 |
@@ -69,18 +69,20 @@ debe declararlos como pendientes de tipado definitivo, sin inventar su contenido
 | `CreateInvoiceRequest` | `billingData` | Contenido no especificado (`Input-Ports.md` §15.2) |
 | `CreateProductRequest` | `variantes[]` | El modelo de dominio define `Variante` (`sku`, `nombreVariante`, `precio`), pero el comando no detalla la forma del arreglo |
 | `GenerateAdministrativeReportRequest` | `reportType`, `filters`, `dateRange` | Tipos y valores permitidos no especificados |
-| `QueryAuditLogRequest` | `eventType`, `dateRange` | Valores permitidos no especificados; la severidad sí está definida (`INFORMACIÓN`, `ADVERTENCIA`, `ERROR`, `CRÍTICO`) |
+| `QueryAuditLogRequest` | `eventType`, `dateRange` | Valores permitidos no especificados; la severidad sí está definida (`INFORMACION`, `ADVERTENCIA`, `ERROR`, `CRITICO`) |
 | `RequestReturnRequest` | `items` | Estructura no especificada |
 
-### 4.2 Casos de uso sin Request DTO documentado
+### 4.2 Request DTOs de casos antes no documentados
 
-| Caso de uso | Situación |
-|---|---|
-| `ConfirmOrderUseCase` | `Input-Ports.md` §14.1 no documenta entrada conceptual. **Pendiente de definición.** |
-| `GetOrderUseCase` | `Input-Ports.md` §14.2 no documenta entrada conceptual; se deduce una consulta por identificador, sin inventar parámetros adicionales. |
-| `UpdateOrderStatusUseCase` | `Input-Ports.md` §14.3 no documenta entrada conceptual. **Pendiente de definición.** |
-| `ApproveReturnUseCase` | `Input-Ports.md` §17.2 no documenta entrada conceptual. **Pendiente de definición.** |
-| `ReserveInventoryUseCase` | `Input-Ports.md` §12.2 documenta `ReserveInventoryCommand {orderId, items}`, pero el caso de uso se considera **interno** (no requiere controller ni Request DTO HTTP). |
+La `Input-Ports.md` ya documenta la entrada conceptual de estos casos de uso (resuelve O-03):
+
+| Caso de uso | Request DTO | Campos | Origen |
+|---|---|---|---|
+| `ConfirmOrderUseCase` | `ConfirmOrderRequest` | `cartId`, `direccionEnvio` (opcional) | `Input-Ports.md` §14.1 |
+| `GetOrderUseCase` | `GetOrderRequest` | `orderId` (ruta) | `Input-Ports.md` §14.2 |
+| `UpdateOrderStatusUseCase` | `UpdateOrderStatusRequest` | `orderId`, `newStatus` | `Input-Ports.md` §14.3 |
+| `ApproveReturnUseCase` | `ApproveReturnRequest` | `returnId`, `decision`, `itemsAprobados` (opcional) | `Input-Ports.md` §17.2 |
+| `ReserveInventoryUseCase` | — | Sin DTO HTTP: caso de uso **interno** | `Input-Ports.md` §12.2 y §21 |
 
 ---
 
@@ -99,9 +101,9 @@ comandos internos:
 | Marcas de auditoría (autor, fecha, severidad) | La auditoría la generan los servicios | `Services/AuditService.md` §4 |
 | `cantidadDisponible`, `cantidadReservada` enviadas directamente | Solo se modifican mediante movimientos de inventario | `Services/InventoryService.md` §5 |
 
-Excepción documentada: `DispatchInventoryRequest` incluye `operatorId` porque así aparece en
-`Input-Ports.md` §12.3. Su uso definitivo queda pendiente de alineación con el `ExecutionContext`
-(ver `../observaciones-arquitectonicas.md`).
+Regla del actor: ningún Request DTO incluye `operatorId` ni el `userId` del ejecutor. El actor
+proviene del `ExecutionContext` (`Input-Ports.md`, §8). `DispatchInventoryCommand` ya no incluye
+`operatorId` (`Input-Ports.md`, §12.3; resuelve O-06).
 
 ---
 
@@ -123,7 +125,7 @@ Restricciones **documentadas** que el adaptador puede verificar sin invadir regl
 | `tipoBodega` | Valor permitido: `MARKETPLACE` o `VENDEDOR` | `Domain Object Value.md` §11 |
 | `newStatus` (usuario) | Valor permitido: `ACTIVO`, `INACTIVO`, `BLOQUEADO` | `Domain Object Value.md` §5 |
 | `newStatus` (producto) | Valor permitido: `PUBLICADO`, `SUSPENDIDO`, `DESCONTINUADO` | `Domain Object Value.md` §7 |
-| `severity` | Valor permitido: `INFORMACIÓN`, `ADVERTENCIA`, `ERROR`, `CRÍTICO` | `Services/AuditService.md` §3 |
+| `severity` | Valor permitido: `INFORMACION`, `ADVERTENCIA`, `ERROR`, `CRITICO` | `Domain Object Value.md` §13.1; `Services/AuditService.md` §3 |
 | `deliveryMethod` | Valor permitido según `MetodoEntrega` | `Domain Object Value.md` §13.2 |
 | Identificadores de ruta | Presentes y con formato coherente | Convención del adaptador |
 
@@ -189,11 +191,11 @@ errores):
 
 ## 10. Pendientes de definición
 
-- Estructura interna de `paymentData`, `billingData`, `items`, `filters`, `dateRange` y
-  `reportType`.
-- Entrada conceptual de `ConfirmOrderUseCase`, `UpdateOrderStatusUseCase`, `ApproveReturnUseCase` y
-  `GetOrderUseCase`.
-- Formato de fechas y de identificadores.
-- Catálogo de códigos de error de validación.
-- Uso definitivo de `operatorId` en `DispatchInventoryRequest`.
+- Estructura interna de `paymentData`, `billingData`, `items`, `filters`, `dateRange` y `reportType`.
+- Formato definitivo de fechas y de paginación.
+
+Resueltos en `Input-Ports.md` / `Output-Ports.md` (ver `../observaciones-arquitectonicas.md`): entrada
+conceptual de `ConfirmOrderUseCase`, `GetOrderUseCase`, `UpdateOrderStatusUseCase` y
+`ApproveReturnUseCase` (O-03); formato de identificadores —`string` opaco, `DomainModel .md` §2.5— (O-05);
+catálogo de errores de aplicación con mapeo HTTP (§26, O-18) y uso de `operatorId` (O-06).
 

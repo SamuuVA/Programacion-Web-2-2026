@@ -69,7 +69,7 @@ HTTP no obligue a modificar el núcleo.
 | `toCreateProductCommand` | `CreateProductRequest` | `CreateProductCommand` | 1:1, incluida la colección `variantes[]`; `sellerId` proviene del `ExecutionContext` (`publishProduct(sellerId, productData, variantsData)`) |
 | `toUpdateProductStatusCommand` | `UpdateProductStatusRequest` | `UpdateProductStatusCommand` | 1:1 + `sellerId` desde el contexto |
 | `toReplenishStockCommand` | `ReplenishStockRequest` | `ReplenishStockCommand` | 1:1; el actor (`operatorId`) proviene del contexto (`replenishStock(operatorId, ...)`) |
-| `toDispatchInventoryCommand` | `DispatchInventoryRequest` | `DispatchInventoryCommand` | 1:1; ver ambigüedad de `operatorId` en `../observaciones-arquitectonicas.md` |
+| `toDispatchInventoryCommand` | `DispatchInventoryRequest` | `DispatchInventoryCommand` | 1:1; el actor (`operatorId`) proviene del `ExecutionContext` (resuelto O-06) |
 | `toAddItemToCartCommand` | `AddItemToCartRequest` | `AddItemToCartCommand` | 1:1 |
 | `toRemoveItemFromCartCommand` | `RemoveItemFromCartRequest` | `RemoveItemFromCartCommand` | 1:1 |
 | `toConfirmCartCommand` | `ConfirmCartRequest` | `ConfirmCartCommand` | 1:1 + `buyerId` desde el contexto (`createOrderFromCart(buyerId, ...)`) |
@@ -207,8 +207,9 @@ preserva la frontera arquitectónica.
 ## 10. Pendientes de definición
 
 - Forma interna de `paymentData`, `billingData`, `items`, `filters` y `dateRange` durante el mapeo.
-- Formato de fechas y de identificadores.
-- Tratamiento definitivo de `operatorId` en `DispatchInventoryCommand`.
-- Argumentos exactos de `ConfirmOrderUseCase`, `UpdateOrderStatusUseCase` y `ApproveReturnUseCase`,
-  que no tienen comando documentado.
+- Formato definitivo de fechas y de paginación.
+
+Resueltos (ver `../observaciones-arquitectonicas.md`): formato de identificadores —`string` opaco— (O-05);
+`operatorId` desde el `ExecutionContext` (O-06); entrada conceptual de `ConfirmOrderUseCase`,
+`UpdateOrderStatusUseCase` y `ApproveReturnUseCase` (`Input-Ports.md` §14.1–§14.3, §17.2; O-03).
 

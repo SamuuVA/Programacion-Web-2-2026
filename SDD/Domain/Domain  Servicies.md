@@ -21,11 +21,11 @@ Los servicios descritos aquí se derivan de los procesos y restricciones de la e
 
 | Servicio | Responsabilidad | Entidades principales |
 |---|---|---|
-| `UserManagementService` | Registro, incorporación y administración de usuarios. | `User`, `Buyer`, `Seller`, `Administrator` |
-| `CatalogService` | Gestión del catálogo, productos, variantes y estados de publicación. | `Product`, `Variant`, `Seller` |
-| `InventoryService` | Stock distribuido, reservas, ingresos, salidas y movimientos. | `Inventory`, `Warehouse`, `Variant`, `InventoryMovement` |
-| `OrderProcessingService` | Checkout, pago y ciclo de vida de pedidos. | `Buyer`, `ShoppingCart`, `Order`, `OrderItem`, `Inventory` |
-| `AuditService` | Registro inmutable de operaciones críticas. | `AuditLog`, `User`, `InventoryMovement` |
+| `UserManagementService` | Registro, incorporación y administración de usuarios. | `Usuario`, `Comprador`, `Vendedor`, `Administrador` |
+| `CatalogService` | Gestión del catálogo, productos, variantes y estados de publicación. | `Producto`, `Variante`, `Vendedor` |
+| `InventoryService` | Bodegas, stock distribuido, reservas, ingresos, salidas y movimientos. | `Bodega`, `Inventario`, `Variante`, `MovimientoInventario` |
+| `OrderProcessingService` | Checkout, pago y ciclo de vida de pedidos. | `Comprador`, `CarritoDeCompras`, `Pedido`, `ItemPedido`, `Inventario` |
+| `AuditService` | Registro inmutable de operaciones críticas. | `RegistroAuditoria`, `Usuario`, `MovimientoInventario` |
 
 ---
 
@@ -86,8 +86,8 @@ Crear ShoppingCart vacío
 ### Postcondiciones
 
 - Existe un nuevo `Buyer`.
-- `User.status = ACTIVO`.
-- `Buyer.commercialStatus = HABILITADO`.
+- `User.estado = ACTIVO`.
+- `Buyer.estadoComercial = HABILITADO`.
 - El comprador dispone de un carrito vacío.
 
 ### Reglas
@@ -148,7 +148,7 @@ Actualizar el estado operativo de un usuario.
 
 ### Postcondiciones
 
-`User.status` queda actualizado al nuevo estado.
+`User.estado` queda actualizado al nuevo estado.
 
 ### Trazabilidad
 
@@ -302,7 +302,7 @@ Validar variante
       ↓
 Validar quantity > 0
       ↓
-Incrementar availableQuantity
+Incrementar cantidadDisponible
       ↓
 Crear InventoryMovement(INGRESO)
       ↓
@@ -312,11 +312,11 @@ Registrar AuditLog
 ### Postcondiciones
 
 ```text
-availableQuantity =
-    availableQuantity anterior + quantity
+cantidadDisponible =
+    cantidadDisponible anterior + quantity
 
-reservedQuantity =
-    reservedQuantity anterior
+cantidadReservada =
+    cantidadReservada anterior
 ```
 
 Se crea un movimiento `INGRESO` y su correspondiente registro de auditoría.
@@ -349,9 +349,9 @@ Verificar disponibilidad total
      ↓
 Seleccionar existencias válidas
      ↓
-Reducir availableQuantity
+Reducir cantidadDisponible
      ↓
-Incrementar reservedQuantity
+Incrementar cantidadReservada
      ↓
 Crear movimientos RESERVA
      ↓
@@ -363,8 +363,8 @@ Registrar auditoría
 Para cada inventario afectado:
 
 ```text
-availableQuantity ↓
-reservedQuantity ↑
+cantidadDisponible ↓
+cantidadReservada ↑
 ```
 
 Se generan movimientos de tipo `RESERVA`.
@@ -397,7 +397,7 @@ Preparación / empaque
      ↓
 Validar reserva
      ↓
-Reducir reservedQuantity
+Reducir cantidadReservada
      ↓
 Crear SALIDA_VENTA
      ↓
@@ -408,7 +408,7 @@ Registrar AuditLog
 
 ### Postcondiciones
 
-- `reservedQuantity` disminuye.
+- `cantidadReservada` disminuye.
 - Se generan movimientos `SALIDA_VENTA`.
 - El pedido pasa a `DESPACHADO`.
 
@@ -417,11 +417,11 @@ Registrar AuditLog
 ## 6.4 Invariantes del InventoryService
 
 ```text
-availableQuantity >= 0
-reservedQuantity >= 0
+cantidadDisponible >= 0
+cantidadReservada >= 0
 
 Nunca reservar:
-requestedQuantity > availableQuantity
+cantidadSolicitada > cantidadDisponible
 
 Todo InventoryMovement
     → debe producir AuditLog
@@ -446,7 +446,7 @@ Pagado
    ↓
 Despachado
    ↓
-Entregado / Finalizado
+Entregado
 ```
 
 También contempla `CANCELADO` como estado del pedido.
@@ -491,8 +491,8 @@ Registrar la confirmación del pago y permitir que el pedido continúe hacia pre
 ### Postcondiciones
 
 ```text
-Order.paymentStatus = APROBADO
-Order.orderStatus = PAGADO
+Order.estadoPago = APROBADO
+Order.estadoPedido = PAGADO
 ```
 
 A partir de esta transición se inicia la reserva de inventario para productos físicos.
@@ -534,7 +534,7 @@ Cerrar el ciclo de un pedido físico después de confirmar su entrega.
 ### Postcondiciones
 
 ```text
-Order.orderStatus = ENTREGADO
+Order.estadoPedido = ENTREGADO
 ```
 
 ### Regla crítica
@@ -655,7 +655,7 @@ Order = PAGADO
 InventoryService
        │
        ├── SALIDA_VENTA
-       ├── reservedQuantity ↓
+       ├── cantidadReservada ↓
        └── AuditService
        │
        ▼
@@ -679,6 +679,7 @@ Order = ENTREGADO
 | UserManagement | `updateUserAccessStatus` | Ejecuta Administrador | Estado actualizado |
 | Catalog | `publishProduct` | Ejecuta Vendedor | Producto publicado con variantes |
 | Catalog | `updateProductStatus` | Propietario o Administrador | Estado actualizado |
+| Inventory | `createWarehouse` | Ejecuta Administrador o Vendedor | Bodega registrada |
 | Inventory | `replenishStock` | Cantidad > 0 | Ingreso de stock |
 | Inventory | `reserveStockForOrder` | Stock suficiente | Stock reservado |
 | Inventory | `dispatchStock` | Pedido PAGADO | Salida y pedido DESPACHADO |
@@ -702,8 +703,8 @@ Toda operación requiere un User autenticado.
 ### Inventario
 
 ```text
-availableQuantity >= 0
-reservedQuantity >= 0
+cantidadDisponible >= 0
+cantidadReservada >= 0
 No reservar stock inexistente.
 No reservar stock dañado/no disponible.
 ```

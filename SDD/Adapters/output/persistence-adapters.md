@@ -36,7 +36,7 @@ lectura:
 | `SQLInventoryMovementRepository` | `InventoryMovementRepository` | SQL | `sql-adapters.md` |
 | `SQLCartRepository` | `CartRepository` | SQL | `sql-adapters.md` |
 | `SQLOrderRepository` | `OrderRepository` | SQL | `sql-adapters.md` |
-| `SQLInvoiceRepository` | `InvoiceRepository` (variante documentada) | SQL | `sql-adapters.md` |
+| `SQLInvoiceRepository` | `InvoiceRepository` (**no utilizado inicialmente**, O-12) | SQL | `sql-adapters.md` |
 | `SQLShipmentRepository` | `ShipmentRepository` | SQL | `sql-adapters.md` |
 | `SQLReportingQueryAdapter` | `ReportingQuery` | SQL (lectura) | §8 de este documento |
 | `MongoAuditRepository` | `AuditRepository` | MongoDB | `mongodb-adapters.md` |
@@ -182,10 +182,9 @@ interface UserRepository {
 | Resultados | `SalesReport`, `InventoryReport`, `OrderReport`: **modelos de lectura**, no entidades de dominio |
 | Separación | Se mantiene aparte de los repositorios de escritura para no mezclar modelos de lectura y de escritura |
 
-**Observación:** `Output-Ports.md` (§13.1) indica que la implementación debe respetar la
-autorización correspondiente al rol del usuario. La decisión de autorización corresponde al núcleo
-(servicio o caso de uso); el adaptador solo aplica los filtros que recibe. Se registra en
-`../observaciones-arquitectonicas.md`.
+**Autorización (resuelve O-14):** `Output-Ports.md` (§13.1) fija que la autorización corresponde al
+núcleo (servicio o caso de uso); el adaptador solo aplica los filtros ya decididos que recibe y no
+implementa reglas de negocio ni de autorización.
 
 ---
 
@@ -196,14 +195,13 @@ autorización correspondiente al rol del usuario. La decisión de autorización 
 | SQL es la fuente autoritativa de los datos transaccionales | `Output-Ports.md` §5, §16 |
 | MongoDB no sustituye a SQL ni duplica los datos transaccionales | `Output-Ports.md` §5, §17 |
 | `AuditRepository` es append-only | `Output-Ports.md` §12; `Services/AuditService.md` §10 |
-| No existe transacción distribuida SQL ↔ MongoDB | No documentada; se asume por separado |
+| No existe transacción distribuida SQL ↔ MongoDB; la consistencia es **eventual** | `Output-Ports.md` §19.1 |
 | Los movimientos de inventario deben quedar auditados | `DomainModel .md` §7.2; `Services/AuditService.md` §7 |
 
-**Riesgo registrado:** si la transacción SQL confirma y la escritura de auditoría falla, existiría
-una operación sin trazabilidad. `Services/AuditService.md` exige trazabilidad para los movimientos
-de inventario y las operaciones relevantes, por lo que se requiere una estrategia (por ejemplo,
-reintento o registro compensatorio). Esa estrategia **no está definida** en la documentación y se
-registra como pendiente.
+**Estrategia (resuelve O-11):** la operación de negocio se confirma en la transacción SQL; el evento de
+auditoría se registra como *outbox* dentro de la misma transacción y un proceso posterior lo confirma en
+MongoDB de forma **idempotente** y con **reintentos**. Nivel de garantía: consistencia eventual acotada
+para la trazabilidad (`Output-Ports.md`, §19.1).
 
 ---
 
@@ -254,10 +252,12 @@ puertos ocurre en los servicios de dominio y la atomicidad en la unidad de traba
 - Motor SQL definitivo (PostgreSQL está recomendado, no decidido formalmente).
 - Librería de acceso a datos o mecanismo de consulta.
 - Esquema físico y migraciones (no documentados; pertenecen a infraestructura).
-- Estrategia de consistencia entre la transacción SQL y la auditoría en MongoDB.
-- Formato definitivo de identificadores (`int` en `DomainModel .md` frente a `string` en los puertos).
 - Modelos de lectura de `ReportingQuery` (`SalesReport`, `InventoryReport`, `OrderReport`).
-- Persistencia de devoluciones y reembolsos (sin entidad ni puerto documentados).
-- Entidades `Factura` y `Envio` referenciadas por puertos pero ausentes del modelo de dominio.
+
+Resueltos (ver `../observaciones-arquitectonicas.md`): estrategia de consistencia SQL ↔ MongoDB
+(`Output-Ports.md` §19.1, O-11); formato de identificadores —`string` opaco— (O-05); decisión de
+facturación —`BillingGateway`, S10 no utilizado inicialmente— (O-12). Las devoluciones/reembolsos y las
+entidades `Factura`/`Envio` quedan declarados **fuera del alcance** del modelo de dominio
+(`DomainModel .md` §15.1; O-01 y O-02).
 
 

@@ -15,8 +15,8 @@ Gestiona productos, variantes, SKU y estados comerciales, manteniendo la relaci√
 - `ProductoDigital`
 - `Variante`
 - `Vendedor`
-- `ProductStatus`
-- `ProductCategory`
+- `EstadoProducto`
+- `CategoriaProducto`
 - `RegistroAuditoria`
 
 ## 4. Operaciones

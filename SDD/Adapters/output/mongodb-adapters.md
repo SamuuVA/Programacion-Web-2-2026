@@ -14,7 +14,7 @@ Documentar el adaptador documental que implementa `AuditRepository`, el único O
 | `AuditRepository` | `Output-Ports.md` §12.1 | `registrar(evento)`, `buscarPorEntidad(entidadTipo, entidadId)` |
 | Carácter append-only | `Output-Ports.md` §12.1; `DomainModel .md` §11; `DomainModel .md` RG AUD-02 | Crear y leer permitido; editar y borrar prohibido |
 | Entidad registrada | `DomainModel .md` §11 | `RegistroAuditoria` |
-| Atributos | `DomainModel .md` §11 | `auditId`, `tipoEvento`, `marcaTiempo`, `realizadoPorUsuario`, `rolUsuario`, `detalles` |
+| Atributos | `DomainModel .md` §11 | `auditId`, `tipoEvento`, `marcaTiempo`, `realizadoPorUsuario`, `rolUsuario`, `entidadTipo`, `entidadId`, `resultado`, `gravedad`, `detalles` |
 | Servicio que lo invoca | `Services/AuditService.md` §4 | `recordEvent(eventData)` |
 | Uso de MongoDB | `Output-Ports.md` §12, §17 | Auditoría, trazabilidad y eventos operativos |
 | Prohibición | `Output-Ports.md` §5, §17 | MongoDB no debe duplicar los datos transaccionales ni sustituir a SQL |
@@ -79,22 +79,14 @@ El documento se construye a partir de los atributos documentados de `RegistroAud
 | `tipoEvento` | ¿Qué ocurrió? | Tipo de evento |
 | `marcaTiempo` | ¿Cuándo? | `LocalDateTime` |
 | `realizadoPorUsuario` | ¿Quién? | `Usuario` |
-| `rolUsuario` | Rol vigente durante la operación | `RolSistema` |
+| `rolUsuario` | Rol vigente durante la operación | `SystemRole` |
 | `detalles` | ¿Sobre qué? ¿Resultado? — información adicional | `Map<String,Object>` |
 
-### 6.1 Campos exigidos que no figuran como atributos explícitos
+### 6.1 Campos exigidos por `AuditService`
 
-`Services/AuditService.md` (§6) exige además:
-
-```text
-Entidad afectada (¿sobre qué?)
-Resultado (¿qué resultado?)
-Severidad (GravedadAuditoria)
-```
-
-Estos datos **no aparecen** entre los atributos listados de `RegistroAuditoria`. El adaptador no
-debe inventar atributos nuevos: la información puede residir en `detalles`, pero la decisión
-corresponde al núcleo. Se registra como observación en `../observaciones-arquitectonicas.md`.
+`Services/AuditService.md` (§6) exige, además, entidad afectada, resultado y severidad. Estos datos
+**ya son atributos** de `RegistroAuditoria` (`DomainModel .md`, §11): `entidadTipo`, `entidadId`,
+`resultado` y `gravedad`. El adaptador los indexa directamente (resuelve O-10).
 
 ### 6.2 Eventos auditables documentados
 
@@ -170,10 +162,9 @@ actualización ni de borrado.
 | Error de validación del documento | Error interno del adaptador (indica inconsistencia en el mapeo) |
 | Motor no disponible | Error de disponibilidad |
 
-**Riesgo registrado:** si la operación de negocio ya se confirmó en SQL y el registro de auditoría
-falla, la operación quedaría sin trazabilidad, lo que contradice AUD-01 y
-`Services/AuditService.md` (§7). La estrategia de mitigación no está definida
-(`persistence-adapters.md`, §9).
+**Estrategia (resuelve O-11):** la auditoría se escribe con **idempotencia y reintentos** (patrón
+*outbox*) desde la transacción SQL; la garantía es de consistencia eventual (`Output-Ports.md`, §19.1;
+`persistence-adapters.md`, §9), lo que satisface AUD-01 sin transacción distribuida.
 
 ---
 
@@ -222,11 +213,12 @@ independientes de la base transaccional. La auditoría nunca se usa como fuente 
 
 ## 14. Pendientes de definición
 
-- Ubicación de la entidad afectada, el resultado y la severidad dentro del documento
-  (`detalles` o atributos explícitos del núcleo).
 - Estructura definitiva de `detalles`.
 - Índices definitivos y política de retención.
-- Estrategia de consistencia entre la transacción SQL y la escritura de auditoría.
 - Definición de los tipos de evento (`tipoEvento`) utilizados por `QueryAuditLogCommand`.
+
+Resueltos (ver `../observaciones-arquitectonicas.md`): ubicación de la entidad afectada, el resultado y
+la severidad —atributos `entidadTipo`, `entidadId`, `resultado` y `gravedad`— (O-10) y estrategia de
+consistencia SQL ↔ MongoDB (O-11).
 
 

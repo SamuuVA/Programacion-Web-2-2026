@@ -287,6 +287,17 @@ Este concepto representa la identidad y el rol que ya fueron resueltos por la in
 
 Por tanto, este documento no fija JWT, sesiones, OAuth, cookies, MFA ni otro mecanismo específico.
 
+### Reglas del contexto
+
+1. El actor de toda operación proviene **únicamente** del `ExecutionContext`; nunca del cuerpo ni de
+   los parámetros de la solicitud (evita la suplantación de identidad).
+2. Ningún comando incluye un campo de actor (`operatorId`, `actorId` o el `userId` del ejecutor como
+   dato de entrada) cuando ese dato ya está disponible en el contexto.
+3. El adaptador de entrada solo resuelve **identidad y rol**. La verificación del **estado operativo**
+   del usuario (`ACTIVO` / `INACTIVO` / `BLOQUEADO`, `Domain Object Value.md` §5) **no** se realiza en
+   el adaptador: la efectúa el núcleo (caso de uso o servicio) usando `UserRepository`
+   (`Output-Ports.md`, §5.1), manteniendo la dirección de dependencia Adaptador → Puerto → Núcleo.
+
 ---
 
 # 9. Input Ports de Administración de Usuarios
@@ -406,6 +417,10 @@ INACTIVO
 BLOQUEADO
 ```
 
+> `EstadoComercial` del comprador (`HABILITADO` / `RESTRINGIDO`, `Domain Object Value.md` §6) **no
+> tiene caso de uso asociado**: su modificación se gestiona mediante un proceso administrativo fuera
+> del alcance actual (`DomainModel .md`, §15.1). Ningún Input Port lo modifica.
+
 ---
 
 # 10. Input Ports de Bodegas
@@ -430,6 +445,13 @@ CreateWarehouseCommand
 ```text
 Warehouse
 ```
+
+### Servicio responsable
+
+`CreateWarehouseUseCase` se resuelve en `InventoryService.createWarehouse(...)`
+(`Services/InventoryService.md`, §4), dado que ese servicio ya administra las bodegas junto con el
+inventario que contienen. La creación de la **primera bodega** de un vendedor se ejecuta dentro de
+`OnboardSellerUseCase` (§9.2), como parte de la incorporación del vendedor.
 
 ### Tipos
 
@@ -580,9 +602,11 @@ Operador Logístico
 
 ```text
 DispatchInventoryCommand
-├── orderId
-└── operatorId
+└── orderId
 ```
+
+El operador no se envía en el comando: el actor (`operatorId`) proviene siempre del
+`ExecutionContext` (§8) y la capa de aplicación lo traslada al servicio.
 
 ### Reglas
 
@@ -685,6 +709,18 @@ Formalizar el pedido generado por el comprador.
 Comprador
 ```
 
+### Entrada conceptual
+
+```text
+ConfirmOrderCommand
+├── cartId
+└── (opcional) direccionEnvio
+```
+
+El pedido se construye a partir del carrito confirmado del comprador (`ConfirmCartUseCase`, §13.3).
+El comprador no puede enviar el identificador de otro comprador; el alcance lo determina la
+identidad del `ExecutionContext`.
+
 ### Reglas
 
 - El comprador solamente puede gestionar sus propios pedidos.
@@ -708,6 +744,17 @@ Supervisor
 Administrador
 ```
 
+### Entrada conceptual
+
+```text
+GetOrderCommand
+└── orderId
+```
+
+La consulta corresponde a un único pedido. El alcance (pedidos propios, operativos o globales) se
+determina por el rol del `ExecutionContext` y por el servicio (`DomainModel .md`, §14), no por el
+cuerpo de la solicitud.
+
 El acceso debe respetar el rol y alcance autorizado.
 
 ## 14.3 UpdateOrderStatusUseCase
@@ -715,6 +762,24 @@ El acceso debe respetar el rol y alcance autorizado.
 ### Propósito
 
 Realizar las transiciones permitidas del ciclo de vida del pedido.
+
+### Actor principal
+
+```text
+Roles autorizados
+```
+
+### Entrada conceptual
+
+```text
+UpdateOrderStatusCommand
+├── orderId
+└── newStatus
+```
+
+Los valores de `newStatus` deben pertenecer a `EstadoPedido` (`Domain Object Value.md` §8). Las
+transiciones inválidas y la inmutabilidad de un pedido finalizado son reglas de dominio
+(`OrderProcessingService`).
 
 ### Estados principales
 
@@ -752,7 +817,7 @@ ProcessPaymentCommand
 ### Resultado
 
 ```text
-PaymentStatus
+EstadoPago
 ```
 
 Valores definidos:
@@ -835,7 +900,7 @@ Registrar la entrega satisfactoria del pedido.
 ### Resultado
 
 ```text
-OrderStatus.ENTREGADO
+EstadoPedido.ENTREGADO
 ```
 
 Después de esta transición, el pedido queda finalizado e inmutable.
@@ -879,6 +944,18 @@ Gestionar la aceptación de una devolución cuando corresponda.
 Vendedor
 ```
 
+### Entrada conceptual
+
+```text
+ApproveReturnCommand
+├── returnId
+├── decision
+└── (opcional) itemsAprobados
+```
+
+El modelo de devoluciones **no forma parte del modelo de dominio actual** (`DomainModel .md`, §15.1);
+la entidad `Devolucion`, sus estados y su persistencia quedan pendientes de especificación funcional.
+
 La autorización debe respetar la matriz de responsabilidades de NexusMarket.
 
 ---
@@ -902,10 +979,14 @@ ProcessRefundCommand
 ### Resultado
 
 ```text
-PaymentStatus.REEMBOLSADO
+EstadoPago.REEMBOLSADO
 ```
 
 La comunicación con el proveedor financiero debe realizarse mediante un Output Port como `PaymentGateway`.
+
+> El reembolso depende de una devolución aprobada. Como la devolución no forma parte del modelo de
+> dominio actual (`DomainModel .md`, §15.1), `ProcessRefundUseCase` se apoya únicamente en
+> `PaymentGateway` (`Output-Ports.md`, §8.1) y no en un repositorio de devoluciones.
 
 ---
 
@@ -991,7 +1072,7 @@ La escritura de registros de auditoría no debe quedar expuesta como una operaci
 | Pedidos | `UpdateOrderStatusUseCase` | Roles autorizados |
 | Pago | `ProcessPaymentUseCase` | Flujo comercial |
 | Facturación | `CreateInvoiceUseCase` | Sistema |
-| Logística | `CreateShipmentUseCase` | Sistema / Operador |
+| Logística | `CreateShipmentUseCase` | Sistema / Operador Logístico |
 | Logística | `DispatchOrderUseCase` | Operador Logístico |
 | Logística | `ConfirmDeliveryUseCase` | Operador Logístico |
 | Devoluciones | `RequestReturnUseCase` | Comprador |
@@ -999,6 +1080,22 @@ La escritura de registros de auditoría no debe quedar expuesta como una operaci
 | Reembolsos | `ProcessRefundUseCase` | Flujo autorizado |
 | Reportes | `GenerateAdministrativeReportUseCase` | Supervisor |
 | Auditoría | `QueryAuditLogUseCase` | Supervisor |
+
+### Exposición por HTTP
+
+No todos los casos de uso son invocables por un cliente externo. La exposición se declara
+explícitamente:
+
+| Caso de uso | Exposición | Origen / actor |
+|---|---|---|
+| `ReserveInventoryUseCase` | **Interno — sin endpoint** | Invocado por el flujo de pedido al confirmarse el pago (`OrderProcessingService`) |
+| `CreateInvoiceUseCase` | Expuesto (origen **Sistema**) | Disparado por la aplicación/administración tras el pago, no por un cliente final |
+| `CreateShipmentUseCase` | Expuesto (origen **Sistema / Operador Logístico**) | Inicia la gestión logística de un pedido físico |
+| Resto de casos de uso | **Expuestos por HTTP** | Su actor documentado (tabla anterior) |
+
+El catálogo concreto de rutas, verbos, parámetros y códigos de éxito de los casos de uso expuestos se
+documenta en `../contract-alignment.md` (resuelve la observación O-08). Los casos de uso internos o de
+sistema **no** exponen escritura directa a clientes finales.
 
 ---
 
@@ -1156,19 +1253,27 @@ Un usuario no puede administrar información fuera de su rol.
 
 Los Input Ports deben exponer resultados o errores de aplicación comprensibles para el adaptador de entrada.
 
-Ejemplos conceptuales:
+### Catálogo de errores de aplicación
 
-```text
-UserAlreadyExists
-UnauthorizedOperation
-ForbiddenOperation
-ProductNotFound
-InsufficientInventory
-InvalidOrderState
-OrderAlreadyFinalized
-InvalidPayment
-ReturnNotAllowed
-```
+Los nombres de error son **estables** y corresponden a categorías del núcleo. La traducción a códigos
+HTTP la realiza el Input Adapter.
+
+| Código de error | Semántica | HTTP |
+|---|---|---|
+| `UserAlreadyExists` | Correo o documento de identidad duplicado (USR-01) | `409` |
+| `UnauthorizedOperation` | Sin identidad válida (RG-01) | `401` |
+| `ForbiddenOperation` | Rol o alcance insuficiente (RG-03) | `403` |
+| `NotFound` | Recurso inexistente (usuario, producto, pedido, bodega) | `404` |
+| `InvalidCatalogValue` | Valor fuera de un catálogo cerrado (`Domain Object Value.md`) | `422` |
+| `InsufficientInventory` | Stock inexistente o insuficiente (INV-02) | `409` |
+| `InvalidOrderState` | Transición de pedido no permitida | `409` |
+| `OrderAlreadyFinalized` | Intento de modificar un pedido entregado (ORD-01) | `409` |
+| `InvalidPayment` | Datos de pago no procesables | `422` |
+| `ExternalServiceUnavailable` | Fallo de `PaymentGateway`, `LogisticsGateway`, `BillingGateway` o proveedor de identidad | `502` / `503` |
+
+> `ReturnNotAllowed` (devoluciones) **no forma parte del catálogo definitivo** porque las reglas de
+> devolución no están documentadas en el modelo actual (`DomainModel .md`, §15.1). El nombre queda
+> reservado para cuando la especificación funcional defina dichas reglas.
 
 La transformación final a códigos HTTP pertenece al Input Adapter.
 
@@ -1245,7 +1350,6 @@ Esto permite comprobar:
 - Restricciones de roles.
 - Transiciones de pedidos.
 - Reservas de inventario.
-- Reglas de devolución.
 - Generación de auditoría.
 
 El caso de uso puede probarse sin depender de HTTP, REST, PostgreSQL, MongoDB o del servidor Node.js.
@@ -1397,6 +1501,10 @@ src/
 │   │   └── rest/
 │   │
 │   └── out/
+│       ├── persistence/
+│       │   ├── sql/
+│       │   └── mongo/
+│       └── external/
 │
 ├── domain/
 │   ├── models/
@@ -1411,7 +1519,7 @@ src/
     └── security/
 ```
 
-La ubicación exacta puede adaptarse durante la implementación, pero debe mantenerse la separación entre entrada, salida, dominio e infraestructura.
+Esta es la **estructura de referencia única** del proyecto. `Output-Ports.md` (§15) la detalla para los adaptadores de salida desde la misma raíz `src/`; ambas descripciones deben coincidir (resuelve la observación O-13). La ubicación exacta puede adaptarse durante la implementación, pero debe mantenerse la separación entre entrada, salida, dominio e infraestructura.
 
 ---
 

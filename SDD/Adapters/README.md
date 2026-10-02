@@ -12,7 +12,7 @@ y no modifica ninguna especificación existente del proyecto.
 Es el conjunto de componentes que conectan los **límites externos** del sistema (HTTP, PostgreSQL,
 MongoDB, proveedores externos) con los **contratos internos** ya definidos en el proyecto:
 
-- **Input Ports** (`../Domain/Input-Ports.md`): 24 casos de uso.
+- **Input Ports** (`../Domain/Input-Ports.md`): 25 casos de uso.
 - **Output Ports** (`../Domain/Output-Ports.md`): 17 contratos de salida.
 
 Un adaptador **traduce**; no decide reglas de negocio.
@@ -37,7 +37,7 @@ Mundo externo  →  Adaptador  →  Puerto  →  Núcleo (dominio y aplicación)
 ```mermaid
 flowchart LR
     EXT["Mundo externo<br/>HTTP · SQL · MongoDB · Proveedores"] --> IN["Adaptadores de entrada<br/>E1–E15"]
-    IN --> IP["Input Ports<br/>24 casos de uso"]
+    IN --> IP["Input Ports<br/>25 casos de uso"]
     IP --> CORE["Servicios de dominio<br/>UserManagement · Catalog · Inventory<br/>OrderProcessing · Audit"]
     CORE --> OP["Output Ports<br/>17 contratos"]
     OP --> OUT["Adaptadores de salida<br/>S1–S18"]
@@ -112,7 +112,7 @@ Salida:   Output Ports de ../Domain/Output-Ports.md (§27)
 ```
 
 Ningún adaptador implementa o consume un puerto distinto de los documentados; los 17 Output Ports
-tienen adaptador asignado y 23 de los 24 Input Ports tienen adaptador de entrada
+tienen adaptador asignado y 24 de los 25 Input Ports tienen adaptador de entrada
 (`ReserveInventoryUseCase` es interno).
 
 ## 8. Servicios y casos de uso que intervienen
@@ -279,25 +279,26 @@ SDD/Adapters/
 
 ## 16. Estado y pendientes
 
-**Definido en esta documentación:** los 18 grupos de adaptadores, sus puertos, sus dependencias, sus
+**Definido en esta documentación:** los 33 grupos de adaptadores (E1–E15 y S1–S18), sus puertos, sus dependencias, sus
 reglas, sus flujos y su trazabilidad.
 
 **Pendiente de definición (no inventado):**
 
 ```text
-Catálogo de endpoints HTTP
 Mecanismo de autenticación y proveedor de identidad
+Framework HTTP concreto
 Motor SQL, librería de acceso a datos, esquema y migraciones
 Proveedores de pago y logística
-Decisión de facturación (interna o externa)
-Entidades Factura, Envio y devoluciones
 Modelos de lectura de ReportingQuery
-Estrategia de consistencia SQL ↔ MongoDB
-Formato de identificadores, fechas y paginación
-Catálogo definitivo de errores y su mapeo HTTP
+Formato de fechas y paginación
 ```
 
-El detalle, el impacto y la recomendación de cada punto están en `observaciones-arquitectonicas.md`.
+**Resuelto y reflejado en la documentación:** catálogo de endpoints HTTP (`../contract-alignment.md`,
+O-08); decisión de facturación —`BillingGateway`— (O-12); entidades `Factura`/`Envio` y devoluciones
+declaradas fuera del alcance (`DomainModel .md` §15.1; O-01, O-02); estrategia de consistencia SQL ↔
+MongoDB (`Output-Ports.md` §19.1, O-11); formato de identificadores —`string` opaco— (O-05); catálogo
+definitivo de errores con mapeo HTTP (`Input-Ports.md` §26, O-18). El detalle está en
+`observaciones-arquitectonicas.md`.
 
 ## 17. Restricciones respetadas en este trabajo
 

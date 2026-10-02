@@ -26,7 +26,7 @@ Toda decisión de este documento se deriva de los siguientes archivos existentes
 | Objetos de valor | `SDD/Domain/Domain Object Value.md` | Catálogos controlados que deben representarse en DTOs y en persistencia |
 | Servicios de dominio | `SDD/Domain/Domain  Servicies.md` | Operaciones y errores que los adaptadores deben invocar y traducir |
 | Servicios (detalle) | `SDD/Domain/Services/*.md` | Precondiciones, flujos, errores e invariantes por servicio |
-| Input Ports | `SDD/Domain/Input-Ports.md` | 24 casos de uso, `ExecutionContext`, flujo de solicitud, reglas de validación |
+| Input Ports | `SDD/Domain/Input-Ports.md` | 25 casos de uso, `ExecutionContext`, flujo de solicitud, reglas de validación |
 | Output Ports | `SDD/Domain/Output-Ports.md` | 17 puertos, adaptadores SQL/Mongo, transacciones, manejo de errores, mapeo |
 
 No se creó ningún adaptador que no pueda justificarse con uno de estos documentos.
@@ -204,7 +204,7 @@ flowchart TB
         A1["Adaptador de autenticación"]
     end
 
-    subgraph APP["Input Ports (24 casos de uso)"]
+    subgraph APP["Input Ports (25 casos de uso)"]
         UC1["RegisterBuyerUseCase ... QueryAuditLogUseCase"]
     end
 
@@ -362,29 +362,9 @@ auditoría) se coordina en el **servicio de dominio**, nunca entre adaptadores.
 
 ## 9. Ubicación física propuesta (documentación, no implementación)
 
-`Output-Ports.md` (sección 15) propone:
-
-```text
-src/main/typescript/
-├── domain/
-│   ├── models/
-│   ├── value-objects/
-│   ├── services/
-│   └── ports/
-├── application/
-│   └── use-cases/
-└── adapters/
-    └── out/
-        ├── persistence/
-        │   ├── sql/
-        │   └── mongo/
-        └── external/
-            ├── payments/
-            └── logistics/
-```
-
-`Input-Ports.md` (sección 32) propone una estructura única para todo el proyecto, que **incluye el
-lado de entrada de los adaptadores**:
+La estructura de referencia **única** es la de `Input-Ports.md` (sección 32), que **incluye el lado de
+entrada de los adaptadores**. `Output-Ports.md` (sección 15) ya se ha alineado con esta misma raíz
+`src/` (resuelve la observación O-13):
 
 ```text
 src/
@@ -403,27 +383,8 @@ src/
     ├── config/  database/  security/
 ```
 
-`Output-Ports.md` (sección 15) propone una variante con raíz distinta:
-
-```text
-src/main/typescript/
-├── domain/
-├── application/
-└── adapters/
-    └── out/
-        ├── persistence/
-        │   ├── sql/
-        │   └── mongo/
-        └── external/
-            ├── payments/
-            └── logistics/
-```
-
-**Observación:** las dos propuestas difieren en la raíz (`src/` frente a `src/main/typescript/`) y
-en el nivel de detalle del lado de salida; `Input-Ports.md` incluye `adapters/in/rest/` y
-`infrastructure/{config,database,security}`, que no aparecen en la propuesta de `Output-Ports.md`.
-Ambos documentos coinciden, en cambio, en mantener la separación entrada / salida / dominio /
-infraestructura.
+El detalle del lado de salida (`adapters/out/persistence/{sql,mongo}`, `adapters/out/external`) proviene
+de `Output-Ports.md` (sección 15). La separación entrada / salida / dominio / infraestructura se mantiene.
 
 Para esta capa de documentación se adopta la siguiente ubicación conceptual de los adaptadores, que
 respeta ambos documentos:
@@ -675,25 +636,20 @@ en el núcleo y solo después el adaptador correspondiente.
 
 ## 15. Pendientes de definición
 
-Los siguientes puntos **no pueden resolverse** con la documentación actual y quedan explícitamente
-como pendientes. No se inventaron valores para ellos:
+Puntos que siguen abiertos (no decididos por la documentación actual; no se inventaron valores):
 
-1. **Catálogo de endpoints HTTP** (rutas, verbos, parámetros de ruta y consulta). `Input-Ports.md`
-   solo ofrece un ejemplo ilustrativo (`POST /buyers`).
-2. **Framework HTTP concreto.** Los documentos mencionan Express/Fastify únicamente como
-   dependencias prohibidas del núcleo, no como decisión de stack.
-3. **Mecanismo de autenticación** (JWT, sesiones, OAuth, proveedor de identidad).
-4. **Proveedores** de pago, logística y facturación externa.
-5. **Decisión de facturación**: `InvoiceRepository` (adaptador SQL) o `BillingGateway` (adaptador
-   externo). `Output-Ports.md` (sección 9) deja la decisión abierta.
-6. **Motor SQL final** (PostgreSQL recomendado, no decidido formalmente) y **librería de acceso a
-   datos** (Prisma/TypeORM aparecen solo como ejemplos de lo que no debe filtrarse).
-7. **Formato de identificadores** (`int` en `DomainModel .md` frente a `string` en las firmas de
-   `Output-Ports.md`).
-8. **Persistencia de devoluciones** (no existe entidad `Devolucion` ni puerto asociado).
-9. **Catálogo de errores de aplicación** con nombres estables para el mapeo HTTP.
-10. **Paginación, filtros y formato de fechas** en las respuestas HTTP.
-11. **Exposición de `ReserveInventoryUseCase`** como endpoint o caso de uso estrictamente interno.
+1. **Framework HTTP concreto.** Express/Fastify aparecen solo como dependencias prohibidas del núcleo.
+2. **Mecanismo de autenticación** (JWT, sesiones, OAuth, proveedor de identidad) y existencia de S17.
+3. **Proveedores** de pago, logística y facturación externa.
+4. **Motor SQL final** (PostgreSQL recomendado) y **librería de acceso a datos**.
+5. **Paginación, filtros y formato de fechas** en las respuestas HTTP.
+
+Resueltos (ver `observaciones-arquitectonicas.md`): catálogo de endpoints HTTP
+(`../contract-alignment.md`, O-08); decisión de facturación —`BillingGateway`, S10 no utilizado
+inicialmente— (O-12); formato de identificadores —`string` opaco— (O-05); devoluciones declaradas fuera
+de alcance (`DomainModel .md` §15.1, O-01); catálogo de errores con mapeo HTTP (`Input-Ports.md` §26,
+O-18); exposición de `ReserveInventoryUseCase` (`Input-Ports.md` §21, O-07); estructura única del
+proyecto (§9, O-13).
 
 ---
 

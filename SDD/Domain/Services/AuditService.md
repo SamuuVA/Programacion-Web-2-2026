@@ -23,13 +23,13 @@ Eliminar evento -> no permitido
 - `RegistroAuditoria`
 - Usuario/actor responsable.
 - Entidad afectada.
-- `AuditSeverity`
+- `GravedadAuditoria`
 
 ### Severidades
-- `INFORMACIÓN`
+- `INFORMACION`
 - `ADVERTENCIA`
 - `ERROR`
-- `CRÍTICO`
+- `CRITICO`
 
 ## 4. Operación
 
@@ -92,7 +92,12 @@ recordEvent(eventData): AuditLog
 | ¿Quién? | Actor |
 | ¿Sobre qué? | Entidad afectada |
 | ¿Resultado? | Resultado |
-| ¿Qué severidad? | `AuditSeverity` |
+| ¿Qué severidad? | `GravedadAuditoria` |
+
+Estos datos se materializan en los atributos de `RegistroAuditoria` (`DomainModel .md`, §11):
+`tipoEvento` (qué), `marcaTiempo` (cuándo), `realizadoPorUsuario`/`rolUsuario` (quién),
+`entidadTipo`/`entidadId` (sobre qué), `resultado` (resultado) y `gravedad` (severidad), lo que
+resuelve la observación O-10.
 
 ## 7. Reglas de negocio
 - Los registros son inmutables.

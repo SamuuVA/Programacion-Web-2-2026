@@ -107,6 +107,11 @@ Representa si un comprador está habilitado para realizar nuevas operaciones com
 
 Un comprador restringido no debe iniciar nuevas compras mientras permanezca en dicho estado.
 
+> **Gestión fuera de alcance (O-17):** no existe ningún caso de uso documentado que modifique
+> `EstadoComercial`. Su cambio se gestiona mediante un proceso administrativo no incluido en el alcance
+> actual (`DomainModel .md`, §15.1); por ello, `Input-Ports.md` (§9) no define un caso de uso para este
+> estado.
+
 ---
 
 # 7. EstadoProducto

@@ -12,6 +12,7 @@ Variante + Bodega
 y mantiene `cantidadDisponible` y `cantidadReservada`.
 
 ## 2. Responsabilidades
+- Registrar bodegas.
 - Registrar ingresos.
 - Reservar stock para pedidos.
 - Registrar salidas por venta.
@@ -27,12 +28,33 @@ y mantiene `cantidadDisponible` y `cantidadReservada`.
 - `Pedido`
 - `ItemPedido`
 - `Usuario`
-- `InventoryMovementType`
+- `TipoMovimientoInventario`
 
 ### Tipos de movimiento
 `INGRESO`, `RESERVA`, `SALIDA_VENTA`, `AJUSTE`, `DEVOLUCION`.
 
 ## 4. Operaciones
+
+### `createWarehouse`
+
+```text
+createWarehouse(actorId, warehouseData): Warehouse
+```
+
+**Precondiciones**
+- Actor autenticado y autorizado (Administrador o Vendedor).
+- `nombre`, `ubicacion` y `tipoBodega` válidos.
+
+**Flujo**
+1. Validar actor.
+2. Validar datos y `tipoBodega` (`Domain Object Value.md` §11).
+3. Crear la bodega (`BodegaMarketplace` o `BodegaVendedor`).
+4. Asociar la `BodegaVendedor` a su vendedor propietario.
+5. Auditar.
+
+**Postcondiciones**
+- Bodega registrada y disponible para el inventario.
+- Si corresponde, la bodega queda vinculada al vendedor.
 
 ### `replenishStock`
 

@@ -129,15 +129,15 @@ Para verificar el estado operativo se necesita leer el usuario:
 Usuario → UserRepository (Output Port)
 ```
 
-Existen dos alternativas y **ninguna está decidida en la documentación**:
+La decisión está **tomada** (resuelve O-09): se adopta la **alternativa A**.
 
-| Alternativa | Descripción | Riesgo |
+| Alternativa | Descripción | Decisión |
 |---|---|---|
-| A. Verificación en el caso de uso / servicio | El núcleo consulta `UserRepository` y valida el estado (`UserRepository` ya expone "recuperar estado y rol del usuario", `Output-Ports.md` §5.1) | Ninguno arquitectónico: respeta la inversión de dependencias |
-| B. Verificación en el adaptador de entrada | El adaptador consulta `UserRepository` | **Contradice** la regla de que un adaptador de entrada no accede a repositorios (`architecture.md` §8) |
+| A. Verificación en el caso de uso / servicio | El núcleo consulta `UserRepository` y valida el estado (`UserRepository` ya expone "recuperar estado y rol del usuario", `Output-Ports.md` §5.1) | **Adoptada** |
+| B. Verificación en el adaptador de entrada | El adaptador consulta `UserRepository` | **Descartada**: contradice `architecture.md` §8 |
 
-**Recomendación (documentada, no implementada):** alternativa A. El adaptador solo resuelve
-identidad y rol; la validez operativa de la cuenta se verifica en el núcleo.
+El adaptador solo resuelve identidad y rol; la validez operativa de la cuenta (`ACTIVO`) la verifica el
+núcleo. La regla queda recogida en `Input-Ports.md` (§8, "Reglas del contexto") y `Output-Ports.md` (§5.1).
 
 ---
 
@@ -216,7 +216,6 @@ adaptador S17).
 ## 13. Pendientes de definición
 
 - Mecanismo de autenticación (JWT, sesiones, OAuth 2.0, OpenID Connect o proveedor externo).
-- Decisión sobre la verificación del estado operativo del usuario (§8).
 - Decisión sobre el uso del Output Port `IdentityProvider` y, por tanto, sobre la existencia del
   adaptador S17.
 - Forma concreta de las credenciales (`Credentials`) y del resultado `AuthenticatedIdentity`

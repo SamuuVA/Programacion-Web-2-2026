@@ -27,8 +27,8 @@ Un vendedor no puede registrarse por sí mismo.
 - `Vendedor`
 - `Administrador`
 - `SystemRole`
-- `UserStatus`
-- `CommercialStatus`
+- `EstadoUsuario`
+- `EstadoComercial`
 - `RegistroAuditoria`
 
 ## 4. Operaciones
@@ -80,6 +80,10 @@ onboardSeller(adminId, sellerData): Seller
 4. Crear `Vendedor`.
 5. Asignar `VENDEDOR`.
 6. Registrar auditoría.
+
+> Si la incorporación incluye la primera bodega del vendedor (`Input-Ports.md`, §10.1), la creación de
+> esa bodega se delega en `InventoryService.createWarehouse(...)`, dado que la gestión de bodegas
+> corresponde a ese servicio.
 
 ### `updateUserAccessStatus`
 

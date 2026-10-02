@@ -55,7 +55,7 @@ agrupación se realizó por dominio funcional, tal como propone `Input-Ports.md`
 | E1 | `UserController` | Usuarios | `UpdateUserAccessStatusUseCase` | Administrador |
 | E2 | `WarehouseController` | Bodegas | `CreateWarehouseUseCase` | Administrador / Vendedor |
 | E3 | `ProductController` | Catálogo | `CreateProductUseCase`, `UpdateProductStatusUseCase` | Vendedor / Administrador |
-| E4 | `InventoryController` | Inventario | `ReplenishStockUseCase`, `DispatchInventoryUseCase` | Vendedor / Operador Logístico / Operador Logístico |
+| E4 | `InventoryController` | Inventario | `ReplenishStockUseCase`, `DispatchInventoryUseCase` | Vendedor / Operador Logístico |
 | E5 | `CartController` | Carrito | `AddItemToCartUseCase`, `RemoveItemFromCartUseCase`, `ConfirmCartUseCase` | Comprador |
 | E6 | `OrderController` | Pedidos | `ConfirmOrderUseCase`, `GetOrderUseCase`, `UpdateOrderStatusUseCase` | Comprador / roles autorizados |
 | E7 | `PaymentController`, `InvoiceController` | Pago y facturación | `ProcessPaymentUseCase`, `CreateInvoiceUseCase` | Flujo comercial / Sistema |
@@ -121,12 +121,13 @@ Entrada del controller
   actor siempre proviene del `ExecutionContext`, nunca del cuerpo.
 - Ningún controller acepta un rol enviado por el cliente como valor de confianza.
 
-### 6.3 Observación sobre `operatorId`
+### 6.3 Actor y `ExecutionContext`
 
-`DispatchInventoryCommand` incluye `operatorId` (`Input-Ports.md`, sección 12.3) y
-`ReplenishStockCommand` no lo incluye aunque el servicio `replenishStock` recibe `operatorId`
-(`Services/InventoryService.md`, sección 4). El adaptador **no** debe resolver esta ambigüedad por
-su cuenta: se documenta en `../observaciones-arquitectonicas.md` como pendiente de alineación.
+`Input-Ports.md` (§8 y §12.3) fija la regla: el actor proviene **siempre** del `ExecutionContext` y
+**nunca** del cuerpo de la solicitud. Por ello, `DispatchInventoryCommand` ya no incluye `operatorId`
+(resuelve O-06). Cuando un servicio de dominio recibe un `operatorId` (por ejemplo,
+`InventoryService.replenishStock`, `Services/InventoryService.md` §4), ese valor lo aporta la capa de
+aplicación a partir del contexto, nunca el cliente.
 
 ---
 
@@ -222,17 +223,17 @@ HTTP Status
 | Fallo técnico interno, error del motor o de un proveedor | `Output-Ports.md` §20 | `500 Error interno` |
 | Servicio externo no disponible | Adaptador de servicios externos | `502` / `503` (a definir) |
 
-**Pendiente de definición:** el catálogo de `Input-Ports.md` (§26) se presenta como "ejemplos
-conceptuales"; la correspondencia final entre cada error y su código HTTP debe fijarse en el
-catálogo definitivo de errores del adaptador.
+El catálogo de `Input-Ports.md` (§26) es ahora un **catálogo definitivo** de errores de aplicación con
+su correspondencia HTTP (resuelve O-18). El adaptador traduce los errores del núcleo a esos códigos
+estables.
 
 Reglas:
 
 1. Los errores técnicos de la base de datos o de los SDK nunca llegan al cliente: el adaptador los
    traduce (`Output-Ports.md`, sección 20).
 2. El mensaje de error no debe revelar detalles internos de infraestructura.
-3. El catálogo definitivo de errores de aplicación pertenece al núcleo; mientras no exista, los
-   adaptadores usan categorías, no mensajes ad hoc.
+3. El catálogo de errores de aplicación pertenece al núcleo (`Input-Ports.md`, §26); los adaptadores
+   usan esos códigos estables, no mensajes ad hoc.
 
 ---
 
@@ -268,7 +269,8 @@ las convenciones que los adaptadores deben respetar cuando el catálogo se defin
 | Los identificadores viajan en la ruta o en la consulta; el cuerpo transporta los datos del comando | Convención REST habitual, compatible con los comandos documentados |
 | Prohibido exponer endpoints de escritura de auditoría | `Input-Ports.md` (sección 20): la escritura de auditoría no debe exponerse arbitrariamente |
 
-**Pendiente de definición:** el catálogo definitivo de rutas y verbos.
+**Resuelto (O-08):** el catálogo definitivo de rutas, verbos, parámetros y códigos de éxito se
+documenta en `../contract-alignment.md`. Las convenciones de esta sección se mantienen.
 
 ---
 
@@ -335,7 +337,8 @@ Controllers → Otros controllers
 5. La respuesta se construye con un Response DTO, nunca con una entidad.
 6. Los errores de la infraestructura se traducen antes de salir del adaptador.
 7. Ningún controller conoce a otro adaptador.
-8. `ReserveInventoryUseCase` no se expone mediante controller mientras no se decida lo contrario.
+8. `ReserveInventoryUseCase` no se expone mediante controller: es un caso de uso interno
+   (`Input-Ports.md`, §21; resuelve O-07).
 
 ### Correspondencia con las reglas IP de `Input-Ports.md` (§29)
 
@@ -375,11 +378,13 @@ adaptador de entrada. La estructura de rutas definitiva sigue pendiente.
 
 ## 15. Pendientes de definición
 
-- Catálogo de endpoints (rutas, verbos, parámetros, códigos de éxito).
 - Framework HTTP concreto.
-- Catálogo de errores de aplicación con nombres estables y su mapeo definitivo.
-- Decisión sobre la exposición de `ReserveInventoryUseCase`.
-- Alineación de `operatorId` entre los comandos documentados y el `ExecutionContext`.
 - Formato de fechas, paginación y filtros en las respuestas.
+- Proveedores externos (pago, logística) y mecanismo de autenticación.
+
+Resueltos en la documentación de dominio (ver `../observaciones-arquitectonicas.md`): catálogo de
+endpoints (`../contract-alignment.md`, O-08), catálogo de errores con su mapeo HTTP (`Input-Ports.md`
+§26, O-18), exposición de `ReserveInventoryUseCase` (`Input-Ports.md` §21, O-07), actor desde el
+`ExecutionContext` (O-06) y verificación del estado operativo en el núcleo (O-09).
 
 

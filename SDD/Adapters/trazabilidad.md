@@ -44,7 +44,7 @@ BuyerController → RegisterBuyerUseCase → UserManagementService
 
 | Caso de uso | Adaptador de entrada | Servicio | Output Ports | Adaptadores de salida |
 |---|---|---|---|---|
-| `CreateWarehouseUseCase` | `WarehouseController` (E2) | **Pendiente de definición:** `Input-Ports.md` (§10) no asigna el caso de uso a un servicio; `InventoryService` incluye `Warehouse` entre sus entidades | `WarehouseRepository` | `SQLWarehouseRepository` |
+| `CreateWarehouseUseCase` | `WarehouseController` (E2) | `InventoryService` (`createWarehouse`) | `WarehouseRepository` | `SQLWarehouseRepository` |
 | `CreateProductUseCase` | `ProductController` (E3) | `CatalogService` | `ProductRepository`, `SellerRepository`, `AuditRepository` | `SQLProductRepository`, `SQLSellerRepository`, `MongoAuditRepository` |
 | `UpdateProductStatusUseCase` | `ProductController` (E3) | `CatalogService` | `ProductRepository`, `AuditRepository` | `SQLProductRepository`, `MongoAuditRepository` |
 
@@ -88,7 +88,7 @@ ConfirmOrderUseCase → OrderProcessingService
 | Caso de uso | Adaptador de entrada | Servicio | Output Ports | Adaptadores de salida |
 |---|---|---|---|---|
 | `ProcessPaymentUseCase` | `PaymentController` (E7) | `OrderProcessingService` | `PaymentGateway`, `OrderRepository`, `InventoryRepository` (reserva posterior a la aprobación), `AuditRepository` | Adaptador de pago (S14), `SQLOrderRepository`, `SQLInventoryRepository`, `MongoAuditRepository` |
-| `CreateInvoiceUseCase` | `InvoiceController` (E7) | **Pendiente de definición** (el actor documentado es "Sistema") | `InvoiceRepository` **o** `BillingGateway` (decisión abierta, `Output-Ports.md` §9) | `SQLInvoiceRepository` (S10) **o** adaptador de facturación externa (S16) |
+| `CreateInvoiceUseCase` | `InvoiceController` (E7) | `BillingGateway` (origen Sistema; O-12) | `BillingGateway` | Adaptador de facturación externa (S16) |
 
 ### 2.7 Logística y envíos
 
@@ -141,7 +141,7 @@ auditoría no se expone como operación arbitraria.
 | 7 | `InventoryMovementRepository` | `SQLInventoryMovementRepository` | SQL | Definido | `output/sql-adapters.md` §3.7 |
 | 8 | `CartRepository` | `SQLCartRepository` | SQL | Definido | `output/sql-adapters.md` §3.8 |
 | 9 | `OrderRepository` | `SQLOrderRepository` | SQL | Definido | `output/sql-adapters.md` §3.9 |
-| 10 | `InvoiceRepository` | `SQLInvoiceRepository` | SQL | Condicional (decisión abierta) | `output/sql-adapters.md` §3.10 |
+| 10 | `InvoiceRepository` | `SQLInvoiceRepository` | SQL | **No utilizado inicialmente** (O-12) | `output/sql-adapters.md` §3.10 |
 | 11 | `ShipmentRepository` | `SQLShipmentRepository` | SQL | Definido | `output/sql-adapters.md` §3.11 |
 | 12 | `AuditRepository` | `MongoAuditRepository` | MongoDB | Definido | `output/mongodb-adapters.md` |
 | 13 | `PaymentGateway` | Adaptador de pasarela de pago (S14) | Proveedor externo | Condicionado al proveedor | `output/external-service-adapters.md` §4.1 |
@@ -176,7 +176,7 @@ el detalle del proveedor de pago/logística) quedan **condicionados a decisiones
 | E14 | (soporte) | Mappers DTO → comando | — |
 | E15 | (transversal) | Genera el `ExecutionContext` para todos los Input Ports | Todos |
 
-**Cobertura:** 23 de los 24 Input Ports documentados tienen adaptador de entrada. El único sin
+**Cobertura:** 24 de los 25 Input Ports documentados tienen adaptador de entrada. El único sin
 controller es `ReserveInventoryUseCase`, por tratarse de un caso de uso interno del flujo de pedido
 (`Input-Ports.md`, §21).
 
@@ -267,7 +267,6 @@ Cada adaptador responde a las cuatro preguntas de trazabilidad:
 | `AuditController` (E11) | Exponer la consulta de trazabilidad | `QueryAuditLogUseCase` | `AuditService` | HTTP |
 | E12 / E13 / E14 | Separar el modelo HTTP del modelo de aplicación | — | Todos los casos de uso expuestos | — |
 | E15 | Resolver identidad y rol | — | Todos los Input Ports | Mecanismo pendiente |
-
 | `SQL*Repository` (S1–S11) | Persistir los datos transaccionales | Repositorios de `Output-Ports.md` §27 | Todos los servicios | SQL |
 | `SQLReportingQueryAdapter` (S12) | Consolidar información administrativa | `ReportingQuery` | `GenerateAdministrativeReportUseCase` | SQL (lectura) |
 | `MongoAuditRepository` (S13) | Preservar la trazabilidad inmutable | `AuditRepository` | `AuditService` | MongoDB |
@@ -283,16 +282,14 @@ Cada adaptador responde a las cuatro preguntas de trazabilidad:
 
 | Elemento | Motivo |
 |---|---|
-| Servicio y puertos de `CreateWarehouseUseCase` | `Input-Ports.md` (§10) no asigna servicio |
-| Servicio y puertos de `CreateInvoiceUseCase` | Decisión de facturación pendiente (`Output-Ports.md`, §9) |
-| Servicio y puertos de devoluciones y reembolsos | No existen entidad ni servicio documentados |
-| Entrada conceptual de `ConfirmOrderUseCase`, `UpdateOrderStatusUseCase`, `ApproveReturnUseCase` y `GetOrderUseCase` | No documentada |
-| Endpoints HTTP | No documentados |
 | Mecanismo de autenticación | Fuera del alcance de la especificación (`Input-Ports.md`, §8) |
 | Proveedores externos | No definidos |
-| Entidades `Factura` y `Envio` | Referenciadas por puertos, ausentes del modelo de dominio |
+| Devoluciones y reembolsos | Declarados **fuera de alcance** (`DomainModel .md`, §15.1; O-01) |
 
-Todos ellos se detallan en `observaciones-arquitectonicas.md`.
+Resueltos (ver `observaciones-arquitectonicas.md`): servicio de `CreateWarehouseUseCase`
+—`InventoryService.createWarehouse`— (O-04); decisión de facturación —`BillingGateway`— (O-12); entrada
+conceptual de los cuatro casos de uso (O-03); endpoints HTTP (`contract-alignment.md`, O-08); entidades
+`Factura` y `Envio` declaradas fuera del modelo de dominio (O-02).
 
 ---
 

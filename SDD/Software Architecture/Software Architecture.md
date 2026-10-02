@@ -33,7 +33,7 @@ No se introdujeron entidades, puertos, adaptadores, tecnologías ni procesos que
 | Objetos de valor | `SDD/Domain/Domain Object Value.md` | Catálogos controlados (`SystemRole`, `EstadoPedido`, `TipoMovimientoInventario`, etc.) |
 | Servicios de dominio | `SDD/Domain/Domain  Servicies.md` | Servicios, operaciones, precondiciones, invariantes globales |
 | Servicios (detalle) | `SDD/Domain/Services/*.md` | `UserManagementService`, `CatalogService`, `InventoryService`, `OrderProcessingService`, `AuditService` |
-| Input Ports | `SDD/Domain/Input-Ports.md` | 24 casos de uso, `ExecutionContext`, flujo de solicitud, reglas IP-01…IP-10, decisión arquitectónica |
+| Input Ports | `SDD/Domain/Input-Ports.md` | 25 casos de uso, `ExecutionContext`, flujo de solicitud, reglas IP-01…IP-10, decisión arquitectónica |
 | Output Ports | `SDD/Domain/Output-Ports.md` | 17 puertos, reglas OP-01…OP-10, SQL como fuente de verdad, MongoDB para auditoría, transacciones |
 | Arquitectura de adaptadores | `SDD/Adapters/architecture.md` | Capa de adaptadores, criterios, reglas de dependencia, decisiones 1–6 |
 | Visión general de adaptadores | `SDD/Adapters/README.md` | Catálogo resumido de adaptadores E1–E15 y S1–S18 |
@@ -93,7 +93,7 @@ bases de datos relacionales y documentales.
 |---|---|
 | La descripción de la arquitectura y de las reglas estructurales del sistema | Una especificación funcional de negocio (esa función la cumplen `Input-Ports.md` y el modelo de dominio) |
 | La justificación de las decisiones arquitectónicas adoptadas | Un manual de instalación, despliegue o esquema físico de base de datos |
-| La trazabilidad entre especificación, puertos, adaptadores y tecnología | Un catálogo de endpoints HTTP (pendiente de definición) |
+| La trazabilidad entre especificación, puertos, adaptadores y tecnología | Un catálogo de endpoints HTTP (definido en `contract-alignment.md`, O-08) |
 | El registro explícito de los vacíos que la documentación aún no resuelve | Código fuente o pseudoimplementación |
 
 ---
@@ -129,7 +129,7 @@ Lenguaje:                TypeScript
 Runtime:                 Node.js
 Entrada principal:       REST API (HTTP)
 Input Adapter:           Controllers
-Input Port:              Use Cases (24)
+Input Port:              Use Cases (25)
 Lógica de negocio:       Application / Domain Services (5 servicios documentados)
 Persistencia:            SQL (fuente de verdad transaccional)
 Persistencia documental: MongoDB (auditoría y trazabilidad)
@@ -140,7 +140,7 @@ Integraciones:           Output Ports + Output Adapters
 
 | Elemento | Cantidad documentada | Fuente |
 |---|---|---|
-| Casos de uso expuestos (Input Ports) | 24 | `Input-Ports.md` §21 |
+| Casos de uso expuestos (Input Ports) | 24 de un total de 25 (`ReserveInventoryUseCase` es interno) | `Input-Ports.md` §21 |
 | Servicios de dominio | 5 | `Domain  Servicies.md` §2 |
 | Output Ports | 17 | `Output-Ports.md` §27 |
 | Adaptadores de entrada (controllers REST) | 11 grupos (E1–E11) | `Adapters/architecture.md` §5.1 |
@@ -222,7 +222,7 @@ implementación y la gobierna**. Cada elemento técnico debe poder rastrearse ha
 | **Especificación** | Documentos `DomainModel .md`, `Domain Object Value.md`, `Domain  Servicies.md`, `Input-Ports.md`, `Output-Ports.md` y `SDD/Adapters/*` |
 | **Requisitos** | Reglas de negocio e invariantes con código estable: `RG-01`, `RG-02`, `RG-03`, `INV-01`…`INV-03`, `ORD-01`, `USR-01`, `SEL-01`, `AUD-01`, `AUD-02`, `VO-01`…`VO-08` |
 | **Trazabilidad** | Matriz caso de uso → adaptador → servicio → Output Port → adaptador de salida → tecnología (`Adapters/trazabilidad.md`) |
-| **Contratos** | Input Ports (24 casos de uso), Output Ports (17 contratos), Request DTOs (E12), Response DTOs (E13) |
+| **Contratos** | Input Ports (25 casos de uso), Output Ports (17 contratos), Request DTOs (E12), Response DTOs (E13) |
 | **Documentación** | Carpeta `SDD/` como fuente autoritativa; este documento describe su traducción arquitectónica |
 | **Relación especificación ↔ implementación** | Ninguna operación se implementa si no está especificada; si falta, se registra como **pendiente de definición** (hallazgos O-01…O-18) |
 
@@ -234,7 +234,7 @@ implementación y la gobierna**. Cada elemento técnico debe poder rastrearse ha
 
 ### Trazabilidad documental ya establecida
 
-`Adapters/trazabilidad.md` demuestra que el principio se aplicó: **23 de los 24 Input Ports** tienen
+`Adapters/trazabilidad.md` demuestra que el principio se aplicó: **24 de los 25 Input Ports** tienen
 adaptador de entrada documentado (`ReserveInventoryUseCase` es interno), y **los 17 Output Ports**
 tienen al menos un adaptador de salida documentado (cuatro de ellos condicionados a decisiones
 pendientes).
@@ -277,7 +277,7 @@ establecen como marco estructural del proyecto.
 | Elemento | Definición en NexusMarket |
 |---|---|
 | **Núcleo (core)** | Dominio (entidades, objetos de valor, servicios) + aplicación (casos de uso) |
-| **Input Ports** | Contratos de entrada: 24 casos de uso (`RegisterBuyerUseCase`, `ConfirmOrderUseCase`, `QueryAuditLogUseCase`, …) |
+| **Input Ports** | Contratos de entrada: 25 casos de uso (`RegisterBuyerUseCase`, `ConfirmOrderUseCase`, `QueryAuditLogUseCase`, …) |
 | **Output Ports** | Contratos de salida: 17 puertos (`UserRepository`, `InventoryRepository`, `AuditRepository`, `PaymentGateway`, `ReportingQuery`, …) |
 | **Input Adapters** | Controllers REST (E1–E11), DTOs (E12/E13), mappers de entrada (E14), adaptador de autenticación (E15) |
 | **Output Adapters** | Repositorios SQL (S1–S12), `MongoAuditRepository` (S13), adaptadores externos (S14–S17), unidad de trabajo (S18) |
@@ -338,7 +338,7 @@ Implementación (TypeScript sobre Node.js)
 
 ## 5.1 Diagrama de arquitectura de NexusMarket
 
-Adaptación del diagrama conceptual a los componentes **reales** documentados (E1–E15, S1–S18, 24 Input
+Adaptación del diagrama conceptual a los componentes **reales** documentados (E1–E15, S1–S18, 25 Input
 Ports, 17 Output Ports y 5 servicios de dominio).
 
 ```mermaid
@@ -352,7 +352,7 @@ flowchart TB
     end
 
     subgraph CORE["NÚCLEO — no depende de ninguna tecnología"]
-        IP["INPUT PORTS<br/>24 casos de uso"]
+        IP["INPUT PORTS<br/>25 casos de uso"]
         SVC["SERVICIOS DE DOMINIO (stateless)<br/>UserManagementService · CatalogService<br/>InventoryService · OrderProcessingService · AuditService"]
         DOM["DOMINIO<br/>Entidades · Objetos de valor · Agregados<br/>Invariantes y reglas de negocio"]
         OP["OUTPUT PORTS<br/>17 contratos"]
@@ -501,9 +501,8 @@ MongoDB, SQL, HTTP, frameworks y APIs externas**.
 `DomainModel .md` expresa atributos con tipos como `int`, `String`, `BigDecimal`, `LocalDateTime` y
 `List<>`. Se trata de **notación descriptiva de especificación**, no de tipos de un lenguaje concreto:
 la implementación en TypeScript debe traducir esos conceptos siguiendo las convenciones del lenguaje
-(texto, número, fecha, colección) sin alterar la semántica del negocio. El **formato definitivo de
-identificadores** (`int` en el modelo frente a `string` en las firmas de los puertos) está **pendiente
-de alineación** (hallazgo O-05).
+(texto, número, fecha, colección) sin alterar la semántica del negocio. El **formato de identificadores** está unificado: identificador **opaco** representado como `string`
+(`DomainModel .md`, §2.5; resuelve el hallazgo O-05).
 
 ## 6.2 Application / Services
 
@@ -520,7 +519,7 @@ Los documentos de NexusMarket describen esta capa como **«Application / Domain 
 
 | Concepto | Estado en NexusMarket |
 |---|---|
-| **Input Ports (casos de uso)** | Definidos y enumerados (24) en `Input-Ports.md` §21 |
+| **Input Ports (casos de uso)** | Definidos y enumerados (25) en `Input-Ports.md` §21 |
 | **Servicios de dominio** | Definidos y detallados (5) en `Domain  Servicies.md` y `Services/*.md` |
 | **Capa de servicios de aplicación independiente** | **No documentada como artefacto propio.** La orquestación se documenta como la delegación del caso de uso hacia el servicio de dominio |
 
@@ -667,7 +666,7 @@ UserManagementService
      └── AuditRepository
 ```
 
-### Catálogo documentado de Input Ports (24 casos de uso)
+### Catálogo documentado de Input Ports (25 casos de uso)
 
 | Dominio | Input Port | Actor documentado |
 |---|---|---|
@@ -688,7 +687,7 @@ UserManagementService
 | Pedidos | `UpdateOrderStatusUseCase` | Roles autorizados |
 | Pago | `ProcessPaymentUseCase` | Flujo comercial |
 | Facturación | `CreateInvoiceUseCase` | Sistema |
-| Logística | `CreateShipmentUseCase` | Sistema / Operador |
+| Logística | `CreateShipmentUseCase` | Sistema / Operador Logístico |
 | Logística | `DispatchOrderUseCase` | Operador Logístico |
 | Logística | `ConfirmDeliveryUseCase` | Operador Logístico |
 | Devoluciones | `RequestReturnUseCase` | Comprador |
@@ -932,7 +931,7 @@ no distingue entre producción y prueba.
 | Adaptadores GraphQL, gRPC, CLI, colas de mensajes | No se crean | Solo se mencionan como posibilidad futura; no hay puerto ni requisito actual |
 | Adaptador SQL Server / MySQL | No se crea | El puerto permanece neutral; PostgreSQL está recomendado, no decidido |
 | Segundo adaptador documental para datos transaccionales | No se crea | MongoDB no debe ser segunda fuente autoritativa de los mismos datos |
-| Adaptador de notificaciones (correo/SMS) | No se crea | No existe puerto de notificación en la matriz; queda **pendiente de definición** |
+| Adaptador de notificaciones (correo/SMS) | No se crea | No existe puerto de notificación; declarado **fuera de alcance** (`DomainModel .md` §15.1; O-16) |
 | Adaptador de caché, almacenamiento de archivos, entrega digital | No se crean | No existen puertos asociados |
 
 ### 6.5.5 DTOs y Mappers
@@ -1173,7 +1172,56 @@ de estado) exigen consistencia transaccional:
 | S16 Facturación externa | `BillingGateway` | Generación y timbrado de facturas fiscales | Operación asíncrona o reintentable; no bloquea el flujo principal de compra si no es mandatorio |
 | S17 Identidad | `IdentityProvider` | Verificación de identidad federada / OAuth / SSO si aplica | Fallo inmediato con denegación de acceso |
 
-<!--CONTINUA-->
+# 9. El papel de TypeScript en la arquitectura
+
+## 9.1 TypeScript como herramienta, no como arquitectura
+
+TypeScript es el lenguaje elegido para implementar NexusMarket. Sin embargo, **TypeScript no define la
+arquitectura**: es el medio a través del cual se materializan las fronteras, los contratos y el tipado
+estricto dictados por DDD y Arquitectura Hexagonal.
+
+## 9.2 Fortalezas que aporta al diseño
+
+1. **Tipado estático y compilación:** previene inconsistencias de tipos en tiempo de desarrollo.
+2. **Interfaces puras para puertos:** los contratos de Input Ports y Output Ports se modelan mediante
+   `interface` o `type` de TypeScript sin generar sobrecarga en tiempo de ejecución.
+3. **Inmutabilidad declarativa:** modificadores `readonly`, tipos utilitarios (`Readonly<T>`,
+   `ReadonlyArray<T>`) y Value Objects inmutables previenen mutaciones accidentales.
+4. **Tipos algebraicos y uniones discriminadas:** modelan transiciones de estado cerradas (`EstadoPedido`,
+   `EstadoPago`) y resultados de operaciones (`Result<T, E>`).
+
+## 9.3 Lo que TypeScript NO debe hacer en la arquitectura
+
+- **No acoplar el dominio al compilador o decoradores:** las entidades no deben depender de decoradores
+  de frameworks (ORM, validadores reflectivos) que mezclen persistencia en el dominio.
+- **No reemplazar la validación en tiempo de ejecución:** TypeScript no existe en runtime (se transpila
+  a JavaScript). Por tanto, la validación sintáctica de DTOs en adaptadores de entrada y la validación
+  de invariantes de dominio en entidades deben ejecutarse en tiempo de ejecución.
+
+---
+
+# 10. El papel de Node.js en la arquitectura
+
+## 10.1 Node.js como entorno de ejecución
+
+Node.js es el **runtime** en el que se ejecuta la aplicación compilada. Representa una decisión de
+infraestructura y despliegue, **completamente externa al núcleo del negocio**.
+
+## 10.2 Consideraciones del modelo de ejecución
+
+1. **Bucle de eventos (Event Loop) y concurrencia:**
+   - La arquitectura asíncrona basada en promesas (`Promise<T>`, `async/await`) es nativa en los contratos
+     de los Output Ports que involucran E/S (bases de datos, HTTP de proveedores externos).
+   - Las operaciones del dominio puro (validaciones, cálculos, transiciones de estado) son síncronas y
+     no bloqueantes.
+2. **Gestión de procesos y variables de entorno:**
+   - La lectura de configuración (`process.env`) reside exclusivamente en los adaptadores y módulos de
+     configuración de infraestructura.
+   - El núcleo jamás accede a variables de entorno globales.
+3. **Manejo del ciclo de vida:**
+   - Inicio del servidor, conexiones de base de datos (pools SQL y cliente MongoDB) y parada ordenada
+     (*graceful shutdown*) se administran en la capa de composición e infraestructura.
+
 
 
 

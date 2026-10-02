@@ -147,9 +147,10 @@ la aplicación, y el adaptador persiste únicamente una operación válida (`Out
 | `buscarPorId(id)` | Recuperar factura por identificador |
 | `buscarPorPedido(pedidoId)` | Recuperar la factura de un pedido |
 
-**Observación:** la entidad `Factura` no está descrita en `DomainModel .md`, por lo que este
-adaptador solo puede definirse a nivel de contrato. Además, `Output-Ports.md` (§9) deja abierta la
-alternativa de delegar la facturación a un sistema externo (`BillingGateway`, adaptador S16).
+**Estado (resuelve O-12):** `Output-Ports.md` (§9) delega la facturación a `BillingGateway`, por lo que
+`SQLInvoiceRepository` **no se utiliza inicialmente**. La entidad `Factura` no forma parte del modelo de
+dominio (`DomainModel .md`, §15.1); solo se habilitaría si se decidiera conservar una copia local de la
+factura.
 
 ### 3.11 `SQLShipmentRepository` → `ShipmentRepository` (`Output-Ports.md`, §11)
 
@@ -285,10 +286,11 @@ núcleo sin base de datos.
 
 - Motor SQL definitivo y librería de acceso a datos.
 - Esquema físico, claves, índices y migraciones.
-- Formato definitivo de identificadores.
 - Modelos de lectura de `ReportingQuery`.
-- Entidades `Factura` y `Envio` (referenciadas por puertos, ausentes del modelo de dominio).
-- Persistencia de devoluciones y reembolsos (sin puerto asociado).
 - Estrategia exacta de bloqueo o control de concurrencia para la reserva de inventario.
+
+Resueltos (ver `../observaciones-arquitectonicas.md`): formato de identificadores —`string` opaco—
+(O-05); `SQLInvoiceRepository` no utilizado inicialmente (O-12); `Factura`, `Envio` y devoluciones
+declarados fuera del modelo de dominio (`DomainModel .md` §15.1; O-01, O-02).
 
 

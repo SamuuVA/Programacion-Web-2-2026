@@ -79,9 +79,9 @@ producto documentado (`ProductoFisico` / `ProductoDigital`, `DomainModel .md`, �
 | Response DTO | Base documental | Campos documentados |
 |---|---|---|
 | `PaymentStatusResponse` | `EstadoPago` (`Domain Object Value.md`, §9) | `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REEMBOLSADO`; corresponde al resultado de `ProcessPaymentUseCase` (`Input-Ports.md`, §15.1) |
-| `InvoiceResponse` | `InvoiceRepository` (`Output-Ports.md`, §9) | **Pendiente de definición:** la entidad `Factura` no está descrita en `DomainModel .md` |
-| `ShipmentResponse` | `ShipmentRepository` (`Output-Ports.md`, §11) | **Pendiente de definición:** la entidad `Envio` no está descrita en `DomainModel .md` |
-| `ReturnResponse` / `RefundResponse` | — | **Pendiente de definición:** no existe entidad ni puerto de devoluciones/reembolsos |
+| `InvoiceResponse` | `BillingGateway` (`Output-Ports.md`, §9) | Resultado de facturación externa; `Factura` fuera del modelo de dominio (`DomainModel .md` §15.1; O-12) |
+| `ShipmentResponse` | `ShipmentRepository` (`Output-Ports.md`, §11) | `Envio` es un modelo de aplicación/integración (`DomainModel .md` §15.1; O-02) |
+| `ReturnResponse` / `RefundResponse` | — | **Fuera de alcance:** no existe entidad ni puerto de devoluciones/reembolsos (O-01) |
 
 ### 4.6 Reportes y auditoría
 
@@ -107,7 +107,7 @@ inventan traducciones ni etiquetas nuevas.
 | `EstadoPago` | `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REEMBOLSADO` | `Domain Object Value.md` §9 |
 | `TipoMovimientoInventario` | `INGRESO`, `RESERVA`, `SALIDA_VENTA`, `AJUSTE`, `DEVOLUCION` | `Domain Object Value.md` §10 |
 | `TipoBodega` | `MARKETPLACE`, `VENDEDOR` | `Domain Object Value.md` §11 |
-| `GravedadAuditoria` | `INFORMACIÓN`, `ADVERTENCIA`, `ERROR`, `CRÍTICO` | `Domain Object Value.md` §13.1; `Services/AuditService.md` §3 |
+| `GravedadAuditoria` | `INFORMACION`, `ADVERTENCIA`, `ERROR`, `CRITICO` | `Domain Object Value.md` §13.1; `Services/AuditService.md` §3 |
 
 Si el cliente requiere etiquetas legibles para el usuario final, la traducción pertenece a la capa
 de presentación del cliente o a un campo adicional explícito, **nunca** a una reinterpretación de
@@ -167,9 +167,10 @@ El catálogo definitivo de códigos de éxito y su correspondencia con cada endp
 
 ## 10. Pendientes de definición
 
-- Campos de `InvoiceResponse` (entidad `Factura` no descrita).
-- Campos de `ShipmentResponse` (entidad `Envio` no descrita).
-- Estructura de devoluciones y reembolsos en la respuesta.
+- Campos definitivos de `InvoiceResponse` (contrato con `BillingGateway`).
+- Campos definitivos de `ShipmentResponse` (modelo de aplicación de `Envio`).
+
+Devoluciones y reembolsos quedan **fuera de alcance** (`DomainModel .md` §15.1; O-01).
 - Forma de `AdministrativeReport`: resúmenes de ventas, inventario y pedidos (`Output-Ports.md`,
   §13.1) sin definición de campos.
 - Formato definitivo de fechas, identificadores y colecciones (paginación).
