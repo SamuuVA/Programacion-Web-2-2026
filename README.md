@@ -1,633 +1,650 @@
 ﻿<div align="center">
 
-# NexusMarket
+<h1>NexusMarket</h1>
 
-**Marketplace de operaciones comerciales entre compradores y vendedores**
+<p><strong>Marketplace multi-vendedor con arquitectura DDD y hexagonal</strong></p>
 
-Especificación técnica completa de un marketplace: usuarios y roles, catálogo de productos,
-inventario distribuido en bodegas, carrito, pedidos, pagos, facturación, logística, devoluciones,
-reembolsos, auditoría y consulta administrativa.
+<p>Especificación técnica, modelo de dominio, puertos, adaptadores y alineación de contratos<br />para un backend en TypeScript + Node.js + PostgreSQL + MongoDB.</p>
 
-[![Licencia](https://img.shields.io/badge/Licencia-MIT-2ea44f.svg)](./LICENSE)
-![Metodología](https://img.shields.io/badge/Metodolog%C3%ADa-Spec--Driven%20Development-0a7ea4.svg)
-![Arquitectura](https://img.shields.io/badge/Arquitectura-Hexagonal%20%2B%20DDD-6f42c1.svg)
-![Lenguaje](https://img.shields.io/badge/Lenguaje-TypeScript-3178c6.svg)
-![Persistencia](https://img.shields.io/badge/Persistencia-SQL%20%2B%20MongoDB-47a248.svg)
-![Estado](https://img.shields.io/badge/Estado-Especificaci%C3%B3n%20SDD%20completa-d4a72c.svg)
-![Documentación](https://img.shields.io/badge/Documentaci%C3%B3n-Espa%C3%B1ol-orange.svg)
+<p>
+  <img src="https://img.shields.io/badge/estado-documentaci%C3%B3n%20completa-2ea043?style=flat-square" alt="Estado: documentación completa" />
+  <img src="https://img.shields.io/badge/implementaci%C3%B3n-no%20iniciada-9e6a03?style=flat-square" alt="Implementación no iniciada" />
+  <img src="https://img.shields.io/badge/licencia-MIT-yellow?style=flat-square" alt="Licencia MIT" />
+  <img src="https://img.shields.io/github/last-commit/SamuuVA/Programacion-Web-2-2026?style=flat-square&color=blue" alt="Último commit" />
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/DDD-Domain--Driven%20Design-6f42c1?style=flat-square" alt="Domain-Driven Design" />
+  <img src="https://img.shields.io/badge/arquitectura-hexagonal-0a66c2?style=flat-square" alt="Arquitectura hexagonal" />
+</p>
 
 </div>
 
----
-
-## 📋 Tabla de Contenidos
-
-1. [Descripción General](#-descripción-general)
-2. [Arquitectura](#-arquitectura)
-3. [Stack Tecnológico](#-stack-tecnológico)
-4. [Estructura del Repositorio](#-estructura-del-repositorio)
-5. [Guía de la Documentación (SDD)](#-guía-de-la-documentación-sdd)
-6. [Sistema de Referencia](#-sistema-de-referencia)
-7. [Contrato de la API REST](#-contrato-de-la-api-rest)
-8. [Requisitos Previos e Instalación](#-requisitos-previos-e-instalación)
-9. [Uso](#-uso)
-10. [Reglas de Contribución](#-reglas-de-contribución)
-11. [Buenas Prácticas de Arquitectura](#-buenas-prácticas-de-arquitectura)
-12. [Estado del Proyecto y Pendientes](#-estado-del-proyecto-y-pendientes)
-13. [Licencia](#-licencia)
+> **Estado actual:** el repositorio se encuentra en **fase de especificación**. La documentación de diseño está completa y verificada; **todavía no existe código de aplicación, esquema de base de datos, contrato OpenAPI ejecutable ni pruebas automatizadas**.
 
 ---
 
-## 📖 Descripción General
+## Tabla de contenidos
 
-**NexusMarket** es un sistema *marketplace* que centraliza y coordina la operación comercial entre
-**compradores**, **vendedores**, **operadores logísticos** y **roles administrativos** (Administrador
-y Supervisor).
+- [Descripción general](#descripción-general)
+- [Estado del proyecto](#estado-del-proyecto)
+- [Alcance funcional](#alcance-funcional)
+- [Stack tecnológico](#stack-tecnológico)
+- [Arquitectura](#arquitectura)
+- [Modelo de dominio](#modelo-de-dominio)
+- [Capa de aplicación](#capa-de-aplicación)
+- [Adaptadores](#adaptadores)
+- [Contratos e integración](#contratos-e-integración)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Documentación](#documentación)
+- [Cómo empezar](#cómo-empezar)
+- [Convenciones de identificadores](#convenciones-de-identificadores)
+- [Hoja de ruta](#hoja-de-ruta)
+- [Decisiones y limitaciones abiertas](#decisiones-y-limitaciones-abiertas)
+- [Contribución](#contribución)
+- [Licencia y autoría](#licencia-y-autoría)
 
-| Subdominio | Alcance funcional |
+---
+
+## Descripción general
+
+**NexusMarket** es una plataforma digital que actúa como intermediario comercial entre compradores y vendedores. El sistema administra de forma integral el ciclo de negocio: registro de usuarios, incorporación de vendedores, gestión de bodegas, catálogo de productos físicos y digitales, inventario distribuido, carrito, pedidos, pagos, facturación, logística, devoluciones, reembolsos y reportes administrativos.
+
+El diseño sigue tres ideas rectoras:
+
+1. **El dominio manda.** Las reglas de negocio viven en entidades, objetos de valor, agregados, políticas y servicios de dominio; no en controladores, tablas ni proveedores externos.
+2. **Las dependencias apuntan hacia el núcleo.** La arquitectura hexagonal aísla el dominio de HTTP, SQL, MongoDB y servicios de terceros mediante puertos y adaptadores.
+3. **Nada se inventa.** Los requisitos confirmados se separan de las decisiones de diseño, las inferencias y las propuestas pendientes de aprobación. Las limitaciones reales quedan registradas con identificador estable en lugar de disfrazarse de reglas.
+
+El proyecto se desarrolla como un **monolito modular**: una sola unidad desplegable, organizada en módulos de negocio con límites explícitos y preparada para separarse en el futuro solo si existe una necesidad real.
+
+---
+
+## Estado del proyecto
+
+### Resumen documental
+
+| Área | Artefacto | Estado |
+|---|---|---|
+| Especificación funcional | [`enunciado.md`](BackendSDD/enunciado.md) | Transcripción completa del PDF fuente |
+| Modelo de dominio | [`nexusmarket-domain-model.md`](BackendSDD/Domain/nexusmarket-domain-model.md) | Versión 2.0 · línea base |
+| Objetos de valor | [`nexusmarket-domain-object-values.md`](BackendSDD/Domain/nexusmarket-domain-object-values.md) | Completo · 47 entradas |
+| Servicios y políticas de dominio | [`nexusmarket-domain-services.md`](BackendSDD/Domain/nexusmarket-domain-services.md) + [`services/`](BackendSDD/Domain/services) | Completo · `DS-01`…`DS-09` |
+| Puertos de entrada | [`nexusmarket-input-ports.md`](BackendSDD/Application/nexusmarket-input-ports.md) | Completo · `PI-01`…`PI-25` |
+| Puertos de salida | [`nexusmarket-output-ports.md`](BackendSDD/Application/nexusmarket-output-ports.md) | Completo · `PO-01`…`PO-24` |
+| Casos de uso | [`nexusmarket-use-cases-checkout-query-order.md`](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | Completo · `UC-01`, `UC-02` |
+| Adaptadores | [`nexusmarket-adapters.md`](BackendSDD/Adapters/nexusmarket-adapters.md) + 14 documentos | Completo · `ADIN-01`, `ADOUT-01`…`ADOUT-13` |
+| Alineación de contratos | [`nexusmarket-contract-alignment.md`](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Completo · `CT-01`…`CT-13` |
+| Código de aplicación | `src/`, `tests/`, `package.json` | **No iniciado** |
+
+### Indicadores de la especificación
+
+| Servicios de dominio | Puertos de entrada | Puertos de salida | Adaptadores | Contratos | Casos de uso |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **9** | **25** | **24** | **14** | **13** | **2** |
+
+> `COMPLETO` significa que el documento cumple su objetivo, distingue hechos de decisiones y no tiene omisiones evitables. **No significa que exista implementación ni que el negocio haya aprobado todas las propuestas.**
+
+### Qué incluye y qué no incluye todavía
+
+**Incluye**
+
+- Especificación funcional del negocio y restricciones críticas.
+- Modelo de dominio con contextos, agregados, invariantes, estados y eventos.
+- Catálogo de objetos de valor, servicios y políticas.
+- Puertos de entrada y salida con contratos conceptuales.
+- Casos de uso de checkout y consulta de pedido.
+- Especificación de 14 adaptadores y verificación de la cadena completa.
+- Registro de decisiones, conflictos, limitaciones y trazabilidad.
+
+**No incluye todavía**
+
+- Código TypeScript, arranque del servidor ni módulos implementados.
+- Esquemas SQL, migraciones, índices o colecciones MongoDB.
+- Contrato HTTP/OpenAPI aprobado, rutas, métodos o códigos de estado.
+- SDKs, clientes, integraciones reales ni credenciales.
+- Pruebas unitarias, de integración o end-to-end.
+- Configuración Docker operativa.
+
+---
+
+## Alcance funcional
+
+La especificación original define doce objetivos estratégicos (`OBJ-01`…`OBJ-12`), agrupados en las siguientes capacidades:
+
+| Capacidad | Objetivos | Descripción |
+|---|---|---|
+| Identidad y usuarios | `OBJ-01` | Cuentas, roles, estado operativo y unicidad de correo/documento |
+| Vendedores y compradores | `OBJ-02`, `OBJ-03` | Incorporación administrativa de vendedores y perfiles de comprador |
+| Bodegas | `OBJ-04` | Bodegas del marketplace y de vendedores |
+| Catálogo | `OBJ-05` | Productos físicos/digitales, variantes, categorías y publicación |
+| Inventario | `OBJ-06` | Existencias por producto/bodega, reservas y movimientos |
+| Carrito | `OBJ-07` | Selección provisional de productos y cantidades |
+| Pedidos | `OBJ-08` | Ciclo de vida comercial completo y snapshots inmutables |
+| Facturación | `OBJ-09` | Emisión y corrección de facturas |
+| Logística | `OBJ-10` | Preparación, despacho, transporte y entrega |
+| Posventa | `OBJ-11` | Devoluciones y reembolsos como procesos separados |
+| Reportes | `OBJ-12` | Consultas administrativas y auditoría |
+
+### Participantes
+
+| Participante | Función |
 |---|---|
-| **Identidad y usuarios** | Registro de compradores, incorporación de vendedores (exclusiva del Administrador), cambio de estado operativo (`ACTIVO` / `INACTIVO` / `BLOQUEADO`) |
-| **Bodegas** | Bodegas del marketplace y bodegas privadas de vendedor |
-| **Catálogo** | Publicación de productos físicos y digitales con variantes (SKU) y cambio de estado |
-| **Inventario** | Inventario por **Variante + Bodega**, con movimientos de ingreso, reserva, salida por venta, ajuste y devolución |
-| **Carrito** | Selección provisional de artículos por el comprador |
-| **Pedidos** | Ciclo `CARRITO → PENDIENTE_PAGO → PAGADO → DESPACHADO → ENTREGADO` (+ `CANCELADO`), inmutable al entregar |
-| **Pago y facturación** | Procesamiento de pagos y facturación mediante pasarelas externas |
-| **Logística** | Creación de envíos, despacho físico y confirmación de entrega |
-| **Devoluciones y reembolsos** | Solicitud, aprobación y reembolso *(fuera de alcance del modelo de dominio)* |
-| **Auditoría** | Registro append-only de trazabilidad de toda operación relevante |
-| **Reportes** | Consultas administrativas consolidadas de solo lectura |
+| **Comprador** | Adquiere productos publicados y gestiona sus propios pedidos |
+| **Vendedor** | Registra y administra sus productos e inventario autorizado |
+| **Operador logístico** | Ejecuta la operación física de bodegas y despachos |
+| **Administrador** | Incorpora vendedores, administra bodegas y supervisa la operación |
+| **Supervisor** | Perfil de consulta y seguimiento operativo |
 
-> **Estado actual:** el repositorio contiene la **especificación completa del sistema (documentación
-> SDD)**. **No contiene todavía código fuente de la aplicación.**
+### Reglas de negocio transversales
+
+- Toda operación requiere un usuario autenticado y autorizado (`RG-01`).
+- Cada usuario tiene un único rol (`RG-02`) y no puede administrar información fuera de su ámbito (`RG-03`).
+- El correo electrónico y el documento de identidad son únicos.
+- No se permite inventario negativo ni reservar existencias inexistentes o dañadas.
+- Los estados del pedido solo cambian mediante transiciones válidas.
+- Un pedido `ENTREGADO` o `CERRADO` no se modifica retroactivamente.
+- Devoluciones y reembolsos son procesos propios, no ediciones del pedido.
+- La autorización considera **rol y alcance sobre el recurso**, no solo el rol.
 
 ---
 
-## 🏗️ Arquitectura
+## Stack tecnológico
 
-### 2.1 Enfoque de diseño
+| Área | Tecnología / decisión | Estado |
+|---|---|---|
+| Lenguaje | TypeScript con `strict: true` | Oficial |
+| Runtime | Node.js LTS | Oficial |
+| API | REST | Oficial |
+| Framework HTTP | Fastify (recomendado) / Express | Pendiente de fijar |
+| Contrato de API | OpenAPI | Objetivo |
+| Persistencia relacional | PostgreSQL | Oficial |
+| Persistencia documental | MongoDB (auditoría y documentos justificados) | Oficial |
+| Arquitectura | DDD + Hexagonal (Ports & Adapters) | Oficial |
+| Estilo | Monolito modular | Oficial |
+| Contenedores | Docker + Docker Compose | Objetivo |
+| Pruebas | Vitest o Jest | Pendiente de fijar |
+| Validación de entrada | Esquemas en el borde HTTP (p. ej. Zod) | Recomendado |
 
-NexusMarket combina tres enfoques complementarios:
+> MySQL y Go aparecen únicamente en documentación histórica y **no forman parte del stack vigente**.
 
-| Enfoque | Aplicación en NexusMarket |
-|---|---|
-| **DDD** (Domain-Driven Design) | El negocio se modela con **entidades**, **objetos de valor**, **servicios de dominio** e **invariantes** explícitas. El vocabulario del dominio es el vocabulario del código. |
-| **Arquitectura Hexagonal** (Ports & Adapters) | El núcleo se comunica con el exterior exclusivamente mediante **puertos** (*interfaces*); HTTP, SQL, MongoDB y proveedores externos son **adaptadores** sustituibles. |
-| **SDD** (Spec-Driven Development) | **La especificación es la fuente de verdad.** Cada entidad, caso de uso, puerto y adaptador se deriva de un documento de `SDD/`; la implementación no puede inventar reglas. |
+---
 
-### 2.2 Arquitectura Hexagonal
+## Arquitectura
 
-```text
-                        ┌───────────────────────────────┐
-                        │        CLIENTE HTTP           │
-                        └───────────────┬───────────────┘
-                                        │
-        ═══════════════════════════════ ▼ ═══════════════════════════════
-        MUNDO EXTERNO         ADAPTADORES DE ENTRADA (E1–E15)
-        ══════════════════════════════════════════════════════════════
-             • REST Controllers                        • Request DTOs (E12)
-             • Autenticación / ExecutionContext (E15)  • Response DTOs (E13)
-             • Mappers DTO → Comando (E14)             • Errores → HTTP
-        ═══════════════════════════════╤ ═══════════════════════════════
-                                       │ (llama a)
-        ═══════════════════════════════▼ ═══════════════════════════════
-        PUERTO DE ENTRADA          25 casos de uso (Input Ports)
-        ══════════════════════════════════════════════════════════════
-                                       │
-        ═══════════════════════════════▼ ═══════════════════════════════
-              SERVICIOS DE DOMINIO (5, stateless)
-              UserManagement · Catalog · Inventory · OrderProcessing · Audit
-        ══════════════════════════════════════════════════════════════
-                                       │ (invoca)
-        ═══════════════════════════════▼ ═══════════════════════════════
-              PUERTOS DE SALIDA — 17 contratos (Output Ports)
-        ══════════════════════════════════════════════════════════════
-        ══════════════   ══════════════        ══════════════════════════
-        ADAPTADORES DE SALIDA (S1–S18)
-          • SQL (S1–S12, S18)   • MongoDB (S13)   • Servicios externos (S14–S17)
-        ══════════════   ══════════════        ══════════════════════════
-                                       │
-        ┌──────────────┬───────────────┴──────────────┬──────────────────┐
-        ▼              ▼                              ▼                  ▼
-   PostgreSQL     MongoDB                  Payment / Logistics /     Cliente
-  (transaccional)  (auditoría)              Billing / Identity        (respuesta)
-```
-
-### 2.3 Regla de dependencia
-
-> **Única y sin excepciones:** `Adaptador → Puerto → Núcleo`
+### Vista de capas
 
 ```mermaid
-flowchart LR
-    HTTP["Cliente HTTP"] --> REST["Adaptadores de entrada<br/>E1–E15"]
-    REST --> IP["Input Ports<br/>25 casos de uso"]
-    IP --> SVC["Servicios de dominio<br/>5 servicios"]
-    SVC --> OP["Output Ports<br/>17 contratos"]
-    OP --> SQL["Adaptadores SQL<br/>S1–S12, S18"]
-    OP --> MONGO["Adaptador MongoDB<br/>S13"]
-    OP --> EXT["Adaptadores externos<br/>S14–S17"]
-    SQL --> PG[("PostgreSQL")]
-    MONGO --> MDB[("MongoDB")]
-    EXT --> PRV["Proveedores externos"]
+flowchart TB
+    A["Clientes / actores"] --> B["Adaptador de entrada HTTP<br/>rutas · middleware · DTOs"]
+    B --> C["Puertos de entrada<br/>PI-01…PI-25"]
+    C --> D["Capa de aplicación<br/>casos de uso · autorización · transacciones"]
+    D --> E["Dominio<br/>entidades · VOs · agregados · políticas"]
+    D --> F["Puertos de salida<br/>PO-01…PO-24"]
+    F --> G["Adaptadores de salida"]
+    G --> H[("PostgreSQL<br/>datos transaccionales")]
+    G --> I[("MongoDB<br/>auditoría documental")]
+    G --> J["Proveedores externos<br/>pago · logística · notificaciones · entrega digital"]
 ```
 
-- Las flechas **entran** al núcleo: los adaptadores dependen de contratos internos.
-- **Ninguna flecha sale** del núcleo hacia HTTP, bases de datos, frameworks o proveedores.
-- El dominio **no conoce** HTTP, SQL, MongoDB ni la existencia de proveedores externos.
-- La traducción de **errores de dominio a códigos HTTP** ocurre en el adaptador de entrada, nunca en
-  el dominio.
+### Principios no negociables
 
-### 2.4 Estilo arquitectónico
+1. El dominio no importa Node.js, frameworks HTTP, drivers SQL/MongoDB ni SDKs externos.
+2. Los casos de uso no ejecutan consultas SQL ni acceden directamente a colecciones.
+3. Los adaptadores implementan puertos definidos por sus consumidores.
+4. La autorización verifica identidad, rol, permiso, alcance del recurso y estado de la cuenta.
+5. SQL y MongoDB no son dos fuentes de verdad para la misma entidad operativa.
+6. Los cambios de estado se realizan mediante comportamientos y transiciones del dominio.
+7. La infraestructura no sustituye las reglas del dominio.
+8. No se crean paquetes vacíos, interfaces especulativas ni microservicios por anticipación.
 
-| Aspecto | Decisión |
+### Módulos previstos
+
+| Módulo | Responsabilidad |
 |---|---|
-| Estilo inicial | **Monolito modular** (*Modular Monolith*) con fronteras y puertos claros |
-| Entrada | API REST sobre HTTP, JSON (`application/json`, UTF-8) |
-| Contexto de ejecución | `ExecutionContext { userId, role }` resuelto por el adaptador de autenticación (nunca enviado por el cliente) |
-| Fuente de verdad | **SQL** para el estado transaccional; **MongoDB** exclusivamente para auditoría append-only |
-| Integraciones | `PaymentGateway`, `LogisticsGateway`, `BillingGateway`, `IdentityProvider` (tras Output Ports) |
+| `identity` | Usuario, rol, estado de cuenta e identidad operativa |
+| `buyers` | Perfil de comprador, direcciones y estado comercial |
+| `sellers` | Incorporación administrativa y perfil del vendedor |
+| `warehouses` | Datos y clasificación de bodegas |
+| `catalog` | Productos, variantes, categorías y publicación |
+| `inventory` | Existencias, reservas y movimientos |
+| `cart` | Selección provisional y líneas |
+| `orders` | Pedido y ciclo de vida comercial |
+| `payments` | Registro y coordinación del pago |
+| `billing` | Facturas y datos fiscales |
+| `shipping` | Preparación, despacho, transporte y entrega |
+| `returns` | Solicitudes y resolución de devoluciones |
+| `refunds` | Autorización y seguimiento de reembolsos |
+| `reporting` | Consultas e indicadores de lectura |
+
+### Persistencia y consistencia
+
+- **PostgreSQL** es la fuente principal de verdad transaccional: relaciones, restricciones e invariantes.
+- **MongoDB** se reserva para auditoría y documentos cuyo esquema lo justifique; no duplica pedidos, inventario o pagos sin estrategia explícita.
+- Una transacción SQL **no** cubre MongoDB ni proveedores externos; los flujos que cruzan fronteras usan idempotencia, estados intermedios, compensación y, cuando aplica, **Transactional Outbox**.
+- Las restricciones de unicidad y las operaciones de inventario se protegen también en base de datos; una comprobación previa en código no basta ante concurrencia.
 
 ---
 
-## 💻 Stack Tecnológico
+## Modelo de dominio
 
-| Capa | Tecnología | Rol |
+El modelo vigente es la **versión 2.0** y constituye la línea base del negocio. Se organiza en contextos delimitados que son límites de lenguaje y consistencia, **no microservicios**.
+
+### Contextos delimitados
+
+| Contexto | Responsabilidad | Persistencia propuesta |
 |---|---|---|
-| Lenguaje | **TypeScript** | Lenguaje de implementación (tipado estricto del dominio y de los contratos) |
-| Runtime | **Node.js** | Entorno de ejecución |
-| Entrada | **REST API / HTTP** (JSON) | 24 endpoints expuestos, uno por caso de uso público |
-| Arquitectura | **Hexagonal (Ports & Adapters)** + **DDD** | Estilo arquitectónico y modelador del negocio |
-| Metodología | **SDD** (Spec-Driven Development) | La especificación dirige la implementación |
-| Persistencia transaccional | **SQL** (PostgreSQL) | Fuente de verdad: usuarios, catálogo, bodegas, inventario, carrito, pedidos, envíos |
-| Persistencia documental | **MongoDB** | Auditoría y trazabilidad, **append-only** e inmutable (AUD-02) |
-| Servicios externos | Pasarelas de pago, logística, facturación e identidad | Adaptadores sustituibles tras Output Ports |
-| Framework HTTP | *Pendiente de decisión* (O-09) | No fijado por la especificación |
-| Autenticación | *Pendiente de decisión* (O-09) | Se exige encabezado `Authorization`; el esquema queda abierto |
+| Identidad y acceso | Cuenta, unicidad, estado y rol | SQL |
+| Compradores | Perfil, estado comercial y direcciones | SQL |
+| Vendedores | Incorporación, datos comerciales y titularidad | SQL |
+| Catálogo | Productos, categorías, variantes, precios y publicación | SQL |
+| Bodegas e inventario | Ubicaciones, cantidades, reservas y movimientos | SQL transaccional |
+| Compra | Carrito, checkout, snapshots y pedido | SQL |
+| Pagos | Intentos, confirmación, captura y referencia externa | SQL + evidencia del proveedor |
+| Facturación | Emisión, numeración y datos fiscales | SQL + archivo si aplica |
+| Logística | Preparación, paquetes, tracking y entrega | SQL |
+| Posventa | Devoluciones, resolución y reembolsos | SQL |
+| Auditoría y consulta | Registro inmutable y proyecciones de lectura | MongoDB + SQL transaccional |
 
-### Dependencias de la arquitectura por mecanismo
+### Agregados principales
+
+| Agregado | Raíz | Invariantes principales |
+|---|---|---|
+| Cuenta de usuario | `Usuario` | Correo/documento únicos, rol único, transición válida |
+| Perfil comprador | `PerfilComprador` | Estado comercial y propiedad del perfil |
+| Perfil vendedor | `PerfilVendedor` | Incorporación administrativa, estado y propiedad |
+| Producto | `Producto` | SKU único, variante válida, publicación válida |
+| Inventario | `Inventario` | Cantidades no negativas, reserva única, consumo/liberación única |
+| Carrito | `Carrito` | Un carrito activo por comprador, cantidades válidas |
+| Pedido | `Pedido` | Total consistente, transición válida, snapshots inmutables |
+| Pago | `Pago` | Idempotencia, resultado verificable, límites de captura/reembolso |
+| Factura | `Factura` | Numeración única, documento emitido inmutable |
+| Envío | `Envio` | Cantidades asignadas válidas, transición logística válida |
+| Devolución | `Devolucion` | Propiedad del pedido, elegibilidad y límites |
+| Reembolso | `Reembolso` | Importe reembolsable, autorización e idempotencia |
+| Auditoría | `RegistroAuditoria` | Append-only, integridad y ausencia de secretos |
+
+### Ciclo de vida del pedido
 
 ```text
-SQL      →  Usuarios · Compradores · Vendedores · Productos y Variantes · Bodegas
-            Inventario · MovimientosInventario · Carrito · Pedidos · Envíos
-            (siempre a través de Output Ports)
+PENDIENTE_DE_PAGO → PAGADO → EN_PREPARACION → DESPACHADO → ENTREGADO → CERRADO
+        │
+        └── pago rechazado / cancelación autorizada → CANCELADO
 
-MongoDB  →  RegistroAuditoria  (append-only, inmutable, consultable por Supervisor)
-
-Externos →  PaymentGateway · LogisticsGateway · BillingGateway · IdentityProvider
+Productos digitales: PAGADO → ENTREGADO
 ```
 
-### Convenciones transversales de la especificación
+`CARRITO` **no** es un estado del pedido: carrito y pedido son conceptos distintos. `FINALIZADO` se normaliza como `CERRADO`, posterior a la entrega y al cierre operativo.
 
-| Aspecto | Convención |
-|---|---|
-| Formato y codificación | JSON `application/json`, UTF-8 |
-| Identificadores | **Opacos**, de un único tipo `string` (p. ej. UUID) |
-| Encabezado de identidad | `Authorization` obligatorio en **todos** los endpoints |
-| Rol del usuario | **Nunca** viaja en el cuerpo: lo resuelve el adaptador de autenticación (E15) |
-| Campos no enviados por el cliente | `id`, `rol`, `estado` inicial, `estadoPago`, `estadoPedido`, `cantidadDisponible`, `cantidadReservada` |
-| Nomenclatura | Entidades y atributos en español; puertos, adaptadores y DTOs en inglés |
-| Códigos de catálogo | Los de `Domain Object Value.md`; **no se traducen ni se inventan** |
+### Servicios y políticas de dominio
+
+| ID | Nombre | Tipo | Responsabilidad |
+|---|---|---|---|
+| `DS-01` | `PoliticaAutorizacionDominio` | Política | Evaluar rol, propiedad, alcance y estado del recurso |
+| `DS-02` | `PoliticaPublicacionCatalogo` | Política | Validar producto, vendedor, variantes y precio antes de publicar |
+| `DS-03` | `ServicioReservaInventario` | Servicio con efecto | Validar disponibilidad; reservar, liberar, consumir o expirar |
+| `DS-04` | `ServicioAsignacionBodega` | Servicio de lectura | Seleccionar bodegas elegibles por disponibilidad y compatibilidad |
+| `DS-05` | `ServicioCalculoPedido` | Servicio puro | Calcular subtotal, descuentos, impuestos, envío y total |
+| `DS-06` | `PoliticaTransicionPedido` | Política | Verificar transiciones y precondiciones de cumplimiento |
+| `DS-07` | `PoliticaElegibilidadDevolucion` | Política | Evaluar plazo, propiedad, entrega, cantidades y condiciones |
+| `DS-08` | `PoliticaReembolso` | Política | Verificar saldo reembolsable, aprobación y límites por pago |
+| `DS-09` | `ServicioAuditoria` | Servicio | Construir eventos normalizados, con correlación y sin secretos |
+
+Cada servicio dispone de una definición individual autocontenida en [`BackendSDD/Domain/services/`](BackendSDD/Domain/services), con reglas, invariantes, escenarios y trazabilidad.
+
+### Objetos de valor destacados
+
+- Identificadores tipados (`UsuarioId`, `ProductoId`, `PedidoId`, …) que envuelven un valor opaco.
+- `CorreoElectronico`, `DocumentoIdentidad`, `NombreCompleto`.
+- `Dinero` con moneda explícita, aritmética exacta y redondeo reproducible por política.
+- `Direccion`, `DireccionSnapshot`, `TipoEntrega`.
+- Catálogos de estado (`EstadoPedido`, `EstadoPago`, `EstadoEnvio`, `EstadoDevolucion`, `EstadoReembolso`).
+- `IdempotencyKey`, `CorrelationId`, `Instant`, `AuditPayload`.
 
 ---
 
-## 📁 Estructura del Repositorio
+## Capa de aplicación
+
+### Casos de uso documentados
+
+| ID | Caso de uso | Objetivo | Puertos de salida principales |
+|---|---|---|---|
+| `UC-01` | **Checkout** | Confirmar la compra, calcular totales, crear pedidos por vendedor, reservar inventario e iniciar el pago | `PO-02`, `PO-05`…`PO-09`, `PO-15`, `PO-16`, `PO-18`…`PO-21`, `PO-23` |
+| `UC-02` | **QueryOrder** | Consultar pedidos en modo detalle o lista según el alcance autorizado | `PO-08`…`PO-13` |
+
+Ambos comparten contexto de autorización, errores, idempotencia y trazabilidad. `UC-01` **no captura el pago**: inicia la interacción y deja la captura fuera del checkout (`D-18`). `UC-02` usa los repositorios operativos, no la consulta de reportes (`D-19`).
+
+### Puertos de entrada (`PI-01`…`PI-25`)
+
+<details>
+<summary><strong>Ver catálogo completo de puertos de entrada</strong></summary>
+
+| ID | Puerto | Módulo | Propósito |
+|---|---|---|---|
+| `PI-01` | `RegisterBuyer` | `buyers` | Registrar comprador, perfil y carrito inicial |
+| `PI-02` | `RegisterSeller` | `sellers` | Incorporar vendedor y primera bodega |
+| `PI-03` | `ManageOwnProfile` | `identity` | Consultar y actualizar el perfil propio |
+| `PI-04` | `ManageUser` | `identity` | Activar, desactivar, bloquear o desbloquear cuentas |
+| `PI-05` | `CreateProduct` | `catalog` | Crear producto y variantes no publicadas |
+| `PI-06` | `ManageProductPublication` | `catalog` | Publicar, suspender, reanudar o descontinuar |
+| `PI-07` | `QueryCatalog` | `catalog` | Consultar catálogo público o administrativo |
+| `PI-08` | `ManageWarehouse` | `warehouses` | Crear, actualizar o desactivar bodegas |
+| `PI-09` | `AdjustInventory` | `inventory` | Registrar ingreso, ajuste o baja de existencias |
+| `PI-10` | `QueryInventory` | `inventory` | Consultar posiciones de inventario |
+| `PI-11` | `ManageCart` | `cart` | Agregar, modificar, quitar y consultar el carrito |
+| `PI-12` | `Checkout` | `orders` | Confirmar la compra y crear pedidos/pago |
+| `PI-13` | `QueryOrder` | `orders` | Consultar pedidos según alcance autorizado |
+| `PI-14` | `CancelOrder` | `orders` | Cancelar antes de confirmar el pago |
+| `PI-15` | `ConfirmPayment` | `payments` | Registrar el resultado verificado de un pago |
+| `PI-16` | `PrepareShipment` | `shipping` | Asignar bodega y preparar el envío |
+| `PI-17` | `DispatchOrder` | `shipping` | Despachar, consumir reservas y registrar salida |
+| `PI-18` | `ConfirmDelivery` | `shipping` | Registrar entrega o fallo de entrega |
+| `PI-19` | `IssueInvoice` | `billing` | Emitir la factura de un pedido pagado |
+| `PI-20` | `CorrectInvoice` | `billing` | Anular o corregir una factura emitida |
+| `PI-21` | `RequestReturn` | `returns` | Solicitar una devolución elegible |
+| `PI-22` | `ResolveReturn` | `returns` | Revisar, aprobar, rechazar, recibir y resolver |
+| `PI-23` | `ProcessRefund` | `refunds` | Solicitar, aprobar y ejecutar un reembolso |
+| `PI-24` | `GenerateAdministrativeReport` | `reporting` | Generar reportes administrativos autorizados |
+| `PI-25` | `QueryAuditLog` | `reporting` | Consultar registros de auditoría autorizados |
+
+</details>
+
+### Puertos de salida (`PO-01`…`PO-24`)
+
+<details>
+<summary><strong>Ver catálogo completo de puertos de salida</strong></summary>
+
+| ID | Puerto | Módulo | Responsabilidad |
+|---|---|---|---|
+| `PO-01` | `UserRepository` | `identity` | Persistencia y recuperación de `Usuario` |
+| `PO-02` | `BuyerRepository` | `buyers` | Persistencia y recuperación de `PerfilComprador` |
+| `PO-03` | `SellerRepository` | `sellers` | Persistencia y recuperación de `PerfilVendedor` |
+| `PO-04` | `WarehouseRepository` | `warehouses` | Persistencia y recuperación de `Bodega` |
+| `PO-05` | `ProductRepository` | `catalog` | Persistencia y recuperación de `Producto`/`Variante` |
+| `PO-06` | `InventoryRepository` | `inventory` | Posiciones, reservas y movimientos con atomicidad |
+| `PO-07` | `CartRepository` | `cart` | Persistencia y recuperación de `Carrito` |
+| `PO-08` | `OrderRepository` | `orders` | Persistencia y recuperación de `Pedido` |
+| `PO-09` | `PaymentRepository` | `payments` | Persistencia y recuperación de `Pago` |
+| `PO-10` | `InvoiceRepository` | `billing` | Persistencia y recuperación de `Factura` |
+| `PO-11` | `ShipmentRepository` | `shipping` | Persistencia y recuperación de `Envio` |
+| `PO-12` | `ReturnRepository` | `returns` | Persistencia y recuperación de `Devolucion` |
+| `PO-13` | `RefundRepository` | `refunds` | Persistencia y recuperación de `Reembolso` |
+| `PO-14` | `AuditLogRepository` | `reporting` | Append y consulta de `RegistroAuditoria` |
+| `PO-15` | `TransactionManager` | `shared` | Unidad de trabajo y límite transaccional |
+| `PO-16` | `PaymentGateway` | `payments` | Iniciar, confirmar, cancelar y reembolsar pagos |
+| `PO-17` | `ShippingProvider` | `shipping` | Asignar transporte, tracking y eventos |
+| `PO-18` | `NotificationSender` | `shared` | Enviar notificaciones a actores |
+| `PO-19` | `DigitalDeliveryProvider` | `shared` | Provisionar o revocar entrega digital |
+| `PO-20` | `Clock` | `shared` | Obtener el instante UTC |
+| `PO-21` | `IdGenerator` | `shared` | Generar identificadores tipados |
+| `PO-22` | `PasswordHasher` | `identity` | Producir `HashCredencial` |
+| `PO-23` | `DomainEventOutbox` | `shared` | Registrar eventos en la misma transacción |
+| `PO-24` | `ReportingQuery` | `reporting` | Consultas de lectura consolidadas |
+
+</details>
+
+---
+
+## Adaptadores
+
+La especificación documenta **un adaptador de entrada HTTP** y **trece adaptadores de salida**. Los repositorios SQL se agrupan por familia de contexto para evitar duplicar reglas de traducción, errores y transacciones; cada puerto conserva su implementación separada y **no se crea un repositorio universal**.
+
+| ID | Adaptador | Tipo | Puertos |
+|---|---|---|---|
+| `ADIN-01` | Entrada HTTP | Entrada | Invoca `PI-01`…`PI-25` |
+| `ADOUT-01` | Repositorios SQL de identidad y perfiles | Salida / persistencia | `PO-01`…`PO-04` |
+| `ADOUT-02` | Repositorios SQL de catálogo, inventario y carrito | Salida / persistencia | `PO-05`…`PO-07` |
+| `ADOUT-03` | Repositorios SQL del ciclo de pedido | Salida / persistencia | `PO-08`…`PO-13` |
+| `ADOUT-04` | Unidad de trabajo y outbox SQL | Salida / transacción y eventos | `PO-15`, `PO-23` |
+| `ADOUT-05` | Repositorio MongoDB de auditoría | Salida / persistencia documental | `PO-14` |
+| `ADOUT-06` | Consultas SQL de reportes | Salida / lectura | `PO-24` |
+| `ADOUT-07` | Pasarela de pagos | Salida / integración externa | `PO-16` |
+| `ADOUT-08` | Proveedor logístico | Salida / integración externa | `PO-17` |
+| `ADOUT-09` | Envío de notificaciones | Salida / integración externa | `PO-18` |
+| `ADOUT-10` | Entrega digital | Salida / integración externa | `PO-19` |
+| `ADOUT-11` | Reloj del sistema | Salida / capacidad técnica | `PO-20` |
+| `ADOUT-12` | Generador de identificadores | Salida / capacidad técnica | `PO-21` |
+| `ADOUT-13` | Hashing de credenciales | Salida / capacidad técnica | `PO-22` |
+
+Regla de alineación (`D-27`): los adaptadores usan **exactamente** los códigos de error y estados normalizados declarados por su puerto. Cualquier código o estado adicional se considera una desalineación documental.
+
+---
+
+## Contratos e integración
+
+El documento de *Contract Alignment* verifica la cadena completa:
+
+```text
+Requisito → regla → entidad/VO/servicio → caso de uso → puerto de entrada
+          → puertos de salida → adaptador → contrato externo/persistencia
+```
+
+<details>
+<summary><strong>Ver inventario de contratos CT-01…CT-13</strong></summary>
+
+| ID | Contrato | Adaptador | Estado | Bloqueo principal |
+|---|---|---|---|---|
+| `CT-01` | HTTP/OpenAPI | `ADIN-01` | `SIN_EVIDENCIA` | `L-27`: no hay OpenAPI aprobado |
+| `CT-02` | Eventos de dominio y outbox | `ADOUT-04` | `ALINEADO_CON_PROPUESTA` | `L-14`: catálogo y payloads incompletos |
+| `CT-03` | Auditoría | `ADOUT-05` | `ALINEADO_CON_PROPUESTA` | `L-11`, `L-15`: composición y retención |
+| `CT-04` | Pago | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` | `L-22`: protocolo y webhooks |
+| `CT-05` | Logística | `ADOUT-08` | `ALINEADO_CON_PROPUESTA` | `L-23`: proveedor, tracking y evidencia |
+| `CT-06` | Notificaciones | `ADOUT-09` | `ALINEADO_CON_PROPUESTA` | `L-24`: canales y consentimiento |
+| `CT-07` | Entrega digital | `ADOUT-10` | `ALINEADO_CON_PROPUESTA` | `L-18`: acceso, licencia y evidencia |
+| `CT-08` | Credenciales | `ADOUT-13` | `ALINEADO_CON_PROPUESTA` | `L-12`, `L-20`: algoritmo y política |
+| `CT-09` | Identificadores | `ADOUT-12` | `ALINEADO_CON_PROPUESTA` | `L-13`: formato físico y unicidad |
+| `CT-10` | Facturación | `ADOUT-03` | `ALINEADO_CON_PROPUESTA` | `L-17`: numeración, serie y jurisdicción |
+| `CT-11` | Reportes | `ADOUT-06` | `ALINEADO_CON_PROPUESTA` | `L-19`: catálogo, filtros y límites |
+| `CT-12` | Persistencia SQL/MongoDB | `ADOUT-01`…`ADOUT-06` | `ALINEADO_CON_PROPUESTA` | Esquemas, índices y migraciones no definidos |
+| `CT-13` | Tiempo del sistema | `ADOUT-11` | `ALINEADO` | Sin bloqueo de contrato |
+
+</details>
+
+**Lectura:** la cadena de dominio, puertos y adaptadores está alineada; lo pendiente es el contrato ejecutable o el protocolo concreto de cada proveedor. Ningún flujo se marca `ALINEADO` mientras dependa de una decisión externa abierta.
+
+### Flujos verificados
+
+`F-01` Registro · `F-02` Publicación de catálogo · `F-03` Reserva/liberación de inventario · `F-04` Checkout · `F-05` Confirmación de pago · `F-06` Despacho · `F-07` Entrega física/digital · `F-08` Devolución y reembolso · `F-09` Consulta de pedido · `F-10` Auditoría · `F-11` Reportes · `F-12` Notificaciones · `F-13` Entrega digital.
+
+---
+
+## Estructura del repositorio
 
 ```text
 Programacion-Web-2-2026/
-├── README.md                                   # Este documento
-├── LICENSE                                     # MIT License (c) 2026 SamuuVA
-├── .gitignore
-│
-├── SDD/                                        # Especificación (fuente de verdad)
-│   ├── contract-alignment.md                   # Alineación Dominio ↔ contratos REST
-│   │
-│   ├── Domain/                                 # ── NÚCLEO DEL DOMINIO ──
-│   │   ├── DomainModel .md                     #   Entidades, jerarquía, relaciones, invariantes
-│   │   ├── Domain Object Value.md              #   Objetos de valor y catálogos controlados
-│   │   ├── Domain  Servicies.md                #   Servicios de dominio (visión general)
-│   │   ├── Input-Ports.md                      #   25 casos de uso + ExecutionContext
-│   │   ├── Output-Ports.md                     #   17 contratos de salida
-│   │   └── Services/                           #   Detalle por servicio
-│   │       ├── UserManagementService.md
-│   │       ├── CatalogService.md
-│   │       ├── InventoryService.md
-│   │       ├── OrderProcessingService.md
-│   │       └── AuditService.md
-│   │
-│   ├── Adapters/                               # ── CAPA DE ADAPTADORES ──
-│   │   ├── README.md                           #   Visión general E1–E15 / S1–S18
-│   │   ├── architecture.md                     #   Principios, reglas de dependencia, ubicación
-│   │   ├── trazabilidad.md                     #   Matriz caso de uso ↔ adaptador ↔ puerto
-│   │   ├── input/                              #   Adaptadores de ENTRADA
-│   │   │   ├── rest-controllers.md             #     Controllers REST (E1–E11)
-│   │   │   ├── request-dtos.md                 #     DTOs de request (E12)
-│   │   │   ├── response-dtos.md                #     DTOs de response (E13)
-│   │   │   ├── input-mappers.md                #     Mappers DTO → comando (E14)
-│   │   │   └── authentication-adapter.md       #     Autenticación y ExecutionContext (E15)
-│   │   ├── output/                             #   Adaptadores de SALIDA
-│   │   │   ├── persistence-adapters.md         #     Repositorios y unidad de trabajo
-│   │   │   ├── sql-adapters.md                 #     S1–S12 sobre SQL
-│   │   │   ├── mongodb-adapters.md             #     S13 (auditoría)
-│   │   │   └── external-service-adapters.md    #     S14–S17
-│   │   └── mappers/                            #   Mappers de salida y de persistencia
-│   │       ├── output-mappers.md
-│   │       └── persistence-mappers.md
-│   │
-│   └── Software Architecture/                 # ── ARQUITECTURA ──
-│       └── Software Architecture.md            #   Documento central de arquitectura
+├── BackendSDD/
+│   ├── enunciado.md                        # Especificación funcional del negocio
+│   ├── Prompt-maestro-documentacion.md     # Gobierno y criterios documentales
+│   ├── DOCUMENTATION_STATUS.md             # Registro de continuidad, decisiones y límites
+│   ├── Software Architecture/
+│   │   └── nexusmarket-arquitectura.md     # Arquitectura DDD + hexagonal + Docker
+│   ├── Domain/
+│   │   ├── nexusmarket-domain-model.md     # Modelo de dominio v2.0
+│   │   ├── nexusmarket-domain-object-values.md
+│   │   ├── nexusmarket-domain-services.md
+│   │   └── services/                       # DS-01…DS-09 (un archivo por servicio)
+│   ├── Application/
+│   │   ├── nexusmarket-input-ports.md      # PI-01…PI-25
+│   │   ├── nexusmarket-output-ports.md     # PO-01…PO-24
+│   │   └── nexusmarket-use-cases-checkout-query-order.md
+│   ├── Adapters/
+│   │   ├── nexusmarket-adapters.md         # Catálogo de adaptadores
+│   │   └── nexusmarket-adapter-*.md        # 14 documentos individuales
+│   └── Contracts/
+│       └── nexusmarket-contract-alignment.md
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
-> **Nota sobre nombres de archivo:** varios documentos del dominio contienen espacios internos en el
-> nombre (`DomainModel .md`, `Domain  Servicies.md`, `Software Architecture/`). Respeta las rutas
-> exactas al enlazarlas o al referenciarlas desde scripts.
-
-### Estructura de referencia prevista para la implementación
-
-Definida en `SDD/Adapters/architecture.md` (§9) y `SDD/Domain/Input-Ports.md` (§32). **No existe
-todavía en el repositorio**: es la guía de ubicación física para la futura implementación en
-TypeScript.
-
-```text
-src/
-├── domain/                      # Entidades, value objects, servicios, puertos, excepciones
-│   ├── models/   valueobjects/   services/   ports/   exceptions/
-├── application/                 # Casos de uso y puertos
-│   ├── ports/input/   ports/output/
-│   └── services/
-├── adapters/
-│   ├── in/
-│   │   ├── http/                # controllers/ · dto/request/ · dto/response/ · mappers/ · errors/
-│   │   └── auth/                # Autenticación y ExecutionContext (E15)
-│   └── out/
-│       ├── persistence/sql/     # S1–S12 + unidad de trabajo (S18)
-│       ├── persistence/mongo/   # S13
-│       ├── external/            # S14–S17
-│       └── mappers/             # Mappers de persistencia y de salida
-└── infrastructure/
-    └── config/   database/   security/
-```
+> La carpeta `BackendSDD/` es la **raíz documental vigente**. La antigua carpeta `SDD/` solo existe en el historial de Git y no debe reintroducirse.
 
 ---
 
-## 📚 Guía de la Documentación (SDD)
-
-La carpeta [`SDD/`](./SDD/) contiene la especificación completa. **La jerarquía de autoridad es
-estricta: el dominio manda sobre los adaptadores.**
-
-```text
-Domain/  ──define──▶  Adapters/  ──proyecta──▶  API REST
-   ▲                        │
-   └────── Software Architecture/ ──────────────┘
-        (consolida y fija las reglas de ambas capas)
-```
-
-### `SDD/Domain/` — Fuente de verdad del negocio
+## Documentación
 
 | Documento | Contenido |
 |---|---|
-| [`DomainModel .md`](./SDD/Domain/DomainModel%20.md) | Modelo de dominio: jerarquía de clases, entidades, relaciones, invariantes globales (`RG-*`, `ORD-01`) y límites del modelo. |
-| [`Domain Object Value.md`](./SDD/Domain/Domain%20Object%20Value.md) | Objetos de valor y catálogos cerrados: `SystemRole`, `EstadoUsuario`, `EstadoComercial`, `EstadoProducto`, `EstadoPedido`, `EstadoPago`, `TipoMovimientoInventario`, `TipoBodega`, `CategoriaProducto`, `GravedadAuditoria`, `MetodoEntrega`. |
-| [`Domain  Servicies.md`](./SDD/Domain/Domain%20%20Servicies.md) | Visión general de los 5 servicios de dominio, reglas transversales, matriz de precondiciones/postcondiciones e invariantes globales. |
-| [`Services/`](./SDD/Domain/Services/) | Detalle operativo de cada servicio: `UserManagementService`, `CatalogService`, `InventoryService`, `OrderProcessingService`, `AuditService`. |
-| [`Input-Ports.md`](./SDD/Domain/Input-Ports.md) | **25 casos de uso** (24 expuestos por HTTP + `ReserveInventoryUseCase` interno), `ExecutionContext`, convención de nombres, validación, manejo de errores, autorización y reglas `IP-01…IP-10`. |
-| [`Output-Ports.md`](./SDD/Domain/Output-Ports.md) | **17 puertos de salida**, clasificación de repositorios y pasarelas, transacciones, reglas `OP-01…OP-10` y matriz de puertos. |
+| [Especificación funcional](BackendSDD/enunciado.md) | Objetivos, dominios, participantes, reglas y restricciones del negocio |
+| [Arquitectura](BackendSDD/Software%20Architecture/nexusmarket-arquitectura.md) | Capas, módulos, persistencia, Docker, seguridad, pruebas y flujos transaccionales |
+| [Modelo de dominio](BackendSDD/Domain/nexusmarket-domain-model.md) | Contextos, agregados, entidades, invariantes, estados, eventos y escenarios |
+| [Objetos de valor](BackendSDD/Domain/nexusmarket-domain-object-values.md) | Catálogo canónico de VOs, familias, validación e invariantes |
+| [Servicios de dominio](BackendSDD/Domain/nexusmarket-domain-services.md) | Catálogo de `DS-01`…`DS-09`, interacciones y matrices de reglas |
+| [Definiciones de servicios](BackendSDD/Domain/services) | Nueve documentos autocontenidos con plantilla de diecisiete secciones |
+| [Puertos de entrada](BackendSDD/Application/nexusmarket-input-ports.md) | 25 capacidades de entrada, descartes y trazabilidad `OBJ → PI` |
+| [Puertos de salida](BackendSDD/Application/nexusmarket-output-ports.md) | 24 capacidades de salida, consumidores y criterios de atomicidad |
+| [Casos de uso](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | `UC-01 Checkout` y `UC-02 QueryOrder` |
+| [Catálogo de adaptadores](BackendSDD/Adapters/nexusmarket-adapters.md) | Inventario, agrupaciones, relaciones puerto → adaptador y bloqueos |
+| [Alineación de contratos](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Verificación de la cadena completa y estado de `CT-01`…`CT-13` |
+| [Estado documental](BackendSDD/DOCUMENTATION_STATUS.md) | Fuentes, decisiones, conflictos, limitaciones, trazabilidad y relevo |
+| [Prompt maestro](BackendSDD/Prompt-maestro-documentacion.md) | Gobierno documental, reglas de calidad y método de trabajo |
 
-### `SDD/Adapters/` — Proyección tecnológica
+### Adaptadores individuales
 
-| Documento | Contenido |
-|---|---|
-| [`README.md`](./SDD/Adapters/README.md) | Vista general de la capa: catálogo resumido de adaptadores **E1–E15** (entrada) y **S1–S18** (salida). |
-| [`architecture.md`](./SDD/Adapters/architecture.md) | Principios rectores, criterios para crear un adaptador, reglas de dependencia, ubicación física propuesta, wiring, flujos de petición y de persistencia, decisiones arquitectónicas. |
-| [`trazabilidad.md`](./SDD/Adapters/trazabilidad.md) | Matrices de trazabilidad: caso de uso → adaptador → servicio → puerto → tecnología, y verificación de cobertura. |
-| [`observaciones-arquitectonicas.md`](./SDD/Adapters/observaciones-arquitectonicas.md) | Registro de **vacíos e inconsistencias O-01…O-18** con impacto, recomendación y acción realizada. |
-| [`input/`](./SDD/Adapters/input/) | Adaptadores de entrada: `rest-controllers.md`, `request-dtos.md`, `response-dtos.md`, `input-mappers.md`, `authentication-adapter.md`. |
-| [`output/`](./SDD/Adapters/output/) | Adaptadores de salida: `persistence-adapters.md`, `sql-adapters.md`, `mongodb-adapters.md`, `external-service-adapters.md`. |
-| [`mappers/`](./SDD/Adapters/mappers/) | Mappers de salida y de persistencia (evitan filtrar modelos de la base de datos al dominio). |
+<details>
+<summary><strong>Ver los 14 documentos de adaptadores</strong></summary>
 
-### `SDD/Software Architecture/`
+- [`ADIN-01` Adaptador de entrada HTTP](BackendSDD/Adapters/nexusmarket-adapter-http-input.md)
+- [`ADOUT-01` Repositorios SQL de identidad y perfiles](BackendSDD/Adapters/nexusmarket-adapter-sql-identity-profiles.md)
+- [`ADOUT-02` Repositorios SQL de catálogo, inventario y carrito](BackendSDD/Adapters/nexusmarket-adapter-sql-catalog-inventory-cart.md)
+- [`ADOUT-03` Repositorios SQL del ciclo de pedido](BackendSDD/Adapters/nexusmarket-adapter-sql-order-lifecycle.md)
+- [`ADOUT-04` Unidad de trabajo y outbox SQL](BackendSDD/Adapters/nexusmarket-adapter-sql-unit-of-work-outbox.md)
+- [`ADOUT-05` Repositorio MongoDB de auditoría](BackendSDD/Adapters/nexusmarket-adapter-mongodb-audit.md)
+- [`ADOUT-06` Consultas SQL de reportes](BackendSDD/Adapters/nexusmarket-adapter-sql-reporting-query.md)
+- [`ADOUT-07` Pasarela de pagos](BackendSDD/Adapters/nexusmarket-adapter-payment-gateway.md)
+- [`ADOUT-08` Proveedor logístico](BackendSDD/Adapters/nexusmarket-adapter-shipping-provider.md)
+- [`ADOUT-09` Envío de notificaciones](BackendSDD/Adapters/nexusmarket-adapter-notification-sender.md)
+- [`ADOUT-10` Entrega digital](BackendSDD/Adapters/nexusmarket-adapter-digital-delivery.md)
+- [`ADOUT-11` Reloj del sistema](BackendSDD/Adapters/nexusmarket-adapter-system-clock.md)
+- [`ADOUT-12` Generador de identificadores](BackendSDD/Adapters/nexusmarket-adapter-id-generator.md)
+- [`ADOUT-13` Hashing de credenciales](BackendSDD/Adapters/nexusmarket-adapter-password-hasher.md)
 
-| Documento | Contenido |
-|---|---|
-| [`Software Architecture.md`](./SDD/Software%20Architecture/Software%20Architecture.md) | **Documento central de arquitectura**: objetivos (`OA-01…OA-10`), contexto, decisiones, verificación arquitectónica y aspectos pendientes de definición. |
-
-### [`SDD/contract-alignment.md`](./SDD/contract-alignment.md)
-
-| Aspecto | Detalle |
-|---|---|
-| **Propósito** | Traduce, endpoint por endpoint, el dominio en **contratos REST**: método, ruta, encabezados, request, response, errores, mapeo de dominio y persistencia implícita. |
-| **Fuente primaria** | `SDD/Domain/` (modelo, objetos de valor, servicios, Input/Output Ports). |
-| **Fuente secundaria** | `SDD/Adapters/` (controllers, DTOs, autenticación, trazabilidad, observaciones). |
-| **Catálogo** | **24 endpoints** expuestos, uno por caso de uso público; `ReserveInventoryUseCase` queda como contrato interno, sin endpoint. |
-| **Convenciones** | JSON/UTF-8, encabezado `Authorization` obligatorio, identificadores opacos (`string`), códigos de catálogo exactos del dominio y envelope de error `{ error, mensaje, detalles[] }`. |
-| **Errores** | Correspondencia explícita error de dominio ↔ estado HTTP (`401`, `403`, `404`, `409`, `422`, `500/502/503`). |
-| **Persistencia** | Matriz endpoint → repositorios SQL, `AuditRepository` (MongoDB) y servicios externos. |
-| **Consumo** | Guía para el frontend y flujos extremo a extremo por rol (comprador, vendedor, administrador, operador logístico, supervisor). |
-| **Trazabilidad** | Matriz endpoint ↔ Input Port ↔ servicio ↔ entidad ↔ value object ↔ persistencia. |
-| **Regla central** | *Cada endpoint es una proyección del dominio: deriva de un caso de uso, representa entidades y objetos de valor concretos, traduce errores en el adaptador y mapea SQL/MongoDB, sin introducir reglas de negocio nuevas.* |
+</details>
 
 ---
 
-## 🧭 Sistema de Referencia
+## Cómo empezar
 
-Toda la especificación usa identificadores estables que permiten citar reglas sin ambigüedad:
-
-| Prefijo | Significado | Ejemplos |
-|---|---|---|
-| `RG-*` | Regla general del dominio | `RG-01` usuario autenticado · `RG-03` alcance por rol |
-| `USR-*` / `SEL-*` | Reglas de usuarios / vendedores | `USR-01` correo y documento únicos · `SEL-01` sin autorregistro de vendedor |
-| `INV-*` | Reglas de inventario | `INV-01` no negativo · `INV-02` stock insuficiente · `INV-03` inventario dañado |
-| `ORD-*` | Reglas de pedido | `ORD-01` pedido `ENTREGADO` inmutable |
-| `AUD-*` | Reglas de auditoría | `AUD-01` auditoría obligatoria · `AUD-02` registros append-only |
-| `VO-*` | Reglas de value objects | `VO-02` valores controlados |
-| `IP-*` / `OP-*` | Reglas de Input / Output Ports | `IP-10` autenticación fuera del contrato · `OP-06` SQL como fuente de verdad |
-| `OA-*` | Objetivos de arquitectura | `OA-01` aislar la lógica de negocio |
-| `E1…E15` / `S1…S18` | Adaptadores de entrada / salida | `E1` controllers de usuarios · `S13` `MongoAuditRepository` |
-| `O-01…O-18` | Observaciones arquitectónicas (pendientes) | `O-01` devoluciones sin entidad ni puertos |
-
----
-
-## 🌐 Contrato de la API REST
-
-Resumen del catálogo completo definido en [`SDD/contract-alignment.md`](./SDD/contract-alignment.md):
-
-| # | Método | Ruta | Caso de uso | Actor |
-|---|---|---|---|---|
-| 1 | `POST` | `/buyers` | `RegisterBuyerUseCase` | Comprador |
-| 2 | `POST` | `/sellers` | `OnboardSellerUseCase` | Administrador |
-| 3 | `PATCH` | `/users/{userId}/status` | `UpdateUserAccessStatusUseCase` | Administrador |
-| 4 | `POST` | `/warehouses` | `CreateWarehouseUseCase` | Administrador / Vendedor |
-| 5 | `POST` | `/products` | `CreateProductUseCase` | Vendedor |
-| 6 | `PATCH` | `/products/{productId}/status` | `UpdateProductStatusUseCase` | Vendedor / Administrador |
-| 7 | `POST` | `/inventory/replenishments` | `ReplenishStockUseCase` | Vendedor / Oper. Logístico |
-| 8 | `POST` | `/inventory/dispatches` | `DispatchInventoryUseCase` | Operador Logístico |
-| 9 | `POST` | `/carts/{cartId}/items` | `AddItemToCartUseCase` | Comprador |
-| 10 | `DELETE` | `/carts/{cartId}/items/{itemId}` | `RemoveItemFromCartUseCase` | Comprador |
-| 11 | `POST` | `/carts/{cartId}/confirmation` | `ConfirmCartUseCase` | Comprador |
-| 12 | `POST` | `/orders` | `ConfirmOrderUseCase` | Comprador |
-| 13 | `GET` | `/orders/{orderId}` | `GetOrderUseCase` | Roles autorizados |
-| 14 | `PATCH` | `/orders/{orderId}/status` | `UpdateOrderStatusUseCase` | Roles autorizados |
-| 15 | `POST` | `/orders/{orderId}/payments` | `ProcessPaymentUseCase` | Flujo comercial |
-| 16 | `POST` | `/orders/{orderId}/invoices` | `CreateInvoiceUseCase` | Sistema |
-| 17 | `POST` | `/orders/{orderId}/shipments` | `CreateShipmentUseCase` | Sistema / Oper. Logístico |
-| 18 | `POST` | `/orders/{orderId}/dispatch` | `DispatchOrderUseCase` | Operador Logístico |
-| 19 | `POST` | `/orders/{orderId}/delivery` | `ConfirmDeliveryUseCase` | Operador Logístico |
-| 20 | `POST` | `/orders/{orderId}/returns` | `RequestReturnUseCase` | Comprador |
-| 21 | `PATCH` | `/returns/{returnId}/approval` | `ApproveReturnUseCase` | Vendedor |
-| 22 | `POST` | `/orders/{orderId}/refunds` | `ProcessRefundUseCase` | Flujo autorizado |
-| 23 | `GET` | `/reports` | `GenerateAdministrativeReportUseCase` | Supervisor |
-| 24 | `GET` | `/audit-logs` | `QueryAuditLogUseCase` | Supervisor |
-
-**Convenciones transversales**
-
-- Todas las peticiones exigen encabezado **`Authorization`**; el rol **nunca** viaja en el cuerpo.
-- `Content-Type: application/json` en peticiones con cuerpo; `Accept: application/json` recomendado.
-- Identificadores **opacos** tipados como `string` (los ejemplos numéricos de la especificación son
-  ilustrativos).
-- Envelope de error uniforme:
-
-```json
-{
-  "error": "<codigo-estable>",
-  "mensaje": "<descripcion legible>",
-  "detalles": [{ "campo": "<nombre>", "problema": "<motivo>" }]
-}
-```
-
-- Un **pago rechazado no es un error**: es un resultado de negocio (`estadoPago: "RECHAZADO"`) en una
-  respuesta `200`.
-- La escritura de auditoría **no se expone** como endpoint: los registros son append-only y solo se
-  consultan (`GET /audit-logs`).
-
----
-
-## 🛠️ Requisitos Previos e Instalación
-
-### 8.1 Requisitos previos
-
-Para **revisar el proyecto** (lectura y navegación de la especificación):
-
-| Requisito | Detalle |
-|---|---|
-| Visor de Markdown | Cualquiera: GitHub, VS Code, Typora, Obsidian |
-| Editor recomendado | **Visual Studio Code** con vista previa de Markdown |
-| Git *(opcional)* | Útil para historial, ramas y comparación de cambios |
-
-Para **implementar el sistema** (aún no disponible en el repositorio):
-
-| Requisito | Detalle |
-|---|---|
-| **Node.js** (LTS) | Runtime de la implementación |
-| **TypeScript** | Lenguaje del código de aplicación |
-| Gestor de paquetes | npm / yarn / pnpm |
-| **PostgreSQL** (o SQL equivalente) | Persistencia transaccional |
-| **MongoDB** | Persistencia documental para auditoría |
-| Editor con soporte TypeScript | VS Code + extensión de TypeScript |
-| Linter / formateador | ESLint + Prettier (a definir por el equipo) |
-
-### 8.2 Instalación — Revisar la especificación
-
-**Paso 1 · Clonar el repositorio**
+Este repositorio **no requiere instalación de dependencias** en su estado actual, porque contiene únicamente documentación. Para clonarlo:
 
 ```bash
 git clone https://github.com/SamuuVA/Programacion-Web-2-2026.git
 cd Programacion-Web-2-2026
 ```
 
-**Paso 2 · Verificar la estructura**
+### Ruta de lectura recomendada
 
-```bash
-# Listar la especificación
-dir SDD
-```
+1. Lee la [especificación funcional](BackendSDD/enunciado.md) para entender el negocio.
+2. Revisa la [arquitectura](BackendSDD/Software%20Architecture/nexusmarket-arquitectura.md) para conocer las capas y restricciones.
+3. Estudia el [modelo de dominio](BackendSDD/Domain/nexusmarket-domain-model.md) y sus [objetos de valor](BackendSDD/Domain/nexusmarket-domain-object-values.md).
+4. Consulta los [servicios y políticas](BackendSDD/Domain/nexusmarket-domain-services.md).
+5. Sigue los [puertos de entrada](BackendSDD/Application/nexusmarket-input-ports.md) y [salida](BackendSDD/Application/nexusmarket-output-ports.md).
+6. Lee los [casos de uso](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md).
+7. Revisa los [adaptadores](BackendSDD/Adapters/nexusmarket-adapters.md).
+8. Cierra con la [alineación de contratos](BackendSDD/Contracts/nexusmarket-contract-alignment.md) y el [estado documental](BackendSDD/DOCUMENTATION_STATUS.md).
 
-```powershell
-# PowerShell
-Get-ChildItem -Recurse SDD
-```
-
-**Paso 3 · Leer en el orden recomendado**
-
-```text
- 1. SDD/Domain/DomainModel .md                        → entender el negocio
- 2. SDD/Domain/Domain Object Value.md                 → catálogos cerrados
- 3. SDD/Domain/Domain  Servicies.md                   → operaciones y reglas
- 4. SDD/Domain/Services/*.md                          → detalle por servicio
- 5. SDD/Domain/Input-Ports.md                         → los 25 casos de uso
- 6. SDD/Domain/Output-Ports.md                        → los 17 puertos de salida
- 7. SDD/Software Architecture/Software Architecture.md → arquitectura consolidada
- 8. SDD/Adapters/README.md y architecture.md          → capa de adaptadores
- 9. SDD/Adapters/trazabilidad.md                      → verificar cobertura
-10. SDD/contract-alignment.md                        → contrato REST derivado
-11. SDD/Adapters/observaciones-arquitectonicas.md     → pendientes O-01…O-18
-```
-
-**Paso 4 · Abrir en el editor**
-
-```bash
-code .
-```
-
-### 8.3 Instalación — Ejecución de la aplicación
-
-> **No existe todavía código de aplicación.** No hay `package.json`, `tsconfig.json` ni scripts de
-> compilación. Cuando se implemente, esta sección se completará con los comandos concretos de
-> arranque, migraciones y variables de entorno.
-
-```bash
-# Verificación de prerrequisitos (para la futura implementación)
-node --version
-npm --version
-tsc --version
-```
+> Si vas a retomar el trabajo, **empieza por `DOCUMENTATION_STATUS.md`**: contiene el bloque de relevo, las decisiones adoptadas, los conflictos abiertos y la siguiente acción exacta.
 
 ---
 
-## 🚀 Uso
+## Convenciones de identificadores
 
-| Objetivo | Acción |
+| Prefijo | Significado | Ejemplo |
+|---|---|---|
+| `OBJ-` | Objetivo funcional del negocio | `OBJ-08` |
+| `RG-` | Restricción general | `RG-01` |
+| `INV-`, `ORD-`, `RET-`, `REF-`, `AUD-` | Reglas de inventario, pedido, devolución, reembolso y auditoría | `INV-05` |
+| `UC-` | Caso de uso | `UC-01` |
+| `DS-` | Servicio o política de dominio | `DS-03` |
+| `PI-` | Puerto de entrada | `PI-12` |
+| `PO-` | Puerto de salida | `PO-16` |
+| `ADIN-` / `ADOUT-` | Adaptador de entrada / salida | `ADIN-01`, `ADOUT-07` |
+| `CT-` | Contrato verificado | `CT-04` |
+| `DEC-BIZ-` | Decisión de negocio pendiente de aprobación | `DEC-BIZ-05` |
+| `D-` | Decisión de diseño adoptada por el equipo documental | `D-27` |
+| `L-` | Limitación real detectada | `L-27` |
+| `C-` | Conflicto entre fuentes | `C-21` |
+| `F-` | Flujo verificado en Contract Alignment | `F-04` |
+
+---
+
+## Hoja de ruta
+
+| Fase | Entregable | Estado |
+|---|---|---|
+| **0. Especificación** | Modelo, VOs, servicios, puertos, casos de uso, adaptadores y contratos | Completada |
+| **1. Decisiones de negocio** | Resolver `DEC-BIZ-01`…`DEC-BIZ-07` y las limitaciones bloqueantes | Pendiente |
+| **2. Contratos ejecutables** | OpenAPI, esquemas de eventos, contratos de proveedor y migraciones | Pendiente |
+| **3. Implementación vertical** | Primer módulo completo: dominio + caso de uso + puerto + adaptador + pruebas | Pendiente |
+| **4. Integraciones** | Pago, logística, notificaciones y entrega digital con idempotencia | Pendiente |
+| **5. Calidad y despliegue** | CI, Docker multi-stage, observabilidad, backups y seguridad | Pendiente |
+
+La implementación debe comenzar por un **flujo vertical pequeño y verificable**, no creando todas las carpetas vacías. El orden recomendado está en la [arquitectura §17](BackendSDD/Software%20Architecture/nexusmarket-arquitectura.md#17-orden-recomendado-de-implementación).
+
+---
+
+## Decisiones y limitaciones abiertas
+
+Antes de implementar las políticas variables, el negocio debe aprobar:
+
+| ID | Decisión requerida |
 |---|---|
-| **Estudiar el negocio** | Empieza por `SDD/Domain/DomainModel .md` y sigue las referencias cruzadas. |
-| **Implementar un caso de uso** | Busca su `Input Port` en `Input-Ports.md` (§21), su endpoint en `contract-alignment.md` (§4) y sus adaptadores en `Adapters/trazabilidad.md`. |
-| **Añadir un adaptador** | Verifica los criterios de `Adapters/architecture.md` (§4): debe implementar un Output Port, consumir un Input Port o resolver un límite externo documentado. |
-| **Verificar cobertura** | Consulta `Adapters/trazabilidad.md` (§6 y §7) para detectar elementos sin trazabilidad completa. |
-| **Revisar huecos** | Revisa `Adapters/observaciones-arquitectonicas.md` para los hallazgos abiertos O-01…O-18. |
+| `DEC-BIZ-01` | Campos y formato exacto de `Direccion` |
+| `DEC-BIZ-02` | Plazo para solicitar una devolución |
+| `DEC-BIZ-03` | Catálogo de motivos de devolución y reembolso |
+| `DEC-BIZ-04` | Política de selección cuando hay varias bodegas elegibles |
+| `DEC-BIZ-05` | Moneda, escala decimal y regla de redondeo |
+| `DEC-BIZ-06` | Proceso y actor que cambian `EstadoComercial` |
+| `DEC-BIZ-07` | Atribución de la aprobación financiera |
+
+Las limitaciones que bloquean contratos ejecutables están registradas en [`DOCUMENTATION_STATUS.md` §7](BackendSDD/DOCUMENTATION_STATUS.md#7-limitaciones-reales-detectadas-no-convertidas-en-requisitos). Las principales:
+
+- `L-27` — contrato HTTP/OpenAPI, autenticación, versionado y límites de tasa.
+- `L-22` — protocolo del proveedor de pago, autorización/captura y webhooks.
+- `L-23` — integración logística, tracking y evidencia de entrega.
+- `L-24` — canales, plantillas y consentimiento de notificaciones.
+- `L-17` — numeración, serie fiscal y corrección de facturas.
+- `L-18` — mecanismo de entrega digital y licencias.
+- `L-12`, `L-20` — política y algoritmo de credenciales.
+- `L-13` — formato físico de los identificadores.
+- `L-19` — catálogo de reportes, filtros y paginación.
+- `L-26` — asignación de operador logístico a pedidos o envíos.
+- `L-11`, `L-14`, `L-15` — composición de payloads, catálogo de eventos y gravedad de auditoría.
+
+> Estas limitaciones **no se convierten en requisitos por conveniencia**. Se registran con alternativas, impacto y recomendación para que la persona responsable decida.
 
 ---
 
-## 🤝 Reglas de Contribución
+## Contribución
 
-### Reglas generales
+Mientras el repositorio permanezca en fase documental, se aplican estas reglas:
 
-1. **La especificación dirige al código.** Ninguna regla de negocio se implementa sin estar
-   documentada en `SDD/`. Si falta, se documenta primero.
-2. **Prohibido inventar.** No se crean entidades, puertos, adaptadores, endpoints ni tecnologías que no
-   estén justificados por un documento existente.
-3. **Cambios mínimos y trazables.** Un PR modifica lo que dice el título e incluye la referencia al
-   documento SDD afectado.
-4. **Idioma del dominio: español.** Entidades, atributos y métodos de dominio en español; puertos,
-   adaptadores y DTOs en inglés. Los códigos de los catálogos **no se traducen**.
-5. **Documentación en español**, en Markdown limpio: tablas para reglas, bloques de código para
-   ejemplos y diagramas.
-
-### Checklist antes de abrir un PR
-
-- [ ] ¿La regla de negocio afectada está documentada en `SDD/Domain/`?
-- [ ] ¿Se respetó la regla de dependencia `Adaptador → Puerto → Núcleo`?
-- [ ] ¿El dominio quedó libre de referencias a HTTP, SQL, MongoDB o proveedores?
-- [ ] ¿Los identificadores se mantienen como `string` opaco?
-- [ ] ¿Los valores de estado, rol y categoría provienen de los catálogos de `Domain Object Value.md`?
-- [ ] ¿La trazabilidad del nuevo elemento está actualizada en `Adapters/trazabilidad.md`?
-- [ ] ¿Se actualizó `contract-alignment.md` si el cambio afecta a un contrato HTTP?
-- [ ] ¿Se registró una nueva observación (`O-NN`) si el cambio detecta una inconsistencia?
-- [ ] ¿Se evitó modificar documentos de `SDD/` fuera del objetivo del trabajo?
+1. **Solo documentación Markdown.** No se introducen archivos `.ts`, `.js`, `.sql`, `.yaml`, `.json` ni código ejecutable.
+2. **Una sola fuente de verdad por regla.** Las demás referencias apuntan por ruta, sección o identificador.
+3. **No inventar reglas de negocio.** Los vacíos se resuelven con evidencia o se registran como decisión/limitación con identificador estable.
+4. **Mantener la trazabilidad.** Todo cambio debe conservar la cadena requisito → dominio → servicio → caso de uso → puerto → adaptador → contrato.
+5. **Actualizar el estado.** Cualquier cambio documental exige actualizar [`DOCUMENTATION_STATUS.md`](BackendSDD/DOCUMENTATION_STATUS.md) en la misma tanda.
+6. **Respetar la jerarquía de fuentes.** Instrucción del usuario → requisitos aprobados → modelo/arquitectura → documentación especializada → inferencias.
+7. **No reintroducir legado.** `SDD/`, los cinco servicios antiguos y las tecnologías Go/MySQL no son canónicos.
+8. **No añadir códigos o estados no declarados por un puerto** (`D-27`).
 
 ---
 
-## ✅ Buenas Prácticas de Arquitectura
+## Licencia y autoría
 
-### A. Aislamiento del dominio
+Distribuido bajo licencia **MIT**. Consulta el archivo [`LICENSE`](LICENSE) para más detalles.
 
-- El núcleo **no importa** nada de frameworks HTTP, drivers SQL, drivers de MongoDB ni SDKs de
-  proveedores.
-- Las entidades se modelan en el lenguaje del negocio, no en el de la base de datos.
-- Las **reglas de negocio viven en el dominio**; los adaptadores traducen, no deciden.
+**Autor:** [SamuuVA](https://github.com/SamuuVA) · 2026
 
-### B. Inversión de dependencias
-
-- El dominio declara **puertos** (interfaces); la infraestructura los **implementa**.
-- Los casos de uso dependen de puertos abstractos, nunca de implementaciones concretas.
-- Sustituir PostgreSQL por otro motor, o el proveedor de pagos por otro, **no debe tocar el
-  dominio**.
-
-```typescript
-// ✅ El caso de uso depende del puerto (interfaz), no de la implementación
-export interface OrderRepository {
-  guardar(pedido: Pedido): Promise<void>;
-  buscarPorId(id: string): Promise<Pedido | null>;
-}
-
-// ❌ Prohibido en el dominio: conocer el motor de persistencia
-// import { Pool } from 'pg';
-```
-
-### C. Traducción en los adaptadores
-
-| Aspecto | Regla |
-|---|---|
-| DTOs | Los DTOs de request/response **nunca** son entidades del dominio. |
-| Mappers | Traducen DTO → comando y entidad → response, de forma explícita y testeable. |
-| Errores | El dominio lanza errores de negocio; el adaptador los traduce a HTTP con el envelope `{ error, mensaje, detalles }`. |
-| Identidad | El rol y el usuario provienen del `ExecutionContext`, **nunca** del cuerpo de la petición. |
-| Persistencia | Los modelos de base de datos no se filtran al dominio: existen mappers de persistencia. |
-
-### D. Persistencia responsable
-
-- **SQL** = fuente de verdad transaccional. Las operaciones de reserva y salida de inventario deben
-  ser **atómicas**; la unidad de trabajo pertenece a infraestructura, no al dominio.
-- **MongoDB** = auditoría y trazabilidad, **append-only e inmutable**. No replica datos transaccionales.
-- Todo movimiento de inventario **debe** generar registro de auditoría (AUD-01).
-
-### E. Pureza del dominio
-
-- Los **servicios de dominio son stateless**; la lógica se apoya en entidades y objetos de valor.
-- Los **value objects** protegen sus invariantes (enums cerrados, rangos, formatos) y se validan en su
-  construcción.
-- Los identificadores son **opacos** y de un único tipo (`string`).
-- El cliente nunca envía `id`, `rol`, `estado` inicial, `estadoPago`, `estadoPedido`,
-  `cantidadDisponible` ni `cantidadReservada`: los determina el dominio.
-
-### F. Testabilidad
-
-- El núcleo se prueba **sin infraestructura** mediante adaptadores de prueba (`Fake*`) que implementan
-  los mismos puertos.
-- Cada caso de uso debe poder probarse dado un puerto falso y un `ExecutionContext` construido.
-- Las reglas transversales (transiciones de estado, autorización) deben ser verificables con pruebas
-  de dominio.
-
-### G. Consistencia y estilo
-
-- Estilo inicial: **monolito modular** — fronteras claras, sin microservicios prematuros.
-- Convenciones de nombres fijadas en `DomainModel .md` (§2.4) y respetadas en todo el código.
-- Los contratos REST se derivan de la especificación: **un endpoint por caso de uso expuesto**, y un
-  caso de uso interno **no** produce endpoint público.
-
----
-
-## 📊 Estado del Proyecto y Pendientes
-
-| Aspecto | Estado |
-|---|---|
-| Especificación de dominio | ✅ Completa (modelo, value objects, servicios, Input/Output Ports) |
-| Especificación de adaptadores | ✅ Completa (E1–E15, S1–S18, trazabilidad) |
-| Alineación de contratos REST | ✅ 24 endpoints documentados |
-| Arquitectura de software | ✅ Documento central consolidado |
-| **Código fuente** | ⬜ **Pendiente** — el repositorio es puramente documental |
-| Esquema físico de base de datos | ⬜ Pendiente |
-| Framework HTTP y autenticación | ⬜ Pendiente (O-09) |
-| Proveedores externos (pago, logística) | ⬜ Pendiente |
-| Pruebas automatizadas | ⬜ Pendiente |
-
-Los vacíos e inconsistencias detectados (**O-01…O-18**) están registrados con su impacto,
-recomendación y estado en
-[`SDD/Adapters/observaciones-arquitectonicas.md`](./SDD/Adapters/observaciones-arquitectonicas.md).
-Los pendientes específicos del contrato REST están en
-[`SDD/contract-alignment.md`](./SDD/contract-alignment.md) §11.
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la licencia [MIT](./LICENSE).
-
-```text
-MIT License — Copyright (c) 2026 SamuuVA
-```
+**Proyecto:** NexusMarket — Programación Web II (2026-2)
 
 ---
 
 <div align="center">
-
-**NexusMarket** · Especificación SDD de un marketplace con DDD y Arquitectura Hexagonal
-<sub>Documento derivado de `SDD/` — la especificación es la fuente de verdad del proyecto.</sub>
-
+  <sub>Documentación primero. Código después, sin inventar reglas.</sub>
 </div>
