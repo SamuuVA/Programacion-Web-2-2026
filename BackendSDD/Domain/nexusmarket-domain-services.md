@@ -1081,7 +1081,7 @@ Cada sección aplica los veinte puntos de §1.1. Los puntos se numeran para perm
 | Solicitud de 3 unidades con 2 entregadas. | `NO_ELEGIBLE` por cantidad. |
 | Segunda devolución de la misma unidad ya resuelta. | `NO_ELEGIBLE`. |
 
-**Trazabilidad:** `[MOD]` §14.1, §14.3, §18, §21 (RET-01, RET-02), §22.6, DD-12; `[ENU]` Dominio 11; `[VO]` §8.15, §9.2, §6.7; decisiones `DEC-BIZ-02`, `DEC-BIZ-03`; limitaciones `L-06`, `L-10`.
+**Trazabilidad:** `[MOD]` §14.1, §14.3, §18, §21 (RET-01, RET-02), §22.6, DD-12; `[ENU]` Dominio 11; `[VO]` §8.15, §9.2, §6.7; decisiones `DEC-W1-002` (plazo inicial 30 días, configurable) y `DEC-BIZ-03`; limitación `L-10`.
 
 **Estado:** **Confirmado por fuente**; el plazo y el catálogo de motivos quedan **parcialmente especificados**.
 
@@ -1493,7 +1493,7 @@ El README y los documentos anteriores describen cinco servicios. No son canónic
 |---|---|---|
 | Preferencia de bodega no definida. | `DS-04` puede producir propuestas distintas ante el mismo caso. | `DEC-BIZ-04`; la propuesta debe ser factible, no óptima. |
 | Tasas, descuentos y moneda no definidos. | `DS-05` no puede producir importes definitivos sin política. | `DEC-BIZ-05`; el servicio exige la política como entrada. |
-| Plazo y catálogo de motivos no definidos. | `DS-07` no puede validar pertenencia ni fecha exacta. | `DEC-BIZ-02`, `DEC-BIZ-03`; se exige la política como entrada. |
+| Catálogo de motivos no definido; plazo ya aprobado. | `DS-07` no puede validar el motivo; el plazo se valida con el valor vigente (`DEC-W1-002`). | `DEC-BIZ-03`/`L-10`; se exige el catálogo como entrada. |
 | Catálogo de eventos incompleto. | `DS-09` no puede validar todos los códigos. | `L-14`; se exige un catálogo versionado. |
 | Composición del payload de auditoría no definida. | `DS-09` no puede fijar un esquema cerrado. | `L-11`; se aplica minimización y se remite al contrato. |
 | Transiciones de algunos estados no completas. | `DS-06` solo puede validar las confirmadas. | `L-09`; las transiciones no listadas se rechazan. |

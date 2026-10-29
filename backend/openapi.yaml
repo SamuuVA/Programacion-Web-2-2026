@@ -1,0 +1,348 @@
+openapi: 3.1.0
+info:
+  title: NexusMarket API - primer vertical
+  version: 0.1.0
+  description: |
+    Contrato del alcance implementado: `POST /api/v1/buyers`, `/health` y `/ready`.
+    No cubre autenticación, autorización, pagos, imágenes, catálogo, direcciones,
+    carrito operativo ni otros puertos de entrada.
+
+    Todas las respuestas incluyen `x-correlation-id`. Si el cliente envía un valor
+    válido (1–200 caracteres, alfabeto `A-Z a-z 0-9 . _ : -`), se reutiliza; en caso
+    contrario se genera un UUID.
+
+    Los errores globales de enrutamiento usan el mismo sobre `error`:
+    `404 RUTA_NO_ENCONTRADA` y `405 METODO_NO_PERMITIDO`. La respuesta `405` incluye
+    la cabecera `Allow`.
+
+    CORS es opcional y se configura con `CORS_ORIGINS` (lista de orígenes exactos,
+    separados por comas). No se habilitan credenciales de navegador por defecto.
+servers:
+  - url: http://127.0.0.1:3000
+x-global-errors:
+  '404':
+    $ref: '#/components/responses/NotFound'
+  '405':
+    $ref: '#/components/responses/MethodNotAllowed'
+paths:
+  /api/v1/buyers:
+    post:
+      operationId: registerBuyer
+      summary: Registrar una cuenta de comprador
+      description: |
+        Crea de forma atómica `Usuario` (rol COMPRADOR, estado ACTIVO),
+        `PerfilComprador` (HABILITADO, sin direcciones), `Carrito` vacío,
+        registro de auditoría y evento en el outbox.
+      parameters:
+        - name: x-correlation-id
+          in: header
+          required: false
+          description: |
+            Identificador de correlación. Si falta o no cumple el patrón, el
+            servidor genera un UUID y lo devuelve en la respuesta.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterBuyerRequest'
+      responses:
+        '201':
+          description: Comprador registrado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RegisterBuyerResponse'
+        '400':
+          description: Cuerpo inválido, campos desconocidos o JSON malformado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Correo o documento ya registrado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Cuerpo demasiado grande.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Media type no soportado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Dependencia de persistencia o hashing no disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno no controlado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /health:
+    get:
+      operationId: health
+      summary: Comprobar que el proceso HTTP responde
+      description: No consulta dependencias externas.
+      parameters:
+        - name: x-correlation-id
+          in: header
+          required: false
+          description: |
+            Identificador de correlación. Si falta o no cumple el patrón, el
+            servidor genera un UUID y lo devuelve en la respuesta.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+      responses:
+        '200':
+          description: Proceso disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /ready:
+    get:
+      operationId: ready
+      summary: Comprobar la disponibilidad de la persistencia
+      parameters:
+        - name: x-correlation-id
+          in: header
+          required: false
+          description: |
+            Identificador de correlación. Si falta o no cumple el patrón, el
+            servidor genera un UUID y lo devuelve en la respuesta.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+      responses:
+        '200':
+          description: Persistencia disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+        '503':
+          description: Persistencia no disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotReadyResponse'
+components:
+  headers:
+    CorrelationId:
+      description: Correlación de la petición.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+    Allow:
+      description: Métodos admitidos para la ruta solicitada.
+      schema:
+        type: string
+        examples:
+          - "GET, HEAD"
+  responses:
+    NotFound:
+      description: La ruta no existe.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    MethodNotAllowed:
+      description: La ruta existe, pero el método HTTP no está permitido.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+        allow:
+          $ref: '#/components/headers/Allow'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RegisterBuyerRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombreCompleto
+        - correoElectronico
+        - documentoIdentidad
+        - credencial
+      properties:
+        nombreCompleto:
+          type: string
+          minLength: 1
+          description: Se normalizan espacios. No se impone un máximo no aprobado.
+        correoElectronico:
+          type: string
+          minLength: 1
+          format: email
+          description: Se normaliza a minúsculas y se usa para la unicidad.
+        documentoIdentidad:
+          $ref: '#/components/schemas/DocumentoIdentidad'
+        credencial:
+          type: string
+          minLength: 12
+          maxLength: 128
+          writeOnly: true
+          description: Se transforma a Argon2id (DEC-W1-008); nunca se devuelve ni se audita.
+    DocumentoIdentidad:
+      type: object
+      additionalProperties: false
+      required: [tipo, pais, numero]
+      properties:
+        tipo:
+          type: string
+          minLength: 1
+        pais:
+          type: string
+          minLength: 1
+        numero:
+          type: string
+          minLength: 1
+    RegisterBuyerResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - usuarioId
+        - compradorId
+        - carritoId
+        - estadoUsuario
+        - estadoComercial
+        - correoNormalizado
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        compradorId:
+          type: string
+          format: uuid
+        carritoId:
+          type: string
+          format: uuid
+        estadoUsuario:
+          type: string
+          enum: [ACTIVO]
+        estadoComercial:
+          type: string
+          enum: [HABILITADO]
+        correoNormalizado:
+          type: string
+          format: email
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        service:
+          type: string
+          enum: [nexusmarket-backend]
+        version:
+          type: string
+          enum: [0.1.0]
+    ReadyResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready]
+    NotReadyResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [not_ready]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [codigo, mensaje, correlationId]
+          properties:
+            codigo:
+              type: string
+              enum:
+                - VALIDACION_INVALIDA
+                - CONFLICTO_UNICIDAD
+                - REGLA_NEGOCIO_INCUMPLIDA
+                - DEPENDENCIA_NO_DISPONIBLE
+                - NO_AUTORIZADO
+                - RUTA_NO_ENCONTRADA
+                - METODO_NO_PERMITIDO
+                - ERROR_INTERNO
+            mensaje:
+              type: string
+            correlationId:
+              type: string
+            detalles:
+              type: object
+              additionalProperties: true

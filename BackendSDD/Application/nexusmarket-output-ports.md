@@ -104,7 +104,7 @@ Los dos catálogos de puertos se ubican en `BackendSDD/Application/` porque la a
 | `PO-19` | `DigitalDeliveryProvider` | `shared` | Provisionar/revocar entrega digital. | `PI-15`, `PI-18`, `PI-22` | Inferido; limitado por L-18 |
 | `PO-20` | `Clock` | `shared` | Obtener el instante UTC. | Todos los que crean/marcan recursos | Inferido |
 | `PO-21` | `IdGenerator` | `shared` | Generar identificadores tipados. | Todos los que crean agregados/eventos | Inferido |
-| `PO-22` | `PasswordHasher` | `identity` | Producir `HashCredencial`. | `PI-01`, `PI-02` | Inferido; limitado por L-12, L-20 |
+| `PO-22` | `PasswordHasher` | `identity` | Producir `HashCredencial`. | `PI-01`, `PI-02` | Confirmado; política `DEC-W1-008`; biblioteca en W4 |
 | `PO-23` | `DomainEventOutbox` | `shared` | Registrar eventos en la misma transacción. | Mutaciones críticas; `DS-09` | Confirmado por `[MOD]` §24 y `[ARQ]` §9.4 |
 | `PO-24` | `ReportingQuery` | `reporting` | Consultas de lectura consolidadas. | `PI-24` | Confirmado; limitado por L-19 |
 
@@ -295,7 +295,7 @@ Las secciones se agrupan por capacidad. El orden no implica prioridad de impleme
 
 **10. Trazabilidad.** `[ARQ]` §7.3, §9.3; `[MOD]` §6.4, §24; `[VO]` §8.7; `[DS]` DS-01, DS-02.
 
-**Estado:** `Confirmado`; `Limitado` por L-09 (transiciones) y L-16 (estado inicial).
+**Estado:** `Confirmado`; `Limitado` por L-09 (transiciones). El estado inicial está aprobado en `DEC-W1-007` y lo aplica la aplicación, no el repositorio.
 
 ---
 
@@ -668,11 +668,11 @@ Las secciones se agrupan por capacidad. El orden no implica prioridad de impleme
 
 **8. Dependencia externa abstracta.** Persistencia transaccional; `[MOD]` §24.1 asigna devoluciones a SQL.
 
-**9. Límites del contrato.** No aprueba ni rechaza (DS-07), no mueve inventario (PO-06), no reembolsa (PO-13), no define el plazo ni el catálogo de motivos (L-06, L-10).
+**9. Límites del contrato.** No aprueba ni rechaza (DS-07), no mueve inventario (PO-06), no reembolsa (PO-13), no define el valor del plazo (aprobado en `DEC-W1-002`) ni el catálogo de motivos (L-10).
 
 **10. Trazabilidad.** `[ARQ]` §7.3, §9.4; `[MOD]` §14.1, §14.3, §24; `[VO]` §8.15; `[DS]` DS-07.
 
-**Estado:** `Confirmado`; `Limitado` por L-06 (plazo) y L-10 (motivos).
+**Estado:** `Confirmado`; plazo aprobado (`DEC-W1-002`); `Limitado` por L-10 (motivos).
 
 ---
 
@@ -1031,7 +1031,7 @@ No se usan errores de negocio: el tiempo no es una regla de dominio por sí mism
 
 **8. Dependencia externa abstracta.** Reloj del sistema. El contrato no prescribe `Date`, una biblioteca ni un servicio de tiempo.
 
-**9. Límites del contrato.** El adaptador obtiene el tiempo; la aplicación decide qué timestamp asignar; el dominio valida las relaciones temporales. La política de plazos (por ejemplo, devoluciones) no está fijada (L-06). No formatea ni presenta fechas.
+**9. Límites del contrato.** El adaptador obtiene el tiempo; la aplicación decide qué timestamp asignar; el dominio valida las relaciones temporales. La política de plazos de devolución tiene valor inicial 30 días y es configurable (`DEC-W1-002`); este puerto no la aplica. No formatea ni presenta fechas.
 
 **10. Trazabilidad.** `[MOD]` §16, §24; `[VO]` §7.2 (`Instant`); `[ARQ]` §16; `[PM]` §5.5.
 
@@ -1093,13 +1093,13 @@ No se usan errores de negocio: el tiempo no es una regla de dominio por sí mism
 
 **7. Restricciones e invariantes.** Nunca se almacena ni registra la credencial en claro; el hash es no reversible; el algoritmo debe ser aprobado; la verificación, si existe, es de tiempo constante; no se exponen sales/parámetros innecesarios; el hash no se usa como identificador.
 
-**8. Dependencia externa abstracta.** Biblioteca o servicio criptográfico. El algoritmo y los parámetros no están fijados por las fuentes (L-12, L-20).
+**8. Dependencia externa abstracta.** Biblioteca o servicio criptográfico. La política aprobada en `DEC-W1-008` fija Argon2id v=19, `m=19456` KiB, `t=2`, `p=1`, sal de 16 bytes, salida de 32 bytes y formato PHC; la biblioteca concreta se elige en W4.
 
-**9. Límites del contrato.** El adaptador implementa el algoritmo; la aplicación decide cuándo hashear; la política de fortaleza, algoritmo y verificación no está definida (L-20). No autentica, no autoriza y no emite sesiones.
+**9. Límites del contrato.** El adaptador implementa el algoritmo; la aplicación decide cuándo hashear. La política de fortaleza, algoritmo y verificación está registrada en `DEC-W1-008`; el adaptador no autentica, no autoriza, no emite sesiones y no decide rate limiting ni recuperación de contraseña (fuera de esta política).
 
-**10. Trazabilidad.** `[MOD]` §6.1; `[VO]` §6.4 (`HashCredencial`); `[DS]` DS-01; `[ARQ]` §16; `[PM]` §5.5.
+**10. Trazabilidad.** `[MOD]` §6.1; `[VO]` §6.4 (`HashCredencial`); `[DS]` DS-01; `[ARQ]` §16; `[PM]` §5.5; `DEC-W1-008`.
 
-**Estado:** `Inferido`; `Limitado` por L-12 y L-20.
+**Estado:** `Confirmado`; política de credenciales aprobada (`DEC-W1-008`); implementación/dependencia en W4.
 
 ---
 
@@ -1300,15 +1300,15 @@ Las limitaciones `L-01`…`L-15` están definidas en `DOCUMENTATION_STATUS.md` �
 | L-04 | Moneda, escala y redondeo. | `PO-05`, `PO-08`, `PO-09`, `PO-10`, `PO-13` | Importes y comparaciones no pueden fijarse con precisión. | Moneda del despliegue, escala y redondeo. |
 | L-07 | Preferencia entre bodegas elegibles. | `PO-04`, `PO-06` | La selección final no pertenece al repositorio. | Política de selección. |
 | L-11 | Composición de snapshots y payload de auditoría. | `PO-08`, `PO-10`, `PO-14` | El esquema exacto queda abstracto. | Campos y formato cerrado. |
-| L-12 | Algoritmo y formato de `HashCredencial`. | `PO-22` | El adaptador no puede fijar el algoritmo. | Algoritmo y parámetros. |
+| L-12 | **CERRADA (`DEC-W1-008`)**: Argon2id y PHC aprobados. | `PO-22` | Sin bloqueo de algoritmo. | Biblioteca/adaptador ejecutable en W4. |
 | L-13 | Formato físico de identificadores. | `PO-21` | El mecanismo de generación queda abstracto. | UUID, secuencia u otro. |
 | L-14 | Catálogo de eventos y `TipoReferencia`. | `PO-14`, `PO-23` | El contrato de eventos no enumera códigos. | Catálogo completo y versionado. |
 | L-15 | Gravedad de auditoría por evento. | `PO-14` | La asignación de severidad no está cerrada. | Tabla evento → gravedad. |
-| L-16 | Estado inicial de cuenta/vendedor. | `PO-01`, `PO-03` | El repositorio no decide el estado inicial. | Política de registro/incorporación. |
+| L-16 | **CERRADA (`DEC-W1-007`)**: estados iniciales aprobados. | `PO-01`, `PO-03` | El repositorio no decide el estado inicial; lo recibe de la aplicación. | `Usuario ACTIVO`, comprador `HABILITADO`, vendedor `ACTIVO`, bodega `ACTIVA`. |
 | L-17 | Numeración, serie fiscal y corrección. | `PO-10` | No puede definirse el número ni el documento correctivo. | Serie, formato, jurisdicción. |
 | L-18 | Mecanismo y modelo de entrega digital. | `PO-19` | El contrato de provisión/revocación queda abstracto. | Modelo de licencias/accesos y evidencia. |
 | L-19 | Catálogo de reportes, filtros y paginación. | `PO-24` | El contrato de lectura no fija tipos ni límites. | Reportes aprobados y parámetros. |
-| L-20 | Política de credenciales. | `PO-22` | No puede validarse fortaleza ni verificación. | Requisitos y algoritmo. |
+| L-20 | **CERRADA (`DEC-W1-008`)**: política de credenciales aprobada. | `PO-22` | Sin bloqueo de fortaleza/algoritmo. | 12–128 caracteres, Argon2id y verificación de tiempo constante. |
 | L-21 | Cierre `ENTREGADO → CERRADO`. | `PO-08`, `PO-11` | No hay transición de cierre expuesta. | Actor y proceso. |
 | L-22 | Protocolo del proveedor de pago. | `PO-09`, `PO-16` | El contrato de pago queda abstracto. | Autorización/captura, reintentos, cancelación. |
 | L-23 | Integración logística y tracking. | `PO-11`, `PO-17` | El contrato de transporte queda abstracto. | Proveedor, eventos y evidencia. |

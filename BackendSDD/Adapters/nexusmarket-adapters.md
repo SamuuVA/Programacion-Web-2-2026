@@ -56,7 +56,7 @@ Tampoco define rutas HTTP, códigos de estado, tablas, colecciones, índices, pr
 | ID | Adapter | Tipo | Puertos | Módulos principales | Documento | Estado |
 |---|---|---|---|---|---|---|
 | `ADIN-01` | Adaptador de entrada HTTP | Entrada | Invoca `PI-01`…`PI-25` | Todos los módulos expuestos | [`nexusmarket-adapter-http-input.md`](nexusmarket-adapter-http-input.md) | `COMPLETO`; limitado por `L-27` |
-| `ADOUT-01` | Repositorios SQL de identidad y perfiles | Salida / persistencia | Implementa `PO-01`…`PO-04` | `identity`, `buyers`, `sellers`, `warehouses` | [`nexusmarket-adapter-sql-identity-profiles.md`](nexusmarket-adapter-sql-identity-profiles.md) | `COMPLETO`; limitado por `L-01`, `L-03`, `L-08`, `L-09`, `L-16` |
+| `ADOUT-01` | Repositorios SQL de identidad y perfiles | Salida / persistencia | Implementa `PO-01`…`PO-04` | `identity`, `buyers`, `sellers`, `warehouses` | [`nexusmarket-adapter-sql-identity-profiles.md`](nexusmarket-adapter-sql-identity-profiles.md) | `COMPLETO`; limitado por `L-01`, `L-03`, `L-08`, `L-09`; `L-16` cerrada por `DEC-W1-007` |
 | `ADOUT-02` | Repositorios SQL de catálogo, inventario y carrito | Salida / persistencia | Implementa `PO-05`…`PO-07` | `catalog`, `inventory`, `cart` | [`nexusmarket-adapter-sql-catalog-inventory-cart.md`](nexusmarket-adapter-sql-catalog-inventory-cart.md) | `COMPLETO`; limitado por `L-04`, `L-07`, `L-13` |
 | `ADOUT-03` | Repositorios SQL del ciclo de pedido | Salida / persistencia | Implementa `PO-08`…`PO-13` | `orders`, `payments`, `billing`, `shipping`, `returns`, `refunds` | [`nexusmarket-adapter-sql-order-lifecycle.md`](nexusmarket-adapter-sql-order-lifecycle.md) | `COMPLETO`; limitado por `L-04`, `L-11`, `L-17`, `L-21`, `L-22`, `L-23` |
 | `ADOUT-04` | Unidad de trabajo y outbox SQL | Salida / transacción y eventos | Implementa `PO-15`, `PO-23` | `shared` | [`nexusmarket-adapter-sql-unit-of-work-outbox.md`](nexusmarket-adapter-sql-unit-of-work-outbox.md) | `COMPLETO`; limitado por `L-14` y configuración transaccional |
@@ -68,7 +68,7 @@ Tampoco define rutas HTTP, códigos de estado, tablas, colecciones, índices, pr
 | `ADOUT-10` | Entrega digital | Salida / integración externa | Implementa `PO-19` | `shared` | [`nexusmarket-adapter-digital-delivery.md`](nexusmarket-adapter-digital-delivery.md) | `COMPLETO`; limitado por `L-18` |
 | `ADOUT-11` | Reloj del sistema | Salida / capacidad técnica | Implementa `PO-20` | `shared` | [`nexusmarket-adapter-system-clock.md`](nexusmarket-adapter-system-clock.md) | `COMPLETO` |
 | `ADOUT-12` | Generador de identificadores | Salida / capacidad técnica | Implementa `PO-21` | `shared` | [`nexusmarket-adapter-id-generator.md`](nexusmarket-adapter-id-generator.md) | `COMPLETO`; limitado por `L-13` |
-| `ADOUT-13` | Hashing de credenciales | Salida / capacidad técnica | Implementa `PO-22` | `identity` | [`nexusmarket-adapter-password-hasher.md`](nexusmarket-adapter-password-hasher.md) | `COMPLETO`; limitado por `L-12`, `L-20` |
+| `ADOUT-13` | Hashing de credenciales | Salida / capacidad técnica | Implementa `PO-22` | `identity` | [`nexusmarket-adapter-password-hasher.md`](nexusmarket-adapter-password-hasher.md) | `COMPLETO`; política `DEC-W1-008`; biblioteca en W4 |
 
 **Cobertura:** 24 Output Ports cubiertos por 13 adaptadores de salida y 25 Input Ports invocados por un único adaptador de entrada HTTP. La cobertura es documental y completa a nivel de contrato; no implica que exista implementación. La implementación concreta depende de los bloqueos externos indicados.
 
@@ -176,7 +176,7 @@ El flujo es conceptual. No prescribe frameworks, rutas, drivers, SDKs ni secuenc
 | `L-23` | Integración logística no definida. | `ADOUT-08` | Frontera, estados normalizados, tracking, evidencia y minimización. | Proveedor, eventos, formato de evidencia y reintentos. |
 | `L-24` | Catálogo de notificaciones, canales y consentimiento no definido. | `ADOUT-09` | Frontera, minimización, idempotencia y no modificación del estado. | Canales, plantillas, consentimiento y rate limits. |
 | `L-18` | Modelo de entrega digital no definido. | `ADOUT-10` | Frontera, provisión/consulta/revocación, evidencia e idempotencia. | Modelo de licencias/accesos y mecanismo concreto. |
-| `L-12`, `L-20` | Algoritmo y política de credenciales no definidos. | `ADOUT-13` | Frontera, no reversibilidad, no registro de la credencial. | Algoritmo, parámetros, fortaleza y verificación. |
+| `L-12`, `L-20` | **CERRADAS (`DEC-W1-008`)**: Argon2id, parámetros, PHC, fortaleza y verificación aprobados. | `ADOUT-13` | Frontera, no reversibilidad, no registro de la credencial. | Biblioteca y adaptador ejecutable en W4. |
 | `L-13` | Formato físico de identificadores no definido. | `ADOUT-12` | Frontera, opacidad, unicidad y tipo nominal. | UUID, ULID, secuencia u otro mecanismo. |
 | `L-17` | Numeración/serie fiscal no definida. | `ADOUT-03` | Persistencia de la factura, unicidad e inmutabilidad. | Serie, formato, jurisdicción y corrección. |
 | `L-19` | Catálogo de reportes no definido. | `ADOUT-06` | Frontera de lectura, filtros, paginación y no mutación. | Tipos de reporte, fórmulas, filtros y límites. |

@@ -81,10 +81,10 @@ Los dos catálogos de puertos se ubican en `BackendSDD/Application/` porque la a
 
 | ID | Puerto | Módulo | Capacidad | Origen | Estado |
 |---|---|---|---|---|---|
-| `PI-01` | `RegisterBuyer` | `buyers` | Registrar comprador, perfil y carrito inicial. | `[ARQ]` §7.2; `[MOD]` §6.1, §6.3, §9.1 | Confirmado; limitado por L-16, L-20 |
-| `PI-02` | `RegisterSeller` | `sellers` | Incorporar vendedor y primera bodega. | `[ARQ]` §7.2; `[MOD]` §6.4, §22.1 | Confirmado; limitado por L-16, L-01 |
-| `PI-03` | `ManageOwnProfile` | `identity` | Consultar y actualizar el perfil propio. | Inferido de `[ENU]` OBJ-01…OBJ-03; `[MOD]` §6.1–§6.4 | Inferido; limitado por L-01, L-16 |
-| `PI-04` | `ManageUser` | `identity` | Activar, desactivar, bloquear o desbloquear cuentas. | `[MOD]` §6.1; `[ENU]` OBJ-01 | Confirmado; limitado por L-16 |
+| `PI-01` | `RegisterBuyer` | `buyers` | Registrar comprador, perfil y carrito inicial. | `[ARQ]` §7.2; `[MOD]` §6.1, §6.3, §9.1 | Confirmado; estados y credenciales aprobados (`DEC-W1-007`/`DEC-W1-008`) |
+| `PI-02` | `RegisterSeller` | `sellers` | Incorporar vendedor y primera bodega. | `[ARQ]` §7.2; `[MOD]` §6.4, §22.1 | Confirmado; estados/credenciales aprobados; limitado por L-01 (dirección) |
+| `PI-03` | `ManageOwnProfile` | `identity` | Consultar y actualizar el perfil propio. | Inferido de `[ENU]` OBJ-01…OBJ-03; `[MOD]` §6.1–§6.4 | Inferido; limitado por L-01 |
+| `PI-04` | `ManageUser` | `identity` | Activar, desactivar, bloquear o desbloquear cuentas. | `[MOD]` §6.1; `[ENU]` OBJ-01 | Confirmado |
 | `PI-05` | `CreateProduct` | `catalog` | Crear producto y variantes en estado no publicado. | `[ARQ]` §7.2; `[MOD]` §7.1, §7.4 | Confirmado |
 | `PI-06` | `ManageProductPublication` | `catalog` | Publicar, suspender, reanudar o descontinuar. | `[ARQ]` §7.2 (`PublishProduct`); `[MOD]` §7.1 | Confirmado |
 | `PI-07` | `QueryCatalog` | `catalog` | Consultar catálogo público o administrativo. | `[ENU]` OBJ-05; `[MOD]` §7.1 | Inferido |
@@ -101,8 +101,8 @@ Los dos catálogos de puertos se ubican en `BackendSDD/Application/` porque la a
 | `PI-18` | `ConfirmDelivery` | `shipping` | Registrar entrega o fallo de entrega. | `[MOD]` §13.1–§13.2 | Inferido |
 | `PI-19` | `IssueInvoice` | `billing` | Emitir la factura de un pedido pagado. | `[ENU]` OBJ-09; `[MOD]` §12.1 | Inferido; limitado por L-17, L-11 |
 | `PI-20` | `CorrectInvoice` | `billing` | Anular o corregir una factura emitida. | `[MOD]` §12.1; `[VO]` §8.13 | Inferido; limitado por L-17 |
-| `PI-21` | `RequestReturn` | `returns` | Solicitar una devolución elegible. | `[ARQ]` §7.2; `[MOD]` §14.1 | Confirmado; limitado por L-06, L-10 |
-| `PI-22` | `ResolveReturn` | `returns` | Revisar, aprobar, rechazar, recibir y resolver. | `[MOD]` §14.1, §14.3 | Inferido; limitado por L-06, L-10, L-18 |
+| `PI-21` | `RequestReturn` | `returns` | Solicitar una devolución elegible. | `[ARQ]` §7.2; `[MOD]` §14.1 | Confirmado; plazo aprobado (`DEC-W1-002`); limitado por L-10 |
+| `PI-22` | `ResolveReturn` | `returns` | Revisar, aprobar, rechazar, recibir y resolver. | `[MOD]` §14.1, §14.3 | Inferido; plazo aprobado (`DEC-W1-002`); limitado por L-10, L-18 |
 | `PI-23` | `ProcessRefund` | `refunds` | Solicitar, aprobar y ejecutar un reembolso. | `[ARQ]` §7.2; `[MOD]` §14.2 | Confirmado; limitado por L-04, DEC-BIZ-07 |
 | `PI-24` | `GenerateAdministrativeReport` | `reporting` | Generar reportes administrativos autorizados. | `[ARQ]` §7.2; `[ENU]` OBJ-12 | Confirmado; limitado por L-19 |
 | `PI-25` | `QueryAuditLog` | `reporting` | Consultar registros de auditoría autorizados. | `[MOD]` §15.1; `[ENU]` OBJ-12 | Inferido; limitado por L-11, L-14, L-15 |
@@ -213,11 +213,11 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 | `VALIDACION_INVALIDA` | Dato faltante o inválido. | Nombre vacío, correo mal formado, credencial ausente. |
 | `CONFLICTO_UNICIDAD` | Correo o documento ya registrado. | USR-01/USR-02. |
 | `DEPENDENCIA_NO_DISPONIBLE` | Fallo de persistencia, hashing o auditoría. | No se puede completar la unidad de trabajo. |
-| `REGLA_NEGOCIO_INCUMPLIDA` | La política de registro impide crear la cuenta. | Estado inicial no definido o registro deshabilitado por política. |
+| `REGLA_NEGOCIO_INCUMPLIDA` | La política de registro impide crear la cuenta. | Registro deshabilitado por política. |
 
 **7. Precondiciones y postcondiciones.**
 
-- Precondiciones: datos válidos; correo y documento únicos; política de estado inicial de cuenta definida (L-16); política de credencial definida (L-20).
+- Precondiciones: datos válidos; correo y documento únicos; estados iniciales aprobados (`DEC-W1-007`: `Usuario ACTIVO`, `PerfilComprador HABILITADO`); política de credencial aprobada (`DEC-W1-008`).
 - Postcondiciones: `Usuario`, `PerfilComprador` y `Carrito` existen y son consistentes; la credencial almacenada es solo `HashCredencial`; la auditoría y el evento quedan registrados; no se emite sesión ni token.
 
 **8. Responsabilidades y límites.** El puerto garantiza la creación consistente y la minimización de la credencial. No autentica, no emite tokens, no define la política de contraseñas, no crea direcciones y no decide restricciones comerciales. La unicidad se refuerza en persistencia; el dominio valida las invariantes.
@@ -226,7 +226,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 
 **10. Trazabilidad.** `[ENU]` OBJ-03; `[MOD]` §6.1, §6.3, §9.1, §25 (DM-01, DM-02); `[VO]` §6.2, §6.3, §6.4, §8.5, §8.6; `[DS]` DS-09; `[ARQ]` §7.2.
 
-**Estado:** `Confirmado` por arquitectura y modelo; `Limitado` por L-16 (estado inicial) y L-20 (política de credencial).
+**Estado:** `Confirmado` por arquitectura y modelo; estados y credenciales aprobados (`DEC-W1-007`, `DEC-W1-008`).
 
 ---
 
@@ -267,21 +267,21 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 | `NO_AUTORIZADO` | El actor no es Administrador o la cuenta no opera. | SEL-01, DS-01. |
 | `CONFLICTO_UNICIDAD` | Correo o documento duplicado. | USR-01/USR-02. |
 | `VALIDACION_INVALIDA` | Datos comerciales o de bodega inválidos. | Razón social vacía, bodega sin ubicación. |
-| `REGLA_NEGOCIO_INCUMPLIDA` | No se puede determinar el estado inicial del vendedor. | L-16. |
+| `REGLA_NEGOCIO_INCUMPLIDA` | La política de incorporación impide crear al vendedor. | Incorporación deshabilitada por política. |
 | `DEPENDENCIA_NO_DISPONIBLE` | Fallo transaccional o de auditoría. | No se completa la incorporación. |
 
 **7. Precondiciones y postcondiciones.**
 
-- Precondiciones: actor Administrador activo; datos válidos; correo/documento únicos; política de estado inicial del vendedor definida (L-16); ubicación de bodega válida según la política (L-01).
-- Postcondiciones: usuario, perfil y primera bodega existen consistentemente; el vendedor queda en el estado inicial que defina la política; la auditoría y el evento quedan registrados. Si falla la bodega, no se considera completa la incorporación.
+- Precondiciones: actor Administrador activo; datos válidos; correo/documento únicos; estados iniciales aprobados (`DEC-W1-007`: `Usuario ACTIVO`, `PerfilVendedor ACTIVO`, primera `BodegaVendedor ACTIVA`); ubicación de bodega válida según la política (L-01).
+- Postcondiciones: usuario, perfil y primera bodega existen consistentemente; el vendedor queda `ACTIVO` y la bodega `ACTIVA`; la auditoría y el evento quedan registrados. Si falla la bodega, no se considera completa la incorporación.
 
-**8. Responsabilidades y límites.** Garantiza la incorporación atómica y la creación de la primera bodega. No aprueba ni activa vendedores si la política exige revisión; no define las transiciones completas de `EstadoVendedor`; no crea productos; no administra stock. La autorización y la auditoría se delegan en DS-01 y DS-09.
+**8. Responsabilidades y límites.** Garantiza la incorporación atómica y la creación de la primera bodega. La incorporación administrativa es el acto de aprobación en V1: crea el perfil `ACTIVO` y la bodega `ACTIVA` (`DEC-W1-007`); no implementa una revisión separada ni define las transiciones completas de `EstadoVendedor`; no crea productos; no administra stock. La autorización y la auditoría se delegan en DS-01 y DS-09.
 
 **9. Relaciones y flujo.** OBJ-02; `[MOD]` §6.4, §8.1, §22.1; `[DS]` DS-01, DS-09; `[ARQ]` §7.2. Conceptos: `Usuario`, `PerfilVendedor`, `BodegaVendedor`, `RolSistema`, `EstadoVendedor`, `TipoBodega`, `DireccionFisica`. Flujo: autorizar → validar datos/unicidad → crear usuario → crear perfil → crear primera bodega → auditar/encolar → confirmar.
 
 **10. Trazabilidad.** `[ENU]` OBJ-02; `[MOD]` §6.4, §8.1, §22.1, §25 (DM-04, DM-05); `[VO]` §8.7, §8.10; `[DS]` DS-01, DS-09; `[ARQ]` §7.2.
 
-**Estado:** `Confirmado` por arquitectura y modelo; `Limitado` por L-16 (estado inicial) y L-01 (composición de dirección).
+**Estado:** `Confirmado` por arquitectura y modelo; estados/credenciales aprobados (`DEC-W1-007`/`DEC-W1-008`); `Limitado` por L-01 (composición de dirección).
 
 ---
 
@@ -334,7 +334,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 
 **10. Trazabilidad.** `[ENU]` OBJ-01, OBJ-02, OBJ-03; `[MOD]` §6.1–§6.4; `[VO]` §6.2, §6.3, §7.1; `[DS]` DS-01, DS-09.
 
-**Estado:** `Inferido` de los objetivos y del modelo; `Limitado` por L-01 (dirección), L-16 (estado inicial) y por la ausencia de política de verificación de correo y de edición de datos comerciales.
+**Estado:** `Inferido` de los objetivos y del modelo; `Limitado` por L-01 (dirección) y por la ausencia de política de verificación de correo y de edición de datos comerciales. Los estados iniciales están aprobados (`DEC-W1-007`).
 
 ---
 
@@ -386,7 +386,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 
 **10. Trazabilidad.** `[ENU]` OBJ-01; `[MOD]` §6.1, §19.1, §25 (DM-30); `[VO]` §8.5; `[DS]` DS-01, DS-09; `[ARQ]` §16.
 
-**Estado:** `Confirmado` para las transiciones de estado; `Limitado` por la ausencia de proceso de cambio de rol (USR-06) y por L-16 (estado inicial de cuentas nuevas).
+**Estado:** `Confirmado` para las transiciones de estado; `Limitado` por la ausencia de proceso de cambio de rol (USR-06). Los estados iniciales están aprobados (`DEC-W1-007`).
 
 ### 5.2 Módulo `catalog`
 
@@ -443,7 +443,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 
 **10. Trazabilidad.** `[ENU]` OBJ-05; `[MOD]` §7.1, §7.4, §22.2, §25 (DM-06, DM-07); `[VO]` §6.1, §6.5, §8.3, §8.9; `[DS]` DS-02, DS-09; `[ARQ]` §7.2.
 
-**Estado:** `Confirmado`; el estado inicial de la variante queda `Limitado` por L-16.
+**Estado:** `Confirmado`; los estados iniciales de `Producto`/`Variante` no se deciden en `W1-02` y siguen sujetos a `L-09` (transiciones y publicación de catálogo).
 
 ---
 
@@ -599,7 +599,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 
 **10. Trazabilidad.** `[ENU]` OBJ-04; `[MOD]` §8.1, §25 (DM-29); `[VO]` §8.10; `[DS]` DS-01, DS-04, DS-09; `[ARQ]` §5.
 
-**Estado:** `Inferido` de OBJ-04 y del agregado `Bodega`; `Limitado` por L-01 (dirección) y L-16 (estado inicial).
+**Estado:** `Inferido` de OBJ-04 y del agregado `Bodega`; `Limitado` por L-01 (dirección). La primera bodega nace `ACTIVA` (`DEC-W1-007`); las transiciones restantes siguen en `L-09`.
 
 ---
 
@@ -1268,7 +1268,7 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 |---|---|---|
 | `NO_AUTORIZADO` | El actor no es el comprador propietario. | RET-01, DS-01. |
 | `TRANSICION_INVALIDA` | El pedido no está entregado. | Devolución antes de entrega. |
-| `REGLA_NEGOCIO_INCUMPLIDA` | Fuera de plazo, cantidad excedida o motivo inválido. | RET-02, L-06, L-10. |
+| `REGLA_NEGOCIO_INCUMPLIDA` | Fuera de plazo, cantidad excedida o motivo inválido. | RET-02, RET-03/RET-06, L-10. |
 | `RECURSO_NO_ENCONTRADO` | Pedido o línea inexistente. | Identificador inválido. |
 | `IDEMPOTENCIA_CONFLICTO` | La clave se usó con otra solicitud. | Reintento con datos distintos. |
 
@@ -1277,13 +1277,13 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 - Precondiciones: pedido entregado; comprador propietario; dentro del plazo configurable; cantidades elegibles; motivo válido.
 - Postcondiciones: la devolución persiste en `SOLICITADA` o `EN_REVISION`; no se altera inventario; no se ejecuta reembolso; la auditoría y el evento quedan registrados.
 
-**8. Responsabilidades y límites.** Garantiza la solicitud y la elegibilidad inicial. No aprueba, no rechaza, no recibe, no inspecciona, no reingresa inventario y no reembolsa. El plazo y el catálogo de motivos no están fijados (L-06, L-10).
+**8. Responsabilidades y límites.** Garantiza la solicitud y la elegibilidad inicial. No aprueba, no rechaza, no recibe, no inspecciona, no reingresa inventario y no reembolsa. El plazo tiene valor inicial 30 días y es configurable (`DEC-W1-002`); el catálogo de motivos sigue limitado (`L-10`).
 
 **9. Relaciones y flujo.** OBJ-11; `[MOD]` §14.1, §22.6; `[DS]` DS-07, DS-09; `[ARQ]` §7.2. Conceptos: `Devolucion`, `LineaDevolucion`, `EstadoDevolucion`, `MotivoDevolucion`, `Pedido`, `Comprador`. Flujo: autorizar propiedad → validar entrega/plazo → validar cantidades/motivo → crear devolución → persistir → auditar/encolar.
 
 **10. Trazabilidad.** `[ENU]` OBJ-11; `[MOD]` §14.1, §22.6, §25 (DM-27); `[VO]` §8.15, §9.2; `[DS]` DS-07, DS-09; `[ARQ]` §7.2.
 
-**Estado:** `Confirmado`; `Limitado` por L-06 (plazo) y L-10 (catálogo de motivos).
+**Estado:** `Confirmado`; plazo aprobado (`DEC-W1-002`); `Limitado` por L-10 (catálogo de motivos).
 
 ---
 
@@ -1332,13 +1332,13 @@ No se exige dirección en el registro: `PerfilComprador.direcciones` puede estar
 - Precondiciones: devolución existente; actor autorizado y sin conflicto; estado permite la etapa; para recepción física, inspección; para resolución, reembolso resuelto si aplica.
 - Postcondiciones: la devolución avanza una sola vez; el inventario solo se incrementa después de recepción e inspección (`DEVOLUCION_VENDIBLE` o `DEVOLUCION_NO_VENDIBLE`); para productos digitales, la revocación se registra si aplica y no se crea movimiento de inventario físico; una devolución `RESUELTA` no se reabre; la auditoría y el evento quedan registrados.
 
-**8. Responsabilidades y límites.** Garantiza las transiciones y la inspección. No ejecuta el reembolso (PI-23), no define plazo ni motivos (L-06, L-10), no reabre una devolución resuelta y no sustituye la decisión financiera. La revocación digital se delega en la capacidad de entrega digital (PO-19); la aprobación y el reembolso se separan por funciones.
+**8. Responsabilidades y límites.** Garantiza las transiciones y la inspección. No ejecuta el reembolso (PI-23), no define el valor del plazo (aprobado en `DEC-W1-002`) ni los motivos (`L-10`), no reabre una devolución resuelta y no sustituye la decisión financiera. La revocación digital se delega en la capacidad de entrega digital (PO-19); la aprobación y el reembolso se separan por funciones.
 
 **9. Relaciones y flujo.** OBJ-11; `[MOD]` §14.1, §14.3, §22.6; `[DS]` DS-07, DS-03, DS-09; `[ARQ]` §5 (`returns`). Conceptos: `Devolucion`, `EstadoDevolucion`, `LineaDevolucion`, `MovimientoInventario`, `TipoMovimientoInventario`, revocación digital. Flujo: autorizar → recuperar devolución → validar etapa → aplicar decisión → recibir/inspeccionar (físico) o revocar acceso (digital) → registrar movimientos/evidencia → resolver → auditar/encolar.
 
 **10. Trazabilidad.** `[ENU]` OBJ-11; `[MOD]` §14.1, §14.3, §22.6, §25 (DM-27); `[VO]` §8.15, §8.17; `[DS]` DS-03, DS-07, DS-09; `[ARQ]` §5.
 
-**Estado:** `Inferido` del ciclo de posventa; `Limitado` por L-06, L-10, L-18 y la atribución del rol financiero (DEC-BIZ-07).
+**Estado:** `Inferido` del ciclo de posventa; plazo aprobado (`DEC-W1-002`); `Limitado` por L-10, L-18 y la atribución del rol financiero (DEC-BIZ-07).
 
 ---
 
@@ -1653,13 +1653,13 @@ Las limitaciones `L-01`…`L-15` están definidas en `DOCUMENTATION_STATUS.md` �
 | L-03 | Formato de `DocumentoIdentidad`. | `PI-01`, `PI-02` | Unicidad y protección. | Formato y normalización. |
 | L-04 | Moneda, escala y redondeo. | `PI-05`, `PI-12`, `PI-19`, `PI-23` | Moneda explícita, aritmética exacta, igualdad de moneda. | Moneda del despliegue, escala y redondeo. |
 | L-05 | Tasas de impuestos, descuentos y envío. | `PI-12` | Fórmula e invariantes. | Tasas y política de cálculo. |
-| L-06 | Plazo de devolución. | `PI-21`, `PI-22` | Ventana configurable y elegibilidad. | Valor del plazo. |
+| L-06 | **CERRADA (`DEC-W1-002`)**: plazo configurable con 30 días iniciales. | `PI-21`, `PI-22` | Ventana configurable y elegibilidad. | Sin bloqueo; snapshot/configuración en W5. |
 | L-07 | Preferencia entre bodegas elegibles. | `PI-12`, `PI-16` | Factibilidad y bodegas activas. | Política de selección. |
 | L-08 | Proceso de cambio de `EstadoComercial`. | `PI-01`, `PI-03` | Valores y efecto de `RESTRINGIDO`. | Actor, proceso y autorización. |
 | L-09 | Transiciones completas de estados de vendedor, variante, bodega y envío. | `PI-02`, `PI-06`, `PI-08`, `PI-16`, `PI-18` | Valores y transiciones confirmadas. | Tabla completa. |
 | L-10 | Catálogo de motivos de devolución y reembolso. | `PI-21`, `PI-22`, `PI-23` | Obligatoriedad y pertenencia a catálogo. | Valores válidos. |
 | L-11 | Composición de snapshots y `AuditPayload`. | `PI-19`, `PI-20`, `PI-25` | Inmutabilidad, minimización y ausencia de secretos. | Esquema cerrado. |
-| L-12 | Algoritmo y formato de `HashCredencial`. | `PI-01`, `PI-02` | No texto plano, no reversible, creación fuera del dominio. | Algoritmo y parámetros. |
+| L-12 | **CERRADA (`DEC-W1-008`)**: Argon2id y formato PHC aprobados. | `PI-01`, `PI-02` | No texto plano, no reversible, creación fuera del dominio. | Sin bloqueo; biblioteca en W4. |
 | L-13 | Formato físico de identificadores. | Todos | Tipo nominal, opacidad, unicidad. | UUID, serial u otro. |
 | L-14 | Catálogo de eventos y `TipoReferencia`. | `PI-09`, `PI-25` | Código estable y versionado. | Valores completos. |
 | L-15 | Gravedad de auditoría por evento. | `PI-25` | Valores del catálogo y coherencia mínima. | Asignación por evento. |
@@ -1668,11 +1668,11 @@ Nuevas limitaciones detectadas al definir los puertos:
 
 | ID | Limitación | Puertos afectados | Impacto | Información que falta |
 |---|---|---|---|---|
-| L-16 | Estado inicial de `Usuario` y `EstadoVendedor` al registrar/incorporar. | `PI-01`, `PI-02`, `PI-03`, `PI-04` | No puede fijarse el estado resultante sin una política. | Decidir si el registro nace `ACTIVO` o requiere activación, y si el vendedor nace `EN_REVISION` o `ACTIVO`. |
+| L-16 | **CERRADA (`DEC-W1-007`)**: estados iniciales de `Usuario`, `PerfilComprador`, `PerfilVendedor` y primera `Bodega` aprobados. | `PI-01`, `PI-02`, `PI-03`, `PI-04` | Sin bloqueo para el alta. | `Usuario ACTIVO`, comprador `HABILITADO`, vendedor `ACTIVO`, bodega `ACTIVA`. |
 | L-17 | Numeración, serie fiscal y política de corrección de facturas. | `PI-19`, `PI-20` | No puede definirse el número ni el documento correctivo. | Serie, formato, unicidad, jurisdicción y regla de corrección. |
 | L-18 | Mecanismo y modelo de recursos de entrega digital. | `PI-15`, `PI-18`, `PI-22` | El contrato de entrega digital queda abstracto. | Cómo se provisiona/revoca una licencia o acceso y qué evidencia se registra. |
 | L-19 | Catálogo de reportes, parámetros, búsqueda y límites de paginación. | `PI-07`, `PI-10`, `PI-13`, `PI-24`, `PI-25` | Los contratos de consulta no fijan tipos ni límites. | Reportes aprobados, filtros, orden y tamaño máximo. |
-| L-20 | Política de credenciales: fortaleza, algoritmo y verificación. | `PI-01`, `PI-02` | No puede validarse la calidad de la contraseña. | Requisitos y algoritmo aprobado. |
+| L-20 | **CERRADA (`DEC-W1-008`)**: política de credenciales aprobada. | `PI-01`, `PI-02` | Sin bloqueo de fortaleza/algoritmo. | 12–128 caracteres, Argon2id y verificación de tiempo constante. |
 | L-21 | Actor y proceso de cierre `ENTREGADO → CERRADO`. | `PI-18` | El estado `CERRADO` no tiene puerto de entrada. | Definir si es automático, administrativo o programado. |
 | L-22 | Protocolo del proveedor de pago, modelo autorización/captura, reintentos y cancelación. | `PI-12`, `PI-14`, `PI-15`, `PI-23` | Los contratos de pago quedan abstractos. | Contrato del proveedor y semántica de reintento. |
 | L-23 | Integración logística, eventos de tracking y formato de evidencia de entrega. | `PI-16`, `PI-17`, `PI-18` | El contrato de transporte queda abstracto. | Proveedor, eventos, evidencia y reintentos. |
@@ -1680,7 +1680,7 @@ Nuevas limitaciones detectadas al definir los puertos:
 | L-25 | Política de aislamiento, timeout y reintento transaccional. | `PI-12`, `PI-14`, `PI-15`, `PI-17`, `PI-21`, `PI-23` | El adaptador no puede fijar el comportamiento sin una decisión. | Nivel de aislamiento, timeout y reintentos. |
 | L-26 | Asignación de operador logístico a pedidos/envíos. | `PI-13` | El alcance del operador no se deriva del modelo. | Modelo/proceso de asignación. |
 
-**Bloqueos que impiden cerrar un contrato por completo:** L-16, L-17, L-21, L-22 y L-26. `L-25` se cierra a nivel de diseño con `D-16` en los casos de uso; los valores numéricos quedan configurables. Los demás limitan detalles, pero no impiden definir la intención, las precondiciones y los efectos principales.
+**Bloqueos que impiden cerrar un contrato por completo:** L-17, L-21, L-22 y L-26. `L-16`, `L-12`, `L-20` y `L-06` quedaron cerradas por `DEC-W1-007`, `DEC-W1-008` y `DEC-W1-002`. `L-25` se cierra a nivel de diseño con `D-16` en los casos de uso; los valores numéricos quedan configurables. Los demás limitan detalles, pero no impiden definir la intención, las precondiciones y los efectos principales.
 
 ---
 

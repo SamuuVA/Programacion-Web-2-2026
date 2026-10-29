@@ -3,8 +3,8 @@
 **Identificador:** `ADOUT-13`  
 **Tipo:** adaptador de salida / capacidad técnica  
 **Capa/módulo:** `src/modules/identity/adapters/` o `src/shared/infrastructure/` según composición  
-**Estado documental:** `COMPLETO` con bloqueo `L-12`/`L-20`  
-**Última actualización:** 26 de octubre de 2026  
+**Estado documental:** `COMPLETO`; política aprobada en `DEC-W1-008`
+**Última actualización:** 28 de octubre de 2026
 **Documento canónico:** este archivo  
 **Catálogo:** [`nexusmarket-adapters.md`](nexusmarket-adapters.md)
 
@@ -14,7 +14,7 @@
 
 Este adapter implementa `PO-22 PasswordHasher`. Su propósito es transformar una credencial en claro en un hash verificable y comparar una credencial candidata con un hash almacenado, sin que la aplicación o el dominio dependan del algoritmo, de la biblioteca ni de los parámetros criptográficos.
 
-No autentica usuarios, no decide políticas de contraseña, no gestiona sesiones y no almacena credenciales. El algoritmo, los parámetros y la política de fortaleza no están aprobados (`L-12`, `L-20`).
+No autentica usuarios, no decide políticas de contraseña, no gestiona sesiones y no almacena credenciales. La política está aprobada en `DEC-W1-008`: Argon2id v=19, `m=19456` KiB, `t=2`, `p=1`, sal de 16 bytes, salida de 32 bytes y formato PHC; la biblioteca concreta se elige en W4.
 
 ---
 
@@ -65,10 +65,10 @@ El hash resultante es un valor opaco para la aplicación; no se interpreta como 
 | Credencial en claro | Texto de entrada → hash opaco; no se conserva ni se registra. |
 | Hash almacenado | Valor opaco → entrada de verificación; no se interpreta fuera del adapter. |
 | Resultado de verificación | Comparación interna → resultado controlado; no se expone el hash. |
-| Parámetros | Configuración del mecanismo → aplicación interna; no se fijan hasta `L-12`/`L-20`. |
+| Parámetros | Configuración del mecanismo → Argon2id v=19, `m=19456`, `t=2`, `p=1`; el formato PHC conserva los parámetros aplicados. |
 | Errores | Fallo del mecanismo → `NO_DISPONIBLE`; formato inválido → `DATOS_INVALIDOS`. |
 
-**Reglas de seguridad:** la comparación debe ser resistente a ataques de tiempo según el mecanismo aprobado; la credencial en claro no se escribe en logs, auditoría, outbox ni mensajes de error; el hash no se devuelve al cliente. El adapter no decide la longitud mínima, complejidad ni rotación.
+**Reglas de seguridad:** la comparación debe ser resistente a ataques de tiempo; la credencial en claro no se escribe en logs, auditoría, outbox ni mensajes de error; el hash no se devuelve al cliente. El adapter no decide la longitud mínima, complejidad ni rotación; esas reglas están en `DEC-W1-008`.
 
 ---
 
@@ -80,7 +80,7 @@ El hash resultante es un valor opaco para la aplicación; no se interpreta como 
 | `NO_DISPONIBLE` | El mecanismo no está configurado o falló. | Informar indisponibilidad; no usar un hash inseguro. |
 | `OPERACION_NO_SOPORTADA` | Se solicita un algoritmo o modo no contemplado. | Rechazar; no improvisar. |
 
-No se inventan algoritmos, parámetros, longitudes, políticas de contraseña ni códigos HTTP. `L-12` y `L-20` siguen abiertos.
+No se inventan algoritmos, parámetros, longitudes, políticas de contraseña ni códigos HTTP. La política está aprobada en `DEC-W1-008`; la implementación y la biblioteca quedan para W4.
 
 ---
 
@@ -88,10 +88,10 @@ No se inventan algoritmos, parámetros, longitudes, políticas de contraseña ni
 
 | Dependencia | Tipo | Restricción |
 |---|---|---|
-| Biblioteca/servicio de hashing | Decisión técnica no fijada | `L-12`/`L-20`; no se prescribe algoritmo ni parámetros. |
+| Biblioteca/servicio de hashing | Decisión técnica de W4 | Debe implementar Argon2id v=19 con los parámetros de `DEC-W1-008`; no se instala en W1. |
 | Configuración de secretos | Infraestructura | Fuera del repositorio; no se registra. |
 | `PO-22` | Contrato | Solo hash/verificación; no autentica ni persiste. |
-| `L-12`, `L-20` | Bloqueos | Algoritmo, parámetros y política de credenciales no están cerrados. |
+| `DEC-W1-008` | Política | Algoritmo, parámetros, formato PHC y fortaleza aprobados. |
 
 **Restricciones:** no se registra la credencial en claro; no se usa un algoritmo obsoleto o no aprobado; no se compara con `===` fuera del adapter; no se devuelve el hash al cliente; no se usa el adapter como almacén de credenciales.
 
@@ -105,7 +105,7 @@ No se inventan algoritmos, parámetros, longitudes, políticas de contraseña ni
 | Contrato | `[PO]` `PO-22` |
 | Credenciales y usuario | `[MOD]` §6.1; `[VO]` §6.4, §8.1 |
 | Registro | `[PI]` `PI-01`, `PI-02`; `[UC]` `UC-01` |
-| Bloqueos | `[EST]` §7, `L-12`, `L-20` |
+| Política | `DEC-W1-008`; `[EST]` §7 |
 
 ---
 
@@ -114,7 +114,7 @@ No se inventan algoritmos, parámetros, longitudes, políticas de contraseña ni
 - [x] El adapter implementa únicamente `PO-22`.
 - [x] La credencial en claro no se persiste, registra ni devuelve.
 - [x] El hash es opaco y la verificación ocurre dentro del adapter.
-- [x] No se prescribe algoritmo ni parámetros mientras `L-12`/`L-20` estén abiertos.
-- [x] No se autentica ni se decide la política de contraseña.
+- [x] La política Argon2id y sus parámetros están trazados a `DEC-W1-008`.
+- [x] No se autentica ni se decide la política de contraseña en el adapter.
 - [x] Los errores no revelan información sensible.
 - [x] No se creó código, algoritmo ejecutable, configuración ni prueba.

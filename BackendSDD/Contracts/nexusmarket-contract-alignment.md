@@ -17,7 +17,7 @@ Este documento responde si cada flujo importante de NexusMarket está alineado d
 
 - No fija rutas, métodos HTTP, códigos de estado, autenticación concreta, versionado ni límites de tasa (`L-27`).
 - No elige proveedor de pagos, logística, notificaciones ni entrega digital (`L-22`, `L-23`, `L-24`, `L-18`).
-- No elige algoritmo de hashing, parámetros de credenciales ni formato de identificadores (`L-12`, `L-20`, `L-13`).
+- No crea el contrato ejecutable de credenciales; la política de hashing ya está decidida en `DEC-W1-008` y el formato de identificadores sigue abierto (`L-13`).
 - No define numeración fiscal, catálogo de reportes ni asignación de operador (`L-17`, `L-19`, `L-26`).
 - No crea contratos ejecutables ni presenta propuestas como decisiones aprobadas.
 
@@ -85,16 +85,16 @@ Para cada flujo se contrastan estos eslabones:
 | `CT-01` | HTTP/OpenAPI | Cliente → aplicación | `PI-01`…`PI-25` | `ADIN-01` | `SIN_EVIDENCIA` | `L-27`: no hay OpenAPI aprobado; la frontera está alineada, el contrato público no. |
 | `CT-02` | Eventos de dominio y outbox | Aplicación → outbox → consumidores | `PO-23` | `ADOUT-04` | `ALINEADO_CON_PROPUESTA` | `L-14`: catálogo y payloads incompletos. |
 | `CT-03` | Auditoría | Aplicación → repositorio append-only | `PO-14` | `ADOUT-05` | `ALINEADO_CON_PROPUESTA` | `L-11`, `L-15`: composición, gravedad y retención abiertas. |
-| `CT-04` | Pago | Aplicación → proveedor de pago | `PO-16` | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` | `L-22`: protocolo, autorización/captura, webhooks y reintentos. |
+| `CT-04` | Pago | Aplicación → proveedor de pago | `PO-16` | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` (diferido; sin pagos en `PI-01`) | `L-22`: protocolo, autorización/captura, webhooks y reintentos. |
 | `CT-05` | Logística | Aplicación → proveedor logístico | `PO-17` | `ADOUT-08` | `ALINEADO_CON_PROPUESTA` | `L-23`: proveedor, tracking, evidencia y reintentos. |
 | `CT-06` | Notificaciones | Aplicación → proveedor de mensajes | `PO-18` | `ADOUT-09` | `ALINEADO_CON_PROPUESTA` | `L-24`: canales, plantillas y consentimiento. |
 | `CT-07` | Entrega digital | Aplicación → mecanismo de acceso/licencia | `PO-19` | `ADOUT-10` | `ALINEADO_CON_PROPUESTA` | `L-18`: modelo de acceso, licencia y evidencia. |
-| `CT-08` | Credenciales | Aplicación → hashing | `PO-22` | `ADOUT-13` | `ALINEADO_CON_PROPUESTA` | `L-12`, `L-20`: algoritmo, parámetros y política. |
+| `CT-08` | Credenciales | Aplicación → hashing | `PO-22` | `ADOUT-13` | `ALINEADO_CON_PROPUESTA` | Política en `DEC-W1-008`; falta contrato ejecutable W3 y biblioteca W4. |
 | `CT-09` | Identificadores | Aplicación → generador | `PO-21` | `ADOUT-12` | `ALINEADO_CON_PROPUESTA` | `L-13`: formato físico y estrategia de unicidad. |
 | `CT-10` | Facturación | Aplicación → persistencia fiscal | `PO-10` | `ADOUT-03` | `ALINEADO_CON_PROPUESTA` | `L-17`: numeración, serie y jurisdicción. |
 | `CT-11` | Reportes | Aplicación → consulta de lectura | `PO-24` | `ADOUT-06` | `ALINEADO_CON_PROPUESTA` | `L-19`: catálogo, filtros, fórmulas y límites. |
 | `CT-12` | Persistencia SQL/MongoDB | Aplicación → repositorios y unidad de trabajo | `PO-01`…`PO-15`, `PO-24` | `ADOUT-01`…`ADOUT-06` | `ALINEADO_CON_PROPUESTA` | Esquemas físicos, índices y migraciones no definidos; propiedad de datos sí alineada. |
-| `CT-13` | Tiempo del sistema | Aplicación → reloj UTC | `PO-20` | `ADOUT-11` | `ALINEADO` | Sin bloqueo de contrato; los plazos de negocio siguen en `L-06`. |
+| `CT-13` | Tiempo del sistema | Aplicación → reloj UTC | `PO-20` | `ADOUT-11` | `ALINEADO` | Sin bloqueo de contrato; el plazo de devolución está aprobado (`DEC-W1-002`). |
 
 **Cobertura:** 24 `PO` y 25 `PI` quedan representados. Los contratos `CT-01`…`CT-12` no están cerrados como artefactos ejecutables; `CT-13` es el único contrato técnico completo.
 
@@ -104,7 +104,7 @@ Para cada flujo se contrastan estos eslabones:
 
 | Flujo | Requisito | Regla/dominio | UC/PI | PO | Adaptador | Contrato | Persistencia | Errores/consistencia | Resultado |
 |---|---|---|---|---|---|---|---|---|---|
-| `F-01` Registro de comprador/vendedor | OBJ-01, OBJ-02, OBJ-03 | Unicidad de correo/documento; rol; estado inicial `L-16`; credencial no reversible | `PI-01`, `PI-02`, `PI-03`, `PI-04` | `PO-01`…`PO-04`, `PO-20`, `PO-21`, `PO-22`, `PO-23` | `ADIN-01`; `ADOUT-01`, `ADOUT-04`, `ADOUT-11`…`ADOUT-13` | `CT-01`, `CT-08`, `CT-09`, `CT-12` | SQL; outbox para eventos críticos | `CONFLICTO_UNICIDAD`, `DATOS_INVALIDOS`, `NO_DISPONIBLE`; sin credencial en claro | `ALINEADO_CON_PROPUESTA` |
+| `F-01` Registro de comprador/vendedor | OBJ-01, OBJ-02, OBJ-03 | Unicidad de correo/documento; rol; estados iniciales `DEC-W1-007`; credencial no reversible `DEC-W1-008` | `PI-01`, `PI-02`, `PI-03`, `PI-04` | `PO-01`…`PO-04`, `PO-20`, `PO-21`, `PO-22`, `PO-23` | `ADIN-01`; `ADOUT-01`, `ADOUT-04`, `ADOUT-11`…`ADOUT-13` | `CT-01`, `CT-08`, `CT-09`, `CT-12` | SQL; outbox para eventos críticos | `CONFLICTO_UNICIDAD`, `DATOS_INVALIDOS`, `NO_DISPONIBLE`; sin credencial en claro | `ALINEADO_CON_PROPUESTA` |
 | `F-02` Publicación de catálogo | OBJ-05 | Producto/variante válidos; propiedad del vendedor; SKU único; estado publicado | `PI-05`, `PI-06`, `PI-07` | `PO-05`, `PO-06`, `PO-23`, `PO-20`, `PO-21` | `ADIN-01`; `ADOUT-02`, `ADOUT-04`, `ADOUT-11`, `ADOUT-12` | `CT-01`, `CT-02`, `CT-12` | SQL; evento `ProductoPublicado` | `CONFLICTO_UNICIDAD`, `REGLA_NEGOCIO_INCUMPLIDA`; evento en misma transacción | `ALINEADO_CON_PROPUESTA` |
 | `F-03` Reserva/liberación de inventario | OBJ-06, OBJ-08 | Saldo no negativo; reserva atómica; idempotencia | `PI-09`, `PI-12`, `PI-14`, `PI-15`, `PI-22` | `PO-06`, `PO-08`, `PO-09`, `PO-15`, `PO-23` | `ADIN-01`; `ADOUT-02`, `ADOUT-03`, `ADOUT-04` | `CT-01`, `CT-02`, `CT-12` | SQL transaccional; outbox | `CONFLICTO_CONCURRENCIA`, `REGLA_NEGOCIO_INCUMPLIDA`; sin saldo negativo | `ALINEADO_CON_PROPUESTA` |
 | `F-04` Checkout | OBJ-07, OBJ-08 | Cálculo de totales; multi-vendedor; una reserva/pago por pedido; idempotencia | `PI-11`, `PI-12` (`UC-01`) | `PO-02`, `PO-05`…`PO-09`, `PO-15`, `PO-16`, `PO-18`, `PO-19`, `PO-20`, `PO-21`, `PO-23` | `ADIN-01`; `ADOUT-01`…`ADOUT-04`, `ADOUT-07`, `ADOUT-09`…`ADOUT-12` | `CT-01`, `CT-02`, `CT-04`, `CT-06`, `CT-07`, `CT-12` | SQL; outbox; proveedor externo | `IDEMPOTENCIA_CONFLICTO`, `FALLO_PROVEEDOR`; no captura en checkout (`D-18`) | `ALINEADO_CON_PROPUESTA` |
@@ -168,7 +168,7 @@ Para cada flujo se contrastan estos eslabones:
 | Aspecto | Definición |
 |---|---|
 | Frontera | Aplicación → `PO-16` → proveedor de pago. |
-| Estado | `ALINEADO_CON_PROPUESTA`. |
+| Estado | `ALINEADO_CON_PROPUESTA`; implementación diferida porque `PI-01` no incluye pagos (`DEC-W1-004`). |
 | Operaciones | Iniciar, consultar, confirmar/capturar, cancelar intento y reembolsar. |
 | Estados | `PENDIENTE`, `AUTORIZADO`, `CAPTURADO`, `RECHAZADO`, `EXPIRADO`, `REEMBOLSADO`. |
 | Errores | `FALLO_PROVEEDOR`, `NO_DISPONIBLE`, `IDEMPOTENCIA_CONFLICTO`, `DATOS_INVALIDOS`, `OPERACION_NO_SOPORTADA`, `LIMITE_EXCEDIDO`. |
@@ -223,8 +223,9 @@ Para cada flujo se contrastan estos eslabones:
 | Entrada/salida | Credencial en claro solo en memoria → `HashCredencial` opaco con metadatos de verificación. |
 | Errores | `DATOS_INVALIDOS`, `NO_DISPONIBLE`, `OPERACION_NO_SOPORTADA`. |
 | Invariantes | No reversible; no se registra la credencial; comparación de tiempo constante si existe verificación. |
-| Pendiente | Algoritmo, parámetros, fortaleza y política (`L-12`, `L-20`). |
-| Corrección | Aprobar algoritmo/parámetros; no usar códigos ajenos a `PO-22`. |
+| Política aprobada | `DEC-W1-008`: Argon2id v=19, `m=19456` KiB, `t=2`, `p=1`, sal 16 bytes, salida 32 bytes, PHC; contraseña 12–128 caracteres sin composición obligatoria. |
+| Pendiente | Contrato ejecutable en W3 y biblioteca/adaptador en W4; no usar códigos ajenos a `PO-22`. |
+| Corrección | La decisión ya está registrada; no se crea OpenAPI ni código en W1. |
 
 ### 6.9 `CT-09` — Identificadores
 
@@ -283,7 +284,7 @@ Para cada flujo se contrastan estos eslabones:
 | Entrada/salida | Sin datos de negocio → `Instant` UTC con precisión suficiente. |
 | Errores | `NO_DISPONIBLE`. |
 | Invariantes | UTC; sin ambigüedad de zona; no decide plazos ni formatea fechas. |
-| Pendiente | Los plazos de negocio (`L-06`) no forman parte de este contrato. |
+| Pendiente | Los plazos de negocio (aprobados en `DEC-W1-002` para devoluciones) no forman parte de este contrato. |
 | Corrección | Ninguna para el contrato técnico. |
 
 ---
@@ -337,12 +338,12 @@ No se encontraron contradicciones nuevas entre dominio, puertos, adaptadores y c
 | `L-23` | Integración logística no definida. | `CT-05` | Proveedor, tracking, evidencia y reintentos. |
 | `L-24` | Notificaciones, canales y consentimiento no definidos. | `CT-06` | Canales, plantillas, consentimiento y límites. |
 | `L-18` | Entrega digital no definida. | `CT-07` | Acceso/licencia, vigencia y evidencia. |
-| `L-12`, `L-20` | Credenciales no definidas. | `CT-08` | Algoritmo, parámetros, fortaleza y verificación. |
+| `L-12`, `L-20` | **CERRADAS (`DEC-W1-008`)**: Argon2id y política aprobados. | `CT-08` | Contrato ejecutable W3 y biblioteca/adaptador W4. |
 | `L-13` | Formato de identificadores no definido. | `CT-09` | UUID, ULID, secuencia u otro mecanismo. |
 | `L-17` | Numeración/serie fiscal no definida. | `CT-10` | Serie, formato, jurisdicción y corrección. |
 | `L-19` | Catálogo de reportes no definido. | `CT-11` | Reportes, fórmulas, filtros y límites. |
 | `L-26` | Asignación de operador no modelada. | `F-09` | Alcance autorizado para operadores. |
-| `DEC-BIZ-01`…`DEC-BIZ-07` | Políticas variables no aprobadas. | Varios flujos | Dirección, plazo, motivos, bodega, moneda, estado comercial y autorización financiera. |
+| `DEC-BIZ-01`…`DEC-BIZ-07` | Políticas variables no aprobadas; `DEC-BIZ-02` ya resuelta por `DEC-W1-002` (30 días iniciales configurables). | Varios flujos | Dirección, motivos, bodega, moneda, estado comercial y autorización financiera. |
 
 `L-25` no aparece como bloqueo de Contract Alignment: está cerrada a nivel de diseño por `D-16`; sus valores numéricos son configurables.
 

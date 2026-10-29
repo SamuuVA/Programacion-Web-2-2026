@@ -127,7 +127,7 @@ No se admiten dos objetos de valor con el mismo significado bajo nombres distint
 | VO-TXT-01 | `SKU` | Identificador comercial único de una variante vendible. | Cadena normalizada. | `Variante`, `ItemPedido` (snapshot). | No vacío; único globalmente; no se reutiliza tras descontinuar. | `[MOD]` §7.4, §16 | Confirmado |
 | VO-TXT-02 | `CorreoElectronico` | Medio principal de acceso y comunicación del usuario. | Cadena con formato válido y normalización consistente. | `Usuario`. | Formato válido; único tras normalización. | `[MOD]` §6.1, §16 | Confirmado; formato exacto limitado |
 | VO-TXT-03 | `DocumentoIdentidad` | Documento que identifica a una persona en la plataforma. | Tipo, país y número normalizados. | `Usuario`. | Único en la plataforma; dato protegido. | `[MOD]` §6.1, §16 | Confirmado; formato limitado |
-| VO-SEC-01 | `HashCredencial` | Resultado de un algoritmo aprobado de hashing de contraseña. | Hash y metadatos del algoritmo. | `Usuario`. | No contiene contraseña original; no reversible; nunca se registra en auditoría. | `[MOD]` §6.1, §16 | Confirmado; algoritmo limitado |
+| VO-SEC-01 | `HashCredencial` | Resultado de Argon2id sobre una contraseña; se almacena como cadena PHC. | Hash y metadatos del algoritmo. | `Usuario`. | No contiene contraseña original; no reversible; nunca se registra en auditoría. | `[MOD]` §6.1, §16; `DEC-W1-008` | Confirmado; política W1-03 |
 | VO-MON-01 | `Dinero` | Importe monetario con moneda explícita. | Importe exacto + moneda. | `Variante`, `ItemCarrito`, `Pedido`, `ItemPedido`, `Pago`, `Factura`, `Reembolso`. | Moneda explícita; aritmética exacta; solo monedas compatibles; redondeo reproducible. | `[MOD]` §16, §16.1 | Confirmado; escala/moneda limitadas |
 | VO-CAN-01 | `Cantidad` | Cantidad entera no negativa de unidades. | Entero no negativo. | `Inventario`, `ItemCarrito`, `ItemPedido`, `MovimientoInventario`, `ReservaInventario`, `LineaDevolucion`. | Entero; nunca negativo; sin fracciones salvo tipo futuro. | `[MOD]` §8.2, §16 | Confirmado |
 | VO-CAN-02 | `CantidadPositiva` | Cantidad entera estrictamente positiva. | Entero mayor que cero. | `ItemCarrito`, `ItemPedido`, `MovimientoInventario`, `ReservaInventario`, `LineaDevolucion`. | Entero; mayor que cero; sin fracciones. | `[MOD]` §8.3, §10.2, §16 | Confirmado |
@@ -615,7 +615,7 @@ La familia no depende de entidades, persistencia ni frameworks. El límite de lo
 | Componente | Significado |
 |---|---|
 | Hash | Resultado del algoritmo aprobado. |
-| Metadatos del algoritmo | Identificación de la variante o parámetros necesarios para verificar; su formato no está fijado por `[MOD]`. |
+| Metadatos del algoritmo | Identificación de la variante o parámetros necesarios para verificar; se usa el formato PHC fijado por `DEC-W1-008`. |
 
 **Identidad conceptual y ausencia de identidad propia:** es un valor; dos hashes iguales con el mismo algoritmo representan la misma credencial almacenada.
 
@@ -654,7 +654,9 @@ La familia no depende de entidades, persistencia ni frameworks. El límite de lo
 
 **Relaciones:** `Usuario.credencial`; `DS-09` debe excluirlo de la auditoría.
 
-**Restricciones de dependencia:** no depende de una biblioteca criptográfica dentro del dominio. El algoritmo es una decisión de seguridad externa al modelo.
+**Política aprobada (`DEC-W1-008`):** Argon2id v=19, `m=19456` KiB, `t=2`, `p=1`, sal de 16 bytes y salida de 32 bytes; se almacena como `$argon2id$v=19$m=19456,t=2,p=1$<sal-base64>$<hash-base64>`. La contraseña tiene 12–128 caracteres, sin composición obligatoria; no se persiste ni registra en claro. La verificación es de tiempo constante y puede rehashear si cambian los parámetros.
+
+**Restricciones de dependencia:** no depende de una biblioteca criptográfica dentro del dominio. El algoritmo es una decisión de seguridad externa al modelo; la política está registrada en `DEC-W1-008` y la biblioteca se elige en W4.
 
 **Ejemplos:**
 
@@ -3039,7 +3041,7 @@ La siguiente matriz consolida las invariantes de los objetos de valor. Las invar
 | `INV-VO-SKU-01…04` | `SKU` | No vacío; único global; no reutilizado tras descontinuar; no reasignado. | Creación de variante y publicación. | Rechazo o conflicto de unicidad. | `[MOD]` §7.4, §16 | Confirmado |
 | `INV-VO-EMAIL-01…03` | `CorreoElectronico` | Formato válido; único tras normalizar; no es credencial. | Registro y cambio de correo. | Rechazo o conflicto. | `[MOD]` §6.1, §16 | Confirmado; formato limitado |
 | `INV-VO-DOC-01…04` | `DocumentoIdentidad` | Componentes presentes; combinación única; dato protegido; no auditado completo. | Registro y auditoría. | Rechazo o incidente de privacidad. | `[MOD]` §6.1, §16 | Confirmado; formato limitado |
-| `INV-VO-HASH-01…04` | `HashCredencial` | Sin contraseña original; no reversible; no auditado; algoritmo aprobado. | Creación y auditoría. | Rechazo o incidente de seguridad. | `[MOD]` §6.1, §15.1, §16 | Confirmado; algoritmo limitado |
+| `INV-VO-HASH-01…04` | `HashCredencial` | Sin contraseña original; no reversible; no auditado; Argon2id/PHC aprobado en `DEC-W1-008`. | Creación y auditoría. | Rechazo o incidente de seguridad. | `[MOD]` §6.1, §15.1, §16 | Confirmado; implementación W4 |
 | `INV-VO-MON-01…05` | `Dinero` | Moneda presente; exactitud; misma moneda; redondeo reproducible; no negativo en línea base. | Creación y cada operación. | Rechazo de operación. | `[MOD]` §16, §16.1 | Confirmado; escala limitada |
 | `INV-VO-CAN-01…03` | `Cantidad` | Entero; no negativo; sin fracciones. | Creación y operaciones. | Rechazo. | `[MOD]` §8.2, §16 | Confirmado |
 | `INV-VO-CANP-01…03` | `CantidadPositiva` | Entero; mayor que cero; sin fracciones. | Creación y operaciones. | Rechazo. | `[MOD]` §8.3, §10.2, §16 | Confirmado |

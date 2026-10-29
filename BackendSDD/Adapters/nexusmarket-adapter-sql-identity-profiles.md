@@ -78,7 +78,7 @@ No es un repositorio universal. Cada puerto tiene su propia implementación por 
 - Los datos inválidos para la escritura se rechazan como `DATOS_INVALIDOS`; no se corrigen silenciosamente.
 - La versión se usa para control de concurrencia; no se sobrescribe un cambio concurrente.
 
-**Validación técnica vs. negocio:** el adapter refuerza unicidad, integridad referencial y versión en persistencia. No decide si una cuenta debe nacer activa (`L-16`), si un vendedor puede cambiar de estado (`L-09`) ni si un comprador está restringido (`L-08`); esas decisiones pertenecen a la aplicación/dominio.
+**Validación técnica vs. negocio:** el adapter refuerza unicidad, integridad referencial y versión en persistencia. No decide el estado inicial —fijado en `DEC-W1-007`—, si un vendedor puede cambiar de estado (`L-09`) ni si un comprador está restringido (`L-08`); esas decisiones pertenecen a la aplicación/dominio.
 
 ---
 
@@ -104,7 +104,7 @@ No se inventan reintentos, timeouts ni códigos HTTP. La política transaccional
 | Driver/query builder SQL | Decisión técnica no fijada | `[ARQ]` §2.1 exige seleccionarlo antes de implementar; no se prescribe ORM. |
 | `PO-15` | Unidad de trabajo | Las escrituras multiagregado se confirman o revierten juntas. |
 | `PO-20`/`PO-21` | Reloj e identificadores | La aplicación asigna timestamps e ids; el repositorio no los inventa. |
-| `L-01`, `L-03`, `L-08`, `L-09`, `L-13`, `L-16` | Límites de fuente | Composición de dirección, formato de documento, proceso comercial, transiciones, ids y estados iniciales no están cerrados. |
+| `L-01`, `L-03`, `L-08`, `L-09`, `L-13` | Límites de fuente | Composición de dirección, formato de documento, proceso comercial, transiciones e ids no están cerrados. Los estados iniciales están aprobados (`DEC-W1-007`). |
 
 **Restricciones:** no se exponen filas al dominio; no se comparten transacciones entre módulos sin unidad de trabajo; no se usa MongoDB como fuente de verdad de estas entidades.
 
@@ -120,7 +120,7 @@ No se inventan reintentos, timeouts ni códigos HTTP. La política transaccional
 | Invariantes | `[MOD]` §6.1–§6.4, §8.1, §21; `[VO]` §6–§8 |
 | Autorización y perfiles | `[DS]` `DS-01`; `[PI]` `PI-01`–`PI-04`, `PI-08` |
 | Unidad de trabajo | `[PO]` `PO-15`; `[ARQ]` §9.4; `D-16` |
-| Límites | `[EST]` §7, `L-01`, `L-03`, `L-08`, `L-09`, `L-13`, `L-16` |
+| Límites | `[EST]` §7, `L-01`, `L-03`, `L-08`, `L-09`, `L-13`; estados iniciales `DEC-W1-007` |
 
 ---
 

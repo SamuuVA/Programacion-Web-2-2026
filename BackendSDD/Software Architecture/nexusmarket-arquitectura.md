@@ -870,15 +870,15 @@ Este documento concreta una arquitectura técnica, pero no reemplaza las decisio
 - Confirmar PostgreSQL como motor SQL o elegir otro motor relacional.
 - Elegir Fastify o Express y fijar la versión de Node.js y TypeScript.
 - Elegir ORM/query builder o estrategia SQL directa.
-- Definir el mecanismo de autenticación y gestión de credenciales.
+- Definir el mecanismo de autenticación/sesión (ADR-004); la política de credenciales está aprobada en `DEC-W1-008`.
 - Definir entornos de despliegue, secretos, backups, restauración y monitorización.
 - Confirmar qué datos concretos se almacenarán en MongoDB y qué módulo es dueño de ellos.
 
 ### Dominio y consistencia
 
 - Resolver la relación definitiva entre usuario, comprador y vendedor.
-- Aprobar atributos obligatorios y estados de vendedor, bodega y comprador.
-- Definir variantes, precio, moneda, impuestos y condiciones de publicación de productos.
+- Aprobar atributos obligatorios; los estados iniciales de usuario, comprador, vendedor y primera bodega están aprobados en `DEC-W1-007`, y las transiciones restantes siguen en `L-09`.
+- Definir precio, moneda, impuestos y condiciones de publicación de productos; las variantes están ratificadas por el modelo 2.0 y `DEC-W1-001`.
 - Definir cantidades de inventario, reservas, expiración, liberación y ajustes.
 - Aprobar estados y transiciones de pedido, incluidos fallos, cancelación y entrega fallida.
 - Definir el orden de reserva, pago y preparación y el tratamiento de fallos parciales.

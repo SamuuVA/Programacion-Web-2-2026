@@ -262,6 +262,8 @@ El sistema se organiza conceptualmente en contextos delimitados. Son límites de
 
 **Decisión de diseño:** se distinguen `INACTIVO` y `BLOQUEADO`, siguiendo el catálogo de objetos de valor del proyecto. No se añade un estado de eliminación lógica al catálogo de acceso; el cierre de cuenta, si se requiere, se representa como proceso separado que preserva historial comercial y auditoría.
 
+**Estado inicial (`DEC-W1-007`):** un `Usuario` creado por `PI-01` o `PI-02` nace `ACTIVO`. No se define verificación de correo ni activación separada en V1; `PI-04` puede desactivarlo o bloquearlo después. El estado del vendedor no se deduce del estado de la cuenta.
+
 ## 6.2 `RolSistema`
 
 Valores cerrados: `COMPRADOR`, `VENDEDOR`, `OPERADOR_LOGISTICO`, `ADMINISTRADOR`, `SUPERVISOR`.
@@ -280,6 +282,8 @@ El rol expresa la clase de capacidades generales. No concede acceso automático 
 
 Un comprador tiene un único carrito activo y cero o más pedidos. Solo puede consultar/modificar sus propios datos, carrito, pedidos y solicitudes de posventa. `RESTRINGIDO` impide crear nuevos pedidos; no borra pedidos anteriores ni impide consultar operaciones propias salvo restricción legal o de seguridad.
 
+**Estado inicial (`DEC-W1-007`):** el `PerfilComprador` creado por `PI-01` nace `HABILITADO`. `RESTRINGIDO` es una medida posterior y no se aplica en el alta.
+
 ## 6.4 `PerfilVendedor`
 
 | Atributo | Tipo | Obligatorio | Regla |
@@ -292,6 +296,8 @@ Un comprador tiene un único carrito activo y cero o más pedidos. Solo puede co
 | `creadoEn` | `Instant` | Sí | Fecha de incorporación. |
 
 **Reglas:** un vendedor no puede autorregistrarse; la incorporación la ejecuta un Administrador y el proceso crea la primera `BodegaVendedor`. La incorporación se considera completa únicamente si el perfil y la primera bodega quedan creados consistentemente. El vendedor solo puede administrar productos y bodegas de su propiedad. Un vendedor suspendido no puede publicar nuevos productos ni iniciar nuevas ventas; las obligaciones existentes se deben resolver, no eliminar.
+
+**Estado inicial (`DEC-W1-007`):** el `PerfilVendedor` creado por `PI-02` nace `ACTIVO` y su primera `BodegaVendedor` nace `ACTIVA`. La incorporación administrativa es el acto de aprobación; no existe un puerto separado de activación de vendedor en V1. Si se requiere revisión previa, debe añadirse un caso de uso/puerto y revisarse esta decisión.
 
 ## 6.5 `OperadorLogistico`, `Administrador` y `Supervisor`
 
@@ -390,6 +396,8 @@ Catálogo controlado con códigos iniciales: `ELECTRONICA`, `ROPA`, `HOGAR` y `D
 | `creadaEn` | `Instant` | Sí | Fecha de creación. |
 
 `BodegaMarketplace` pertenece a la operación central y su administración corresponde al Administrador. `BodegaVendedor` debe tener exactamente un `vendedorId` propietario. El modelo permite varias bodegas por vendedor; la incorporación inicial debe crear al menos una. Una bodega INACTIVA no acepta nuevos ingresos ni reservas; el stock existente debe trasladarse, liquidarse o ajustarse mediante movimientos trazables antes de cerrarla definitivamente.
+
+**Estado inicial (`DEC-W1-007`):** la primera `BodegaVendedor` creada por `PI-02` nace `ACTIVA` para que el vendedor pueda operar; no hay activación separada de bodega en V1. Las transiciones restantes de `EstadoBodega` siguen sujetas a `L-09`.
 
 ## 8.2 `Inventario`
 
@@ -709,7 +717,7 @@ Representa una solicitud posventa de un comprador sobre un pedido entregado o un
 | `resueltaEn` | `Instant?` | No | Momento de resolución final. |
 | `resueltaPor` | `UsuarioId?` | No | Actor autorizado. |
 
-**Política de línea base:** se acepta solicitud sobre una entrega confirmada dentro del período configurable de devolución. El período se parametriza como política de negocio, no se fija aquí una cifra arbitraria. La aprobación requiere motivo válido, elegibilidad temporal, cantidades disponibles para devolver y revisión del rol autorizado. El comprador no aprueba su propia solicitud.
+**Política de línea base:** se acepta solicitud sobre una entrega confirmada dentro del período configurable de devolución. El período se parametriza como política de negocio; el valor inicial aprobado es **30 días** (`DEC-W1-002`), con una sola política para la plataforma en V1. No se hardcodea: se suministra como configuración versionada y se registra el valor aplicado a cada solicitud. La aprobación requiere motivo válido, elegibilidad temporal, cantidades disponibles para devolver y revisión del rol autorizado. El comprador no aprueba su propia solicitud.
 
 Para productos físicos, una devolución aprobada requiere recepción e inspección antes de reingresar al inventario vendible. Para productos digitales, la devolución puede implicar revocación de licencia/acceso cuando sea posible; no se registra ingreso a inventario físico.
 
@@ -1135,7 +1143,7 @@ Estas decisiones se consideran cerradas para la línea base 2.0 y no deben reapa
 | DD-09 | SQL es fuente transaccional; MongoDB complementa auditoría/eventos y proyecciones. | Alineado con las tecnologías acordadas sin repartir la verdad transaccional de forma ambigua. |
 | DD-10 | Auditoría crítica append-only, con outbox/equivalente para durabilidad. | Permite trazabilidad sin una escritura de auditoría desconectada de la mutación de negocio. |
 | DD-11 | Los pedidos cerrados no se editan; cancelaciones posteriores al pago se tramitan mediante procesos financieros/posventa. | Conserva trazabilidad y evita estados financieros incoherentes. |
-| DD-12 | La política de devolución usa un plazo configurable, no una cifra inventada. | La duración depende de política comercial/jurisdicción, pero el flujo y las invariantes quedan definidos. |
+| DD-12 | La política de devolución usa un plazo configurable; el valor inicial aprobado es 30 días y no se hardcodea (`DEC-W1-002`). | La duración puede cambiar por política comercial; el flujo, las invariantes y el snapshot del valor aplicado quedan definidos. |
 | DD-13 | La factura emitida es inmutable; corrección/anulación genera documento relacionado. | Protege trazabilidad documental. |
 | DD-14 | El Supervisor es de solo lectura. | Conserva el perfil de supervisión descrito por el profesor. |
 
@@ -1143,7 +1151,7 @@ Estas decisiones se consideran cerradas para la línea base 2.0 y no deben reapa
 
 # 28. Límites y alcance de la línea base
 
-Este documento resuelve las decisiones estructurales necesarias para modelar el dominio y construir los casos de uso. Algunas políticas variables se parametrizan deliberadamente porque no es correcto inventar un valor universal, por ejemplo el plazo de devolución, tasas/impuestos aplicables, proveedor de pagos, transportista, numeración fiscal o moneda efectiva del despliegue. Esto no deja sin resolver el comportamiento del dominio: define qué política debe suministrarse, dónde se aplica y qué invariantes debe cumplir.
+Este documento resuelve las decisiones estructurales necesarias para modelar el dominio y construir los casos de uso. Algunas políticas variables se parametrizan deliberadamente porque no es correcto inventar un valor universal, por ejemplo tasas/impuestos aplicables, proveedor de pagos, transportista, numeración fiscal o moneda efectiva del despliegue. El plazo de devolución también es configurable, pero tiene un valor inicial aprobado de 30 días (`DEC-W1-002`). Esto no deja sin resolver el comportamiento del dominio: define qué política debe suministrarse, dónde se aplica y qué invariantes debe cumplir.
 
 Los siguientes documentos deben derivarse de esta línea base y mantener los mismos nombres y reglas:
 

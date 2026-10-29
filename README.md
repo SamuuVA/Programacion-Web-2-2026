@@ -8,7 +8,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/estado-documentaci%C3%B3n%20completa-2ea043?style=flat-square" alt="Estado: documentación completa" />
-  <img src="https://img.shields.io/badge/implementaci%C3%B3n-no%20iniciada-9e6a03?style=flat-square" alt="Implementación no iniciada" />
+  <img src="https://img.shields.io/badge/implementaci%C3%B3n-PI--01%20ejecutable-2ea043?style=flat-square" alt="Implementación: PI-01 ejecutable" />
   <img src="https://img.shields.io/badge/licencia-MIT-yellow?style=flat-square" alt="Licencia MIT" />
   <img src="https://img.shields.io/github/last-commit/SamuuVA/Programacion-Web-2-2026?style=flat-square&color=blue" alt="Último commit" />
 </p>
@@ -25,7 +25,7 @@
 
 </div>
 
-> **Estado actual:** el repositorio se encuentra en **fase de especificación**. La documentación de diseño está completa y verificada; **todavía no existe código de aplicación, esquema de base de datos, contrato OpenAPI ejecutable ni pruebas automatizadas**.
+> **Estado actual:** la documentación de diseño está completa y el **primer vertical ejecutable `PI-01 RegisterBuyer`** ya existe en `backend/` (TypeScript/Node.js, Fastify y PostgreSQL/memoria). Está verificado con typecheck, 29 pruebas, build, smoke HTTP y **PostgreSQL 17.11 local**: migración aplicada, alta `201`, duplicado `409`, concurrencia con un solo ganador, rollback y auditoría/outbox atómicos. La prueba PostgreSQL está automatizada en `npm run test:postgres`, el contrato de las tres rutas existentes está probado y la revisión independiente terminó en `PASS`; CI, autenticación y el resto del sistema siguen pendientes y no se presentan como implementados.
 
 ---
 
@@ -33,6 +33,7 @@
 
 - [Descripción general](#descripción-general)
 - [Estado del proyecto](#estado-del-proyecto)
+- [Primer vertical implementado](#primer-vertical-implementado)
 - [Alcance funcional](#alcance-funcional)
 - [Stack tecnológico](#stack-tecnológico)
 - [Arquitectura](#arquitectura)
@@ -80,7 +81,7 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 | Casos de uso | [`nexusmarket-use-cases-checkout-query-order.md`](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | Completo · `UC-01`, `UC-02` |
 | Adaptadores | [`nexusmarket-adapters.md`](BackendSDD/Adapters/nexusmarket-adapters.md) + 14 documentos | Completo · `ADIN-01`, `ADOUT-01`…`ADOUT-13` |
 | Alineación de contratos | [`nexusmarket-contract-alignment.md`](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Completo · `CT-01`…`CT-13` |
-| Código de aplicación | `src/`, `tests/`, `package.json` | **No iniciado** |
+| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) | **PI-01 implementado**; PostgreSQL 17.11 y suite automatizada; contrato de tres rutas probado |
 
 ### Indicadores de la especificación
 
@@ -101,15 +102,33 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 - Casos de uso de checkout y consulta de pedido.
 - Especificación de 14 adaptadores y verificación de la cadena completa.
 - Registro de decisiones, conflictos, limitaciones y trazabilidad.
+- Primer vertical ejecutable `PI-01 RegisterBuyer` con Fastify, Argon2id, adaptador en memoria/PostgreSQL, migración, contrato OpenAPI de tres rutas, 29 pruebas y suite PostgreSQL automatizada.
 
 **No incluye todavía**
 
-- Código TypeScript, arranque del servidor ni módulos implementados.
-- Esquemas SQL, migraciones, índices o colecciones MongoDB.
-- Contrato HTTP/OpenAPI aprobado, rutas, métodos o códigos de estado.
+- Autenticación, sesiones y autorización.
+- Catálogo, inventario, direcciones, pedidos, pagos, facturación, logística, devoluciones, imágenes y frontend.
+- `PI-02 RegisterSeller` (bloqueado por autenticación administrativa, `L-01` y contrato de ruta).
 - SDKs, clientes, integraciones reales ni credenciales.
-- Pruebas unitarias, de integración o end-to-end.
-- Configuración Docker operativa.
+- CI/CD, ejecución de PostgreSQL en pipeline y observabilidad de release candidate.
+
+---
+
+## Primer vertical implementado
+
+**`PI-01 RegisterBuyer`** permite registrar una cuenta de comprador y demuestra el estilo arquitectónico completo sin implementar el resto del marketplace.
+
+| Elemento | Implementación |
+|---|---|
+| Alcance | `Usuario` ACTIVO, `PerfilComprador` HABILITADO, `Carrito` vacío, auditoría y outbox en la misma transacción |
+| Endpoints | `POST /api/v1/buyers`, `/health`, `/ready` (`L-27` cerrada solo para estas rutas) |
+| Persistencia | PostgreSQL autoritativo (`backend/migrations/001_initial.sql`) y adaptador en memoria para desarrollo/pruebas |
+| Credenciales | Argon2id PHC `m=19456,t=2,p=1`, sal de 16 bytes (`DEC-W1-008`) |
+| Contrato | [`backend/openapi.yaml`](backend/openapi.yaml) y `backend/tests/contract/openapi.test.ts` |
+| Pruebas | `npm run typecheck`, `npm test` (5 archivos/29 pruebas), `npm run test:postgres` (2 pruebas) y `npm run build` aprobados; smoke HTTP real con `201`, `409`, `/health` y `/ready` |
+| Evidencia y límites | [`docs/backend/implementation/01-acceptance-and-unblock.md`](docs/backend/implementation/01-acceptance-and-unblock.md) |
+
+**Verificado:** `docker compose config`, PostgreSQL 17.11, migración `001_initial.sql`, alta `201`, duplicado `409`, concurrencia con un único ganador, rollback y auditoría/outbox atómicos. La prueba PostgreSQL está automatizada con `TEST_DATABASE_URL`, exige una base local terminada en `_test` y limpia solo sus propios registros. **Límite:** no se ejecuta en CI; autenticación, versionado general y rutas futuras siguen fuera del contrato. Las instrucciones están en [`backend/README.md`](backend/README.md).
 
 ---
 
@@ -158,18 +177,19 @@ La especificación original define doce objetivos estratégicos (`OBJ-01`…`OBJ
 
 | Área | Tecnología / decisión | Estado |
 |---|---|---|
-| Lenguaje | TypeScript con `strict: true` | Oficial |
-| Runtime | Node.js LTS | Oficial |
-| API | REST | Oficial |
-| Framework HTTP | Fastify (recomendado) / Express | Pendiente de fijar |
-| Contrato de API | OpenAPI | Objetivo |
-| Persistencia relacional | PostgreSQL | Oficial |
-| Persistencia documental | MongoDB (auditoría y documentos justificados) | Oficial |
-| Arquitectura | DDD + Hexagonal (Ports & Adapters) | Oficial |
-| Estilo | Monolito modular | Oficial |
-| Contenedores | Docker + Docker Compose | Objetivo |
-| Pruebas | Vitest o Jest | Pendiente de fijar |
-| Validación de entrada | Esquemas en el borde HTTP (p. ej. Zod) | Recomendado |
+| Lenguaje | TypeScript 5.9 con `strict: true` | Implementado |
+| Runtime | Node.js 24 LTS (`>=24 <25`) | Implementado |
+| API | REST | Implementado para `PI-01` |
+| Framework HTTP | Fastify 5 | Implementado |
+| Contrato de API | OpenAPI 3.1 de `POST /api/v1/buyers`, `/health` y `/ready` | Cerrado para tres rutas; contract test sin validador semántico |
+| Persistencia relacional | PostgreSQL + `pg` con SQL directo (sin ORM en `PI-01`) | Implementado y verificado con PostgreSQL 17.11 local y suite automatizada |
+| Persistencia documental | MongoDB (auditoría y documentos justificados) | No usada en `PI-01`; decisión futura |
+| Arquitectura | DDD + Hexagonal (Ports & Adapters) | Implementada en el vertical |
+| Estilo | Monolito modular | Implementado en el vertical |
+| Contenedores | Docker + Docker Compose | `compose.yaml` validado; PostgreSQL 17.11 levantado |
+| Pruebas | Vitest 5 | Implementado; 29 pruebas + 2 PostgreSQL |
+| Validación de entrada | Zod 4 en el borde HTTP | Implementado |
+| Hash de credenciales | `@node-rs/argon2` 2.2.2 | Implementado y probado |
 
 > MySQL y Go aparecen únicamente en documentación histórica y **no forman parte del stack vigente**.
 
@@ -429,14 +449,14 @@ Requisito → regla → entidad/VO/servicio → caso de uso → puerto de entrad
 
 | ID | Contrato | Adaptador | Estado | Bloqueo principal |
 |---|---|---|---|---|
-| `CT-01` | HTTP/OpenAPI | `ADIN-01` | `SIN_EVIDENCIA` | `L-27`: no hay OpenAPI aprobado |
+| `CT-01` | HTTP/OpenAPI | `ADIN-01` | `PARCIAL` (tres rutas implementadas) | `L-27` cerrada solo para `POST /api/v1/buyers`, `/health` y `/ready`; auth y rutas futuras abiertas |
 | `CT-02` | Eventos de dominio y outbox | `ADOUT-04` | `ALINEADO_CON_PROPUESTA` | `L-14`: catálogo y payloads incompletos |
 | `CT-03` | Auditoría | `ADOUT-05` | `ALINEADO_CON_PROPUESTA` | `L-11`, `L-15`: composición y retención |
-| `CT-04` | Pago | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` | `L-22`: protocolo y webhooks |
+| `CT-04` | Pago | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` (diferido; sin pagos en `PI-01`) | `L-22`: protocolo y webhooks |
 | `CT-05` | Logística | `ADOUT-08` | `ALINEADO_CON_PROPUESTA` | `L-23`: proveedor, tracking y evidencia |
 | `CT-06` | Notificaciones | `ADOUT-09` | `ALINEADO_CON_PROPUESTA` | `L-24`: canales y consentimiento |
 | `CT-07` | Entrega digital | `ADOUT-10` | `ALINEADO_CON_PROPUESTA` | `L-18`: acceso, licencia y evidencia |
-| `CT-08` | Credenciales | `ADOUT-13` | `ALINEADO_CON_PROPUESTA` | `L-12`, `L-20`: algoritmo y política |
+| `CT-08` | Credenciales | `ADOUT-13` | `ALINEADO_CON_PROPUESTA`; política decidida (`DEC-W1-008`) | Contrato ejecutable en W3; biblioteca en W4 |
 | `CT-09` | Identificadores | `ADOUT-12` | `ALINEADO_CON_PROPUESTA` | `L-13`: formato físico y unicidad |
 | `CT-10` | Facturación | `ADOUT-03` | `ALINEADO_CON_PROPUESTA` | `L-17`: numeración, serie y jurisdicción |
 | `CT-11` | Reportes | `ADOUT-06` | `ALINEADO_CON_PROPUESTA` | `L-19`: catálogo, filtros y límites |
@@ -457,7 +477,7 @@ Requisito → regla → entidad/VO/servicio → caso de uso → puerto de entrad
 
 ```text
 Programacion-Web-2-2026/
-├── BackendSDD/
+├── BackendSDD/                              # Documentación fuente
 │   ├── enunciado.md                        # Especificación funcional del negocio
 │   ├── Prompt-maestro-documentacion.md     # Gobierno y criterios documentales
 │   ├── DOCUMENTATION_STATUS.md             # Registro de continuidad, decisiones y límites
@@ -477,6 +497,15 @@ Programacion-Web-2-2026/
 │   │   └── nexusmarket-adapter-*.md        # 14 documentos individuales
 │   └── Contracts/
 │       └── nexusmarket-contract-alignment.md
+├── backend/                                # Primer vertical ejecutable
+│   ├── src/                                # Dominio, aplicación, adaptadores y bootstrap
+│   ├── tests/                              # Unitarias e integración HTTP
+│   ├── migrations/001_initial.sql          # Esquema PostgreSQL
+│   ├── openapi.yaml                        # Contrato de las tres rutas de PI-01
+│   ├── compose.yaml                        # PostgreSQL local validado
+│   └── README.md                           # Instalación, ejecución y límites
+├── docs/backend/                           # Auditoría, decisiones y estado de implementación
+├── orchestrator-state.md                   # Estado operativo
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -491,6 +520,10 @@ Programacion-Web-2-2026/
 | Documento | Contenido |
 |---|---|
 | [Especificación funcional](BackendSDD/enunciado.md) | Objetivos, dominios, participantes, reglas y restricciones del negocio |
+| [Backend ejecutable](backend/README.md) | Instalación, ejecución, pruebas, PostgreSQL y límites del primer vertical |
+| [Aceptación y desbloqueo de PI-01](docs/backend/implementation/01-acceptance-and-unblock.md) | Auditoría, decisiones `DEC-IMPL-*`, evidencia, gates y cierre acotado de `L-27` |
+| [Reconciliación de fuentes operativas](docs/backend/implementation/02-operational-source-reconciliation.md) | Contradicciones del prompt, fuentes reales y correcciones sin editar las fuentes originales |
+| [Evaluación de PI-02](docs/backend/implementation/03-pi02-evaluation.md) | Requisitos, bloqueos, opciones y preguntas para `RegisterSeller` |
 | [Arquitectura](BackendSDD/Software%20Architecture/nexusmarket-arquitectura.md) | Capas, módulos, persistencia, Docker, seguridad, pruebas y flujos transaccionales |
 | [Modelo de dominio](BackendSDD/Domain/nexusmarket-domain-model.md) | Contextos, agregados, entidades, invariantes, estados, eventos y escenarios |
 | [Objetos de valor](BackendSDD/Domain/nexusmarket-domain-object-values.md) | Catálogo canónico de VOs, familias, validación e invariantes |
@@ -530,12 +563,35 @@ Programacion-Web-2-2026/
 
 ## Cómo empezar
 
-Este repositorio **no requiere instalación de dependencias** en su estado actual, porque contiene únicamente documentación. Para clonarlo:
+Para clonar el repositorio:
 
 ```bash
 git clone https://github.com/SamuuVA/Programacion-Web-2-2026.git
 cd Programacion-Web-2-2026
 ```
+
+Para ejecutar y probar el primer vertical:
+
+```powershell
+cd backend
+npm install
+Copy-Item .env.example .env
+$env:PERSISTENCE = "memory"
+npm run dev
+```
+
+Verificación:
+
+```powershell
+npm run typecheck
+npm test
+npm run build
+
+$env:TEST_DATABASE_URL = "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test"
+npm run test:postgres
+```
+
+El detalle del endpoint, PostgreSQL y los límites está en [`backend/README.md`](backend/README.md). PostgreSQL 17.11 se levantó con Compose y la suite automatizada exige una base local cuyo nombre termine en `_test`; si no está disponible, el comando falla y el gate queda `BLOCKED`.
 
 ### Ruta de lectura recomendada
 
@@ -547,8 +603,9 @@ cd Programacion-Web-2-2026
 6. Lee los [casos de uso](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md).
 7. Revisa los [adaptadores](BackendSDD/Adapters/nexusmarket-adapters.md).
 8. Cierra con la [alineación de contratos](BackendSDD/Contracts/nexusmarket-contract-alignment.md) y el [estado documental](BackendSDD/DOCUMENTATION_STATUS.md).
+9. Para el corte implementado, lee el [informe de aceptación](docs/backend/implementation/01-acceptance-and-unblock.md) y `orchestrator-state.md`.
 
-> Si vas a retomar el trabajo, **empieza por `DOCUMENTATION_STATUS.md`**: contiene el bloque de relevo, las decisiones adoptadas, los conflictos abiertos y la siguiente acción exacta.
+> Si vas a retomar el trabajo, **empieza por `orchestrator-state.md`** y por el [informe de aceptación](docs/backend/implementation/01-acceptance-and-unblock.md): contienen el estado real, la evidencia ejecutada, los bloqueos y la siguiente acción exacta.
 
 ---
 
@@ -578,9 +635,9 @@ cd Programacion-Web-2-2026
 | Fase | Entregable | Estado |
 |---|---|---|
 | **0. Especificación** | Modelo, VOs, servicios, puertos, casos de uso, adaptadores y contratos | Completada |
-| **1. Decisiones de negocio** | Resolver `DEC-BIZ-01`…`DEC-BIZ-07` y las limitaciones bloqueantes | Pendiente |
-| **2. Contratos ejecutables** | OpenAPI, esquemas de eventos, contratos de proveedor y migraciones | Pendiente |
-| **3. Implementación vertical** | Primer módulo completo: dominio + caso de uso + puerto + adaptador + pruebas | Pendiente |
+| **1. Decisiones de negocio** | Resolver `DEC-BIZ-01`…`DEC-BIZ-07` y las limitaciones bloqueantes | Parcial: `CON-001`…`CON-004`, `DEC-W1-007`/`008` y `DEC-IMPL-001`…`009` cerrados; restan `DEC-BIZ-01`, `03`…`07`, `L-01`, `L-22` y `L-10`. `L-27` está acotada a tres rutas; auth/versionado general siguen abiertos |
+| **2. Contratos ejecutables** | OpenAPI, esquemas de eventos, contratos de proveedor y migraciones | Parcial: contrato de tres rutas con contract test y migración de `PI-01`; sin validador semántico ni CI |
+| **3. Implementación vertical** | Primer módulo completo: dominio + caso de uso + puerto + adaptador + pruebas | **`PI-01` implementado y verificado en memoria y PostgreSQL 17.11**, con suite PostgreSQL automatizada y revisión independiente `PASS` |
 | **4. Integraciones** | Pago, logística, notificaciones y entrega digital con idempotencia | Pendiente |
 | **5. Calidad y despliegue** | CI, Docker multi-stage, observabilidad, backups y seguridad | Pendiente |
 
@@ -588,14 +645,14 @@ La implementación debe comenzar por un **flujo vertical pequeño y verificable*
 
 ---
 
-## Decisiones y limitaciones abiertas
+## Decisiones y limitaciones
 
-Antes de implementar las políticas variables, el negocio debe aprobar:
+Antes de implementar las políticas variables, el negocio debe aprobar las que siguen abiertas; se incluye `DEC-BIZ-02` como referencia de cierre:
 
 | ID | Decisión requerida |
 |---|---|
 | `DEC-BIZ-01` | Campos y formato exacto de `Direccion` |
-| `DEC-BIZ-02` | Plazo para solicitar una devolución |
+| `DEC-BIZ-02` | **Resuelta (`DEC-W1-002`)**: plazo configurable con 30 días como valor inicial |
 | `DEC-BIZ-03` | Catálogo de motivos de devolución y reembolso |
 | `DEC-BIZ-04` | Política de selección cuando hay varias bodegas elegibles |
 | `DEC-BIZ-05` | Moneda, escala decimal y regla de redondeo |
@@ -604,19 +661,18 @@ Antes de implementar las políticas variables, el negocio debe aprobar:
 
 Las limitaciones que bloquean contratos ejecutables están registradas en [`DOCUMENTATION_STATUS.md` §7](BackendSDD/DOCUMENTATION_STATUS.md#7-limitaciones-reales-detectadas-no-convertidas-en-requisitos). Las principales:
 
-- `L-27` — contrato HTTP/OpenAPI, autenticación, versionado y límites de tasa.
+- `L-27` — contrato HTTP/OpenAPI, autenticación, versionado y límites de tasa. **Acotada:** cerrada solo para `POST /api/v1/buyers`, `/health` y `/ready`; el resto sigue abierto.
 - `L-22` — protocolo del proveedor de pago, autorización/captura y webhooks.
 - `L-23` — integración logística, tracking y evidencia de entrega.
 - `L-24` — canales, plantillas y consentimiento de notificaciones.
 - `L-17` — numeración, serie fiscal y corrección de facturas.
 - `L-18` — mecanismo de entrega digital y licencias.
-- `L-12`, `L-20` — política y algoritmo de credenciales.
 - `L-13` — formato físico de los identificadores.
 - `L-19` — catálogo de reportes, filtros y paginación.
 - `L-26` — asignación de operador logístico a pedidos o envíos.
 - `L-11`, `L-14`, `L-15` — composición de payloads, catálogo de eventos y gravedad de auditoría.
 
-> Estas limitaciones **no se convierten en requisitos por conveniencia**. Se registran con alternativas, impacto y recomendación para que la persona responsable decida.
+> Estas limitaciones **no se convierten en requisitos por conveniencia**. Se registran con alternativas, impacto y recomendación para que la persona responsable decida. `L-06`, `L-12`, `L-16` y `L-20` quedaron cerradas por `DEC-W1-002`, `DEC-W1-008` y `DEC-W1-007`; las decisiones están en [`docs/backend/w1/03-decisions.md`](docs/backend/w1/03-decisions.md).
 
 ---
 

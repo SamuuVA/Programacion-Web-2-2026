@@ -5,7 +5,7 @@
 **Versión:** 1.0
 **Fecha:** 26 de octubre de 2026
 **Estado del documento:** `COMPLETO`
-**Estado de la definición de dominio:** Confirmado por fuente; plazo y catálogo de motivos parcialmente especificados.
+**Estado de la definición de dominio:** Confirmado por fuente; plazo aprobado (`DEC-W1-002`); catálogo de motivos aún limitado (`L-10`).
 
 **Documentos relacionados:**
 
@@ -27,7 +27,7 @@
 | Código documental | `NM-SDD-DOM-DS-07` |
 | Tipo | Domain Service — política de dominio de solo lectura |
 | Propósito resumido | Decidir si un comprador puede solicitar la devolución de un pedido o de parte de sus líneas, y calcular las cantidades elegibles. |
-| Estado de definición | Confirmado por fuente; plazo y catálogo de motivos limitados (`DEC-BIZ-02`, `DEC-BIZ-03`, `L-06`, `L-10`). |
+| Estado de definición | Confirmado por fuente; plazo aprobado por `DEC-W1-002`; catálogo de motivos limitado por `DEC-BIZ-03`/`L-10`. |
 | Fuente primaria | `[MOD]` §14.1 y §18; `[ENU]` Dominio 11. |
 
 ---
@@ -58,7 +58,7 @@ Producir una decisión `ELEGIBLE` o `NO_ELEGIBLE`, las cantidades devolvibles po
 - Llamar transportistas o gestionar logística inversa.
 - Recibir o inspeccionar el producto.
 - Cambiar el estado del pedido.
-- Definir el plazo o el catálogo de motivos.
+- Definir el valor de la política o el catálogo de motivos; el valor inicial del plazo ya está aprobado (`DEC-W1-002`), pero su configuración y vigencia pertenecen a la aplicación.
 - Aprobar la devolución; la aprobación es un acto posterior de un actor autorizado.
 - Crear la `Devolucion` o sus líneas.
 
@@ -83,7 +83,7 @@ La decisión combina pedido, comprador, cantidades, devoluciones previas y polí
 
 - **Actor inicial:** Comprador propietario. La resolución corresponde a un actor autorizado con separación de funciones (`[MOD]` §14.1, §19).
 - **Precondición de entrega:** la política de línea base acepta la solicitud sobre una entrega confirmada dentro del período configurable (`[MOD]` §14.1).
-- **Plazo:** se parametriza como política de negocio; no se fija una cifra (`DD-12`, `DEC-BIZ-02`, `L-06`).
+- **Plazo:** se parametriza como política de negocio; el valor inicial aprobado es **30 días** desde la entrega confirmada, con una sola política de plataforma en V1 (`DEC-W1-002`). No se hardcodea y se conserva el valor aplicado a cada solicitud (`DD-12`, `L-06`).
 - **Motivo:** obligatorio y perteneciente a un catálogo controlado; el catálogo no está enumerado en las fuentes (`DEC-BIZ-03`, `L-10`).
 - **Producto físico:** la devolución aprobada requiere recepción e inspección antes del reingreso vendible (`[MOD]` §14.1; `INV-09`).
 - **Producto digital:** puede implicar revocación de licencia o acceso; no genera inventario físico (`[MOD]` §14.1; `INV-VO-EDEV-07`).
@@ -100,7 +100,7 @@ La decisión combina pedido, comprador, cantidades, devoluciones previas y polí
 | `RET-03` | La solicitud se acepta sobre una entrega confirmada dentro del período configurable. | Inicio. | `EstadoPedido`, `Instant`, plazo | Fuera de entrega o plazo, no elegible. | `RET_ORDER_NOT_DELIVERED`, `RET_OUTSIDE_WINDOW`. | `[MOD]` §14.1 | Confirmado |
 | `RET-04` | La aprobación requiere motivo válido, elegibilidad temporal, cantidades disponibles y revisión de rol autorizado. | Evaluación y revisión. | `MotivoDevolucion`, actor, cantidades | Se indica si requiere revisión. | `RET_INVALID_REASON`. | `[MOD]` §14.1 | Confirmado |
 | `RET-05` | El comprador no aprueba su propia solicitud. | Aprobación. | Actor solicitante, actor aprobador | La política no autoriza la autoaprobación. | `AUTH_SELF_APPROVAL_FORBIDDEN` (`DS-01`). | `[MOD]` §14.1; `[DS-01]` §5 `AUT-03` | Confirmado |
-| `RET-06` | El plazo es configurable y no se fija una cifra. | Comparación temporal. | Política, `Instant` | Se usa el plazo vigente. | `RET_WINDOW_UNDEFINED`. | `DD-12` | Confirmado; valor no definido |
+| `RET-06` | El plazo es configurable; el valor inicial aprobado es 30 días y se usa el valor vigente. | Comparación temporal. | Política, `Instant` | Se usa el plazo vigente y se registra el valor aplicado. | `RET_WINDOW_UNDEFINED` si la política no está configurada. | `DD-12`; `DEC-W1-002` | Confirmado; valor inicial aprobado |
 | `RET-07` | Una devolución `RESUELTA` no se reabre. | Nueva solicitud sobre el mismo alcance. | `EstadoDevolucion` | Se rechaza la reapertura. | `RET_ALREADY_RESOLVED`. | `[MOD]` §14.3 | Confirmado |
 | `RET-08` | En producto físico, la recepción e inspección preceden al reingreso vendible. | Devolución física aprobada. | `Devolucion`, `Inventario` | El reingreso no es automático. | Reingreso sin inspección: prohibido. | `[MOD]` §14.1; `INV-09` | Confirmado |
 | `RET-09` | En producto digital, la devolución puede implicar revocación y no genera inventario físico. | Devolución digital. | `ProductoDigital`, acceso | Se indica el flujo digital. | — | `[MOD]` §14.1 | Confirmado |
@@ -123,7 +123,7 @@ La decisión combina pedido, comprador, cantidades, devoluciones previas y polí
 | Cantidades ya devueltas o solicitadas | Consumo de elegibilidad. | `Devolucion`. | No negativas. | `RET-02`. | `Cantidad`. |
 | Motivo | Justificación. | Actor. | Obligatorio; pertenece al catálogo. | `INV-VO-MOTD-01`. | `MotivoDevolucion`. |
 | `Instant` de solicitud | Momento de comparación. | Reloj. | UTC. | `INV-VO-INST-01…04`. | Objeto de valor. |
-| Plazo vigente | Ventana de devolución. | Política. | Configurable; no fijada. | Debe existir. | Política configurable. |
+| Plazo vigente | Ventana de devolución. | Política. | Configurable; valor inicial 30 días (`DEC-W1-002`); ámbito único de plataforma. | Debe existir; se registra el valor aplicado. | Política configurable. |
 | Tipo de entrega | Física o digital. | Línea/producto. | `FISICA` o `DIGITAL`. | `INV-VO-TENT-01`. | Objeto de valor. |
 
 ---
@@ -274,7 +274,7 @@ La evaluación es de solo lectura. La creación de la devolución debe ejecutars
 | E-07 | Devolución de producto digital aprobada. | `TipoEntrega = DIGITAL`. | `RET-09` | `ELEGIBLE`; no genera inventario físico. | `[MOD]` §14.1 |
 | E-08 | Falta configurar el plazo. | Sin política temporal. | `RET-06` | `NO_ELEGIBLE` por `RET_WINDOW_UNDEFINED`. | `[DS]` §4.7 |
 
-**Escenarios ilustrativos:** E-01 a E-08 derivan de `[MOD]` §14 y de la política; no fijan plazos ni motivos concretos.
+**Escenarios ilustrativos:** E-01 a E-08 derivan de `[MOD]` §14 y de la política; no fijan el catálogo de motivos. El plazo inicial aprobado es de 30 días configurables (`DEC-W1-002`).
 
 ---
 
@@ -307,14 +307,14 @@ La evaluación es de solo lectura. La creación de la devolución debe ejecutars
 | Cantidades | `RET-02` | `[MOD]` | §14.1, §21 | No exceden lo entregado | Confirmado |
 | Entrega confirmada | `RET-03` | `[MOD]` | §14.1 | Precondición temporal | Confirmado |
 | Aprobación | `RET-04`, `RET-05` | `[MOD]` | §14.1 | Revisión y separación de funciones | Confirmado |
-| Plazo configurable | `RET-06`; `DD-12` | `[MOD]` | §14.1 | Ventana no fijada | Parcialmente especificado |
+| Plazo configurable | `RET-06`; `DD-12`; `DEC-W1-002` | `[MOD]` | §14.1 | Valor inicial 30 días, configurable | Confirmado |
 | No reapertura | `RET-07` | `[MOD]` | §14.3 | Devolución resuelta | Confirmado |
 | Reingreso físico | `RET-08`; `INV-09` | `[MOD]` | §14.1 | Inspección previa | Confirmado |
 | Flujo digital | `RET-09` | `[MOD]` | §14.1 | Sin inventario físico | Confirmado |
 | Estado de devolución | `INV-VO-EDEV-01…07` | `[VO]` | §8.15 | Invariantes de posventa | Confirmado |
 | Motivo | `INV-VO-MOTD-01…03` | `[VO]` | §9.2 | Obligatorio y de catálogo | Parcialmente especificado |
 | Cantidades | `INV-VO-CANP-01…03` | `[VO]` | §6.7 | Cantidad positiva | Confirmado |
-| Plazo y motivos | `DEC-BIZ-02`, `DEC-BIZ-03`; `L-06`, `L-10` | `[DS]`; estado | §4.7; §7 | Limitaciones de política | Parcialmente especificado |
+| Plazo y motivos | `DEC-W1-002`, `DEC-BIZ-03`; `L-06`, `L-10` | `[DS]`; estado | §4.7; §7 | Plazo aprobado (30 días iniciales, configurable); catálogo de motivos aún limitado por `L-10` | Parcialmente especificado (solo motivos) |
 | Solo lectura | `DS-D-01` | `[DS]` | §10 | No crea la devolución | Decisión de diseño registrada |
 
 ---
@@ -328,7 +328,7 @@ La evaluación es de solo lectura. La creación de la devolución debe ejecutars
 - [x] Las colaboraciones respetan DDD y la separación de funciones.
 - [x] Los límites de consistencia ante solicitudes concurrentes son explícitos.
 - [x] La trazabilidad cubre modelo, objetos de valor y decisiones pendientes.
-- [x] No se fija plazo ni catálogo de motivos.
+- [x] El valor inicial del plazo está aprobado (`DEC-W1-002`); el catálogo de motivos sigue limitado (`L-10`).
 - [x] No se definen puertos, adaptadores, contratos ni código.
 - [x] No existen contradicciones conocidas sin tratamiento.
 
@@ -341,4 +341,4 @@ La evaluación es de solo lectura. La creación de la devolución debe ejecutars
 | 2026-10-26 | Creación de la definición individual a partir de `[DS]` §4.7, `[MOD]` §14 y `[VO]` §7, §8.15, §9.2. | Agente documental |
 
 **Estado de definición:** `COMPLETO`.
-**Limitaciones reales:** el plazo de devolución no tiene valor aprobado (`DEC-BIZ-02`, `L-06`) y el catálogo de motivos no está enumerado (`DEC-BIZ-03`, `L-10`). La política exige ambos como entradas y rechaza la evaluación si faltan. No se define aquí el proceso de aprobación ni la logística inversa.
+**Limitaciones reales:** el plazo ya tiene valor inicial aprobado (`DEC-W1-002`, 30 días configurables); el catálogo de motivos sigue sin enumerar (`DEC-BIZ-03`, `L-10`). La política exige ambos como entradas y rechaza la evaluación si faltan. No se define aquí el proceso de aprobación ni la logística inversa.

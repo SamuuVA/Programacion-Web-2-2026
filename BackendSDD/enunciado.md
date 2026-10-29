@@ -150,7 +150,7 @@ El catálogo diferencia entre productos físicos (requieren inventario y despach
 
 ### Dominio 6. Gestión del inventario
 
-El inventario es distribuido y debe estar vinculado obligatoriamente a un producto y una bodega específica.
+El inventario es distribuido y debe estar vinculado obligatoriamente a un producto/variante y una bodega específica; la unidad de stock es la variante (`DEC-W1-001`).
 
 - **Movimientos:** Ingreso, Reserva, Salida por venta, Ajuste y Devolución.
 - **Restricción:** No se permitirán existencias negativas bajo ninguna circunstancia.
