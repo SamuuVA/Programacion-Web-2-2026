@@ -7,9 +7,13 @@ import type { Clock, IdGenerator, PasswordHasher } from "./shared/application/po
 import type { BuyerRegistrationStore } from "./modules/buyers/application/ports.js";
 import { RegisterBuyer } from "./modules/buyers/application/register-buyer.js";
 import { registerBuyerRoutes } from "./modules/buyers/interfaces/http/register-buyer-route.js";
+import type { CatalogQueryRepository } from "./modules/catalog/application/ports.js";
+import { QueryCatalog } from "./modules/catalog/application/query-catalog.js";
+import { registerCatalogRoutes } from "./modules/catalog/interfaces/http/catalog-routes.js";
 
 export interface AppDependencies {
   readonly store: BuyerRegistrationStore;
+  readonly catalog: CatalogQueryRepository;
   readonly hasher: PasswordHasher;
   readonly clock: Clock;
   readonly ids: IdGenerator;
@@ -17,6 +21,8 @@ export interface AppDependencies {
 
 const ROUTE_METHODS = new Map<string, readonly string[]>([
   ["/api/v1/buyers", ["POST"]],
+  ["/api/v1/products", ["GET", "HEAD"]],
+  ["/api/v1/categories", ["GET", "HEAD"]],
   ["/health", ["GET", "HEAD"]],
   ["/ready", ["GET", "HEAD"]]
 ]);
@@ -52,7 +58,10 @@ export async function buildApp(
   registerCors(app, config.CORS_ORIGINS);
 
   app.addHook("onClose", async () => {
-    await dependencies.store.close();
+    await Promise.all([
+      dependencies.store.close(),
+      dependencies.catalog.close()
+    ]);
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -128,6 +137,7 @@ export async function buildApp(
     dependencies.ids
   );
   registerBuyerRoutes(app, useCase);
+  registerCatalogRoutes(app, new QueryCatalog(dependencies.catalog));
 
   app.setNotFoundHandler((request, reply) => {
     const path = request.url.split("?")[0] ?? "/";
@@ -199,6 +209,7 @@ function statusFor(code: ErrorCode): number {
     case "DEPENDENCIA_NO_DISPONIBLE":
       return 503;
     case "RUTA_NO_ENCONTRADA":
+    case "RECURSO_NO_ENCONTRADO":
       return 404;
     case "METODO_NO_PERMITIDO":
       return 405;

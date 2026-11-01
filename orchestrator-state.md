@@ -4,7 +4,7 @@
 >
 > **Regla:** este archivo registra hechos comprobados. Todo estado debe poder contrastarse con archivos, commits, comandos o decisiones identificables.
 >
-> **Lectura vigente (2026-10-28):** las secciones 1–2 y 9–11, el registro de incidencias y la plantilla S-007 describen el estado actual. Las secciones 3–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend” o la prueba PostgreSQL manual; no son el estado vigente.
+> **Lectura vigente (2026-11-01):** las secciones 1–2, 3.1, 9–11, el registro de incidencias, las evidencias 13–14 y las plantillas S-007/S-008 describen el estado actual. Las secciones 4–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend”, el adaptador en memoria o la prueba PostgreSQL manual; no son el estado vigente.
 
 ---
 
@@ -26,18 +26,18 @@
 |---|---|
 | Proyecto | NexusMarket |
 | Área | Backend |
-| Versión del estado | 2.0 |
+| Versión del estado | 3.0 |
 | Prompt aplicable | `prompt-orquestador-backend.md` (v1.0) |
-| Stack objetivo | TypeScript, Node.js, PostgreSQL, MongoDB, Docker |
+| Stack objetivo | TypeScript, Node.js, PostgreSQL, Next.js, MongoDB, Docker |
 | Rama Git comprobada | `main` |
-| Commit HEAD comprobado | `badf0b1993c927d6713d85cd7b44eee8b4259a46` |
-| Fecha de actualización | 2026-10-28 |
+| Commit HEAD comprobado | `10e65d8cb7f46898342323d223076255e7b95bb4` |
+| Fecha de actualización | 2026-11-01 |
 | Agente coordinador actual | Backend Orchestrator (OpenCode / DeepSeek V4.1 Flash Free) |
 | Revisor independiente | Sesiones `ses_e7b1c7ddaffepca7fRH5CGMyTx` (1.ª), `ses_e7b113275ffeeAZmlHtptxtOfT` (2.ª), `ses_e7b0b9ec9ffeC6278fXU0TKf9M` (3.ª: `PASS`) y `ses_e7a3f8c7fffehdXpxCqxD8gVkc` (4.ª: `PASS`) |
-| Estado global | `IN_PROGRESS` (W0 cerrada; W1-01 cerrada; `PI-01` implementado, con suite PostgreSQL automatizada, contrato de tres rutas y revisión independiente `PASS`; CI pendiente) |
-| Ola actual | Cierre de `PI-01`; `PI-02` bloqueado por autenticación, `L-01` y contrato |
-| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-W1 = NOT_RUN`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS` |
-| Fuente de estado | Repositorio real + `backend/` + artefactos `docs/backend/w0/*`, `docs/backend/w1/*` y `docs/backend/implementation/*` |
+| Estado global | `IN_PROGRESS` (primera entrega demostrable construida y verificada localmente; Gates A–E en `PASS` local; autenticación, carrito, checkout, pagos y CI pendientes) |
+| Ola actual | V1 demostrable: `PI-01` + catálogo público + frontend; siguiente ola bloqueada por autenticación/autorización |
+| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A = PASS`; `GATE-V1-B = PASS`; `GATE-V1-C = PASS`; `GATE-V1-D = PASS`; `GATE-V1-E = PASS` (local) |
+| Fuente de estado | Repositorio real + `backend/` + `frontend/` + PostgreSQL + `docs/implementation/*` + artefactos históricos `docs/backend/*` |
 
 ---
 
@@ -45,29 +45,29 @@
 
 ### 2.1 Objetivo vigente
 
-Cerrar `PI-01 RegisterBuyer` con evidencia verificable y mantener la trazabilidad documental. El vertical está implementado y probado en memoria/HTTP y PostgreSQL 17.11; el contrato de las tres rutas existentes está acotado y la revisión independiente terminó en `PASS`. Antes de ampliar alcance hay que decidir autenticación, dirección y ruta para `PI-02`.
+Consolidar la primera entrega demostrable: persistencia PostgreSQL obligatoria, catálogo público real y frontend Next.js consumiendo la API. El siguiente trabajo debe empezar por autenticación/autorización administrativa; no se amplía a carrito, checkout ni pagos sin contratos y gates.
 
 ### 2.2 Último hito comprobado
 
-Corte de implementación y verificación del 2026-10-28: `backend/` usa Fastify 5, TypeScript 5.9, Zod 4, Vitest 5, `pg` y `@node-rs/argon2`; `PI-01`, Argon2id `DEC-W1-008`, stores en memoria/PostgreSQL, migración, endpoint, contrato de tres rutas y pruebas. Ejecutados: `npm run typecheck` OK; `npm test` 5 archivos/29 pruebas OK; `npm run test:postgres` 2 pruebas OK contra PostgreSQL 17.11 (concurrencia `201`/`409`, rollback posterior a escrituras y limpieza dirigida); `npm run build` OK; smoke HTTP real `201`/`409`/health/ready. Evidencia en [`docs/backend/implementation/01-acceptance-and-unblock.md`](docs/backend/implementation/01-acceptance-and-unblock.md).
+Corte del 2026-11-01: `backend/` usa Fastify 5, TypeScript 5.9, Zod 4, Vitest 5, `pg` y `@node-rs/argon2`; `frontend/` usa Next.js 16.4.3 y React 19.3.1. Se eliminó el adaptador en memoria y `PERSISTENCE`; PostgreSQL es obligatorio. Se añadieron catálogo público, migración `003`, seed demo y frontend. Ejecutados: `npm run typecheck` OK; `npm test` 8 archivos/51 pruebas OK; `npm run test:postgres` 3 archivos/11 pruebas OK contra PostgreSQL 17.11; `npm run build` OK en backend y frontend; smoke end-to-end con home `200`/8 tarjetas, catálogo `200`/6 tarjetas, página 2 `200`/2 tarjetas, búsqueda, filtros, orden, detalle `200` y producto inexistente/malformado `404`. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
 
 ### 2.3 Trabajo en curso
 
-- ID: cierre documental de `PI-01` completado; siguiente decisión de alcance para `PI-02`.
-- Próximo trabajo: decidir `ADR-004`, `L-01` y ruta de `PI-02`; llevar PostgreSQL a CI.
-- Bloqueo actual: `PI-02` por autenticación/autorización, composición de `DireccionFisica` y contrato de ruta. `L-27` está cerrada solo para las tres rutas implementadas; `L-10` y `L-22` siguen abiertas; `GAP-001` sigue `PARTIALLY_RESOLVED`.
-- CI no ejecuta la suite PostgreSQL; `migrate.ts` no tiene tabla de migraciones versionadas.
+- ID: cierre documental de la primera entrega; verificación frontend repetida tras `isProductId`.
+- Próximo trabajo: decidir `ADR-004` (autenticación), `L-01` (direcciones) y contrato de `PI-02`; llevar PostgreSQL a CI.
+- Bloqueo actual: autenticación/autorización administrativa, carrito/checkout/pagos y CI. No hay bloqueo funcional para el catálogo.
+- Riesgo operativo: espacio libre bajo en disco; ejecutar suites backend de forma secuencial.
 
 ### 2.4 Próxima acción exacta
 
-**NEXT_ACTION — decisión de alcance de `PI-02`; no ampliar la implementación**
+**NEXT_ACTION — decisión de autenticación y alcance administrativo; no ampliar el catálogo**
 
-1. Formular la decisión de `ADR-004` (mecanismo de identidad y autorización administrativa) y `L-01` (campos de `DireccionFisica`) antes de implementar `PI-02`.
-2. Definir el contrato de la ruta administrativa, la tabla de vendedor y la relación vendedor-bodega.
-3. Llevar la suite PostgreSQL a CI y sustituir `migrate.ts` por migraciones versionadas.
-4. No implementar `PI-02`, catálogo, devoluciones, imágenes, pagos ni frontend sin autorización y gates.
+1. Formular `ADR-004` (identidad, sesiones y autorización administrativa) y resolver `L-01` (campos de `DireccionFisica`).
+2. Definir el contrato de `PI-02 RegisterSeller`: ruta administrativa, permisos, tabla de vendedor y creación atómica con la primera bodega.
+3. Llevar `npm test` y `npm run test:postgres` a CI y añadir un validador semántico OpenAPI.
+4. No implementar carrito, checkout, pagos, devoluciones ni mutaciones de catálogo antes de esos contratos.
 
-**Condición de finalización de `PI-01`:** código compilado, pruebas unitarias/HTTP/contrato aprobadas, PostgreSQL real automatizado y revisión independiente sin hallazgos bloqueantes. Cumplida; CI y migraciones versionadas quedan como trabajo posterior.
+**Condición de finalización de la entrega actual:** código compilado, 51 pruebas backend, 11 PostgreSQL, build de frontend y smoke end-to-end. Cumplida localmente; CI y revisión independiente de esta entrega quedan pendientes.
 
 ---
 
@@ -92,12 +92,12 @@ Corte de implementación y verificación del 2026-10-28: `backend/` usa Fastify 
 | W0 | Inventario y baseline | `DONE` | `GATE-W0 = PASS` (2026-10-28) |
 | W1 | Dominio y decisiones ejecutables | `IN_PROGRESS` (`W1-01` `DONE`; `W1-02`/`W1-03` documentales + prueba funcional; `W1-05`/`W1-06` implementados; `W1-04`/`W1-07` pendientes para el resto) | `GATE-W1 = NOT_RUN`; `GATE-W1-01 = PASS` |
 | W2 | Arquitectura y propiedad de datos | `PARTIAL` (decisiones reversibles implementadas; ADR formales pendientes) | `GATE-W2 = NOT_RUN` |
-| W3 | Contratos API/OpenAPI | `PARTIAL` (contrato de tres rutas y `openapi.test.ts`; sin validador semántico) | `GATE-W3 = NOT_RUN`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS` |
-| W4 | Fundación, persistencia y Docker | `PARTIAL` (config, HTTP, errores, health, memoria y PostgreSQL 17.11 con suite automatizada) | `GATE-W4 = NOT_RUN`; `GATE-PI01-POSTGRES = PASS` |
-| W5 | Casos de uso verticales | `PARTIAL` (`PI-01` código y 29 pruebas; PostgreSQL automatizado; revisión independiente `PASS`) | `GATE-W5 = NOT_RUN`; `GATE-PI01-CODE = PASS` |
-| W6 | Integración y pruebas críticas | `NOT_STARTED` | `GATE-W6 = NOT_RUN` |
+| W3 | Contratos API/OpenAPI | `PARTIAL` (contrato de seis rutas y `openapi.test.ts`; sin validador semántico) | `GATE-W3 = NOT_RUN`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-V1-C = PASS` |
+| W4 | Fundación, persistencia y Docker | `PARTIAL` (config, HTTP, errores, health, PostgreSQL 17.11 con suite automatizada; sin modo memoria) | `GATE-W4 = NOT_RUN`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A = PASS` |
+| W5 | Casos de uso verticales | `PARTIAL` (`PI-01` + catálogo público; 51 pruebas; PostgreSQL automatizado) | `GATE-W5 = NOT_RUN`; `GATE-PI01-CODE = PASS`; `GATE-V1-B = PASS` |
+| W6 | Integración y pruebas críticas | `PARTIAL` (smoke end-to-end local; sin CI ni e2e de navegador) | `GATE-W6 = NOT_RUN`; `GATE-V1-D = PASS`; `GATE-V1-E = PASS` local |
 | W7 | Seguridad y robustez | `NOT_STARTED` | `GATE-W7 = NOT_RUN` |
-| W8 | Documentación y release candidate | `NOT_STARTED` | `GATE-W8 = NOT_RUN` |
+| W8 | Documentación y release candidate | `NOT_STARTED` (documentación de implementación completa; sin release candidate) | `GATE-W8 = NOT_RUN` |
 
 ---
 
@@ -199,9 +199,9 @@ Detalle en [`docs/backend/w0/04-backlog.md`](docs/backend/w0/04-backlog.md).
 | `W1-07` | Matriz de autorización del primer vertical | W1 | `N/A` en `PI-01`; `DEFERRED` | W1-05 |
 | `W1-08` | Trazabilidad requisito → prueba | W1 | `PARTIAL` | W1-06, W1-07 |
 | `W2-01`…`W2-10` | ADR, datos, esqueleto y migración | W2 | `PARTIAL` (sin ADR formales) | W1-05 |
-| `W3-01`…`W3-06` | OpenAPI del primer vertical | W3 | `PARTIAL` (contrato de tres rutas; contract test) | W2-09 |
+| `W3-01`…`W3-06` | OpenAPI del primer vertical | W3 | `PARTIAL` (contrato de seis rutas; contract test) | W2-09 |
 | `W4-01`…`W4-10` | Fundación ejecutable y Docker | W4 | `PARTIAL` (PostgreSQL/Docker y suite automatizada) | W2-09 |
-| `W5-01`…`W5-08` | Primer caso de uso vertical | W5 | `PARTIAL` (`PI-01` código/29 pruebas; PostgreSQL automatizado) | W3-06, W4-10 |
+| `W5-01`…`W5-08` | Primer caso de uso vertical | W5 | `PARTIAL` (`PI-01` + catálogo/51 pruebas; PostgreSQL automatizado) | W3-06, W4-10 |
 | `W6-01`…`W6-07` | Integración y pruebas críticas | W6 | `NOT_STARTED` | W5-08 |
 | `W7-01`…`W7-07` | Seguridad y robustez | W7 | `NOT_STARTED` | W6-07 |
 | `W8-01`…`W8-05` | Documentación y release candidate | W8 | `NOT_STARTED` | W7-07 |
@@ -432,7 +432,7 @@ Detalle completo en [`docs/backend/w0/03-discrepancies.md`](docs/backend/w0/03-d
 | `U-008` | Versión LTS de Node | `NON_BLOCKING` | Media | `RESOLVED` (`DEC-IMPL-005`: Node 24) | — |
 | `RISK-001` | Docker daemon inactivo | `RISK` | Media | `RESOLVED` en este entorno (Docker/PostgreSQL verificados); riesgo operativo en otras máquinas | W4/W6 |
 | `RISK-002` | Sin clientes locales de bases | `RISK` | Media | `PARTIALLY_RESOLVED` (`psql` del contenedor; host sin cliente) | W4/W6 |
-| `RISK-003` | `L-27`: sin OpenAPI/auth | `RISK` | Alta | `PARTIAL` (contrato cerrado solo para tres rutas; auth no) | W3/W5 |
+| `RISK-003` | `L-27`: sin OpenAPI/auth | `RISK` | Alta | `PARTIAL` (contrato cerrado solo para seis rutas; auth no) | W3/W5 |
 | `RISK-004` | `DEC-BIZ-01`…`07` abiertas; `DEC-BIZ-02` resuelta | `RISK` | Alta | `OPEN` | Checkout/facturación/posventa |
 | `RISK-005` | Documentación sin código | `RISK` | Media | `MITIGATED` para `PI-01`; resto documental | Planificación |
 | `RISK-006` | Deriva modelo v2.0 vs prompt | `RISK` | Media | `MITIGATED` | `CON-001` resuelto por `DEC-W1-001` |
@@ -470,14 +470,14 @@ No hubo agentes concurrentes en W0; los roles se ejercieron secuencialmente. Tre
 
 | ID | Contrato | Versión | Estado | Propietario | Validación |
 |---|---|---|---|---|---|
-| API-001 | OpenAPI raíz | — | `PARTIAL`: contrato de tres rutas en `backend/openapi.yaml` | API Contract Agent | `openapi.test.ts`; sin validador semántico |
+| API-001 | OpenAPI raíz | — | `PARTIAL`: contrato de seis rutas en `backend/openapi.yaml` | API Contract Agent | `openapi.test.ts`; sin validador semántico |
 | API-002 | Autenticación/contexto de identidad | — | `NOT_STARTED` | Security + API | No existe (`L-27`) |
 | API-003 | Errores API | — | `PARTIAL`: formato uniforme implementado | API Architect | Sin catálogo formal completo |
-| API-004 | Primer flujo vertical | — | `IMPLEMENTED` (`PI-01`) | Caso de uso asignado | 29 pruebas y PostgreSQL automatizado |
+| API-004 | Primer flujo vertical | — | `IMPLEMENTED` (`PI-01` + catálogo) | Caso de uso asignado | 51 pruebas y PostgreSQL automatizado |
 
-Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-IMPL-007`). `L-27` queda cerrada **solo** para `POST /api/v1/buyers`, `/health` y `/ready`; autenticación, versionado general, rate limiting y rutas futuras siguen abiertos. `CT-01 = PARCIAL` (tres rutas); `CT-02`…`CT-12 = ALINEADO_CON_PROPUESTA`; solo `CT-13` está `ALINEADO`.
+Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el catálogo público (`DEC-IMPL-007`, `DEC-V1-004`). `L-27` queda cerrada **solo** para `POST /api/v1/buyers`, `GET /api/v1/products`, `GET /api/v1/products/{productId}`, `GET /api/v1/categories`, `/health` y `/ready`; autenticación, versionado general, rate limiting y rutas futuras siguen abiertos. `CT-01 = PARCIAL` (seis rutas); `CT-02`…`CT-12 = ALINEADO_CON_PROPUESTA`; solo `CT-13` está `ALINEADO`.
 
-**W1-01 (`GAP-002`):** el plan de ADR/contratos está en [`docs/backend/w1/02-artifact-register.md`](docs/backend/w1/02-artifact-register.md). El corte posterior creó el contrato de tres rutas, migración y código de `PI-01`; los ADR formales y el validador semántico siguen pendientes. `ADR-009`/`CT-08` tienen decisión (`DEC-W1-008`) pero no ADR/contrato ejecutable; `ADR-011` queda fuera de V1 y `ADR-012` tiene política (`DEC-W1-002`) con ADR diferido. W2 exige ADR-001…010; W3 exige `CT-01`/`API-001`…`API-004`, `CT-08` y `CT-09`; W4 exige `CT-12`, `DB-001`, `CT-13`, configuración y Docker; W5 exige el contrato del primer vertical y `CT-04` si hay pago.
+**W1-01 (`GAP-002`):** el plan de ADR/contratos está en [`docs/backend/w1/02-artifact-register.md`](docs/backend/w1/02-artifact-register.md). El corte posterior creó el contrato de seis rutas, migraciones y código de `PI-01`/catálogo; los ADR formales y el validador semántico siguen pendientes. `ADR-009`/`CT-08` tienen decisión (`DEC-W1-008`) pero no ADR/contrato ejecutable; `ADR-011` queda fuera de V1 y `ADR-012` tiene política (`DEC-W1-002`) con ADR diferido. W2 exige ADR-001…010; W3 exige `CT-01`/`API-001`…`API-004`, `CT-08` y `CT-09`; W4 exige `CT-12`, `DB-001`, `CT-13`, configuración y Docker; W5 exige el contrato del primer vertical y `CT-04` si hay pago.
 
 ---
 
@@ -501,6 +501,10 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-I
 | TEST-EVIDENCE-PI01-003 | PostgreSQL real | `$env:TEST_DATABASE_URL=...; npm run test:postgres` | `PASS`: 2 pruebas; concurrencia `201`/`409`, rollback y limpieza | `backend/tests/postgres/**`; conteos finales 0/0/0/0/0 |
 | TEST-EVIDENCE-PI01-004 | Guarda de base | `npm run test:postgres` sin URL, con URL de `nexusmarket` y con query param | `PASS` de la guarda: exit 1 explícito, suite no omitida | `backend/tests/postgres/support.ts` |
 | TEST-EVIDENCE-PI01-005 | Revisión independiente | Inspección de Git/secretos/código/pruebas/contrato/documentación | `PASS` tras re-revisión; correcciones aplicadas | Sesión `ses_e7a3f8c7fffehdXpxCqxD8gVkc`; informe §11 |
+| TEST-EVIDENCE-V1-001 | Persistencia PostgreSQL obligatoria | `npm run typecheck`; `npm test`; `npm run test:postgres`; reinicio real | `PASS`: 51 pruebas; 11 PostgreSQL; `POST 201` + reinicio + `count = 1` | `backend/tests/unit/persistence-architecture.test.ts`; `backend/tests/postgres/**` |
+| TEST-EVIDENCE-V1-002 | Catálogo backend | `npm run db:seed:demo`; consultas HTTP reales | `PASS`: 8 productos, 2 vendedores, 8 imágenes, 6 inventario; búsqueda/filtros/orden/paginación | `backend/migrations/003_catalog.sql`; `tests/integration/catalog-http.test.ts`; `tests/postgres/catalog-query-postgres.test.ts` |
+| TEST-EVIDENCE-V1-003 | Contrato OpenAPI | `npm test` (`tests/contract/openapi.test.ts`) | `PASS`: seis rutas, respuestas y `$ref` resueltos | `backend/openapi.yaml` 0.2.0 |
+| TEST-EVIDENCE-V1-004 | Frontend | `npm run typecheck`; `npm run build`; smoke con `curl.exe` | `PASS`: build OK; home `200`/8 tarjetas; catálogo `200`/6; página 2 `200`/2; detalle `200`; inexistente y malformado `404` | `frontend/**`; `docs/implementation/EXECUTION-LOG.md` |
 
 **No ejecutados:** lint, e2e de frontend, CI y validador semántico OpenAPI. La suite PostgreSQL se ejecutó localmente; en CI queda `PENDING`.
 
@@ -570,6 +574,18 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-I
 - **Pruebas ejecutadas:** análisis documental y búsquedas de evidencia; ninguna prueba funcional. `W1-02`/`W1-03` se marcan `DONE_DOCUMENTAL`, no `PASS` funcional.
 - **Decisión:** **APROBADO documentalmente.** `GATE-W1-01 = PASS`. No se inicia `W1-04`/`W1-05` ni W2 por este gate.
 
+### GATES V1 — primera entrega demostrable (2026-11-01)
+
+| Gate | Alcance | Estado | Evidencia |
+|---|---|---|---|
+| `GATE-V1-A` | Persistencia PostgreSQL obligatoria | `PASS` local | Almacén memoria eliminado; 51 pruebas; 11 PostgreSQL; reinicio con `count = 1` |
+| `GATE-V1-B` | Catálogo backend | `PASS` local | Migración `003`; 8 productos; rutas de productos/detalle/categorías; pruebas HTTP/PostgreSQL |
+| `GATE-V1-C` | Contrato OpenAPI | `PASS` local | `openapi.yaml` 0.2.0; 5 pruebas de contrato; seis rutas |
+| `GATE-V1-D` | Frontend Next.js | `PASS` local | Typecheck/build; home, catálogo, detalle y 404 contra API real |
+| `GATE-V1-E` | Verificación y documentación | `PASS` local | Suites, smoke, conteos y `docs/implementation/*` |
+
+`PASS` local no equivale a CI, revisión independiente de esta entrega ni cobertura de capacidades fuera de alcance.
+
 ### Gates previstos
 
 | Gate | Alcance | Estado |
@@ -597,6 +613,9 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-I
 | S-003 | 2026-10-28 | `badf0b1` | Segunda revisión (FAIL parcial), correcciones O1–O2/N1–N4 y tercera revisión (`PASS`) | Ninguna decisión de negocio | Tres revisiones de solo lectura; comprobaciones base re-ejecutadas | W1-01 tras autorización del usuario |
 | S-004 | 2026-10-28 | `badf0b1` | W1-01: matriz de los seis IDs, resolución documental de `GAP-001`/`GAP-002` y registro de ADR/contratos | `GAP-001` parcial; `GAP-002` planificado; `CON-001`/`002` parciales; `CON-003`/`004` pendientes | Análisis documental; sin pruebas funcionales | Responder Q1–Q4; no iniciar W1-02 |
 | S-005 | 2026-10-28 | `badf0b1` | Cierre de W1-01; ejecución documental de W1-02/W1-03; corrección de contradicciones en prompt, modelo, `DS-07`, `VO`, puertos, contratos y estado | `DEC-W1-001`…`004` aprobadas; `DEC-W1-007`/`008`; `CON-*` resueltos; `U-002`/`U-003` cerrados | Contraste documental y búsquedas; sin build/tests/migraciones; `W1-02`/`W1-03 = DONE_DOCUMENTAL` | Revisar decisiones; no iniciar W1-04/W1-05 ni W2 sin `U-001` |
+| S-006 | 2026-10-28 | `badf0b1` | Implementación inicial de `PI-01`, migración y smoke PostgreSQL manual | `DEC-IMPL-001`…`009` | `typecheck`; 16 pruebas; build; smoke `201`/`409`; PostgreSQL manual | Automatizar PostgreSQL |
+| S-007 | 2026-10-28 | `badf0b1` | Suite PostgreSQL automatizada, contrato de tres rutas, revisión independiente `PASS`; `PI-02` evaluado y bloqueado | Sin decisiones de negocio nuevas | 29 pruebas; 2 PostgreSQL; guardas de base | Decidir auth, dirección y contrato de `PI-02` |
+| S-008 | 2026-11-01 | `10e65d8` | Eliminación del adaptador en memoria; catálogo público; migración `003`; seed demo; frontend Next.js; documentación de implementación | `DEC-V1-001`…`014` | 51 pruebas; 11 PostgreSQL; typecheck/build backend y frontend; smoke end-to-end | Decidir `ADR-004`/`L-01` y contrato de `PI-02`; CI |
 
 ### Plantilla de reanudación — S-003
 
@@ -689,36 +708,56 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-I
 - **Prerequisitos:** Docker/PostgreSQL disponibles; `TEST_DATABASE_URL` de una base local terminada en `_test`; autorización del propietario para cualquier ampliación.
 - **Comprobaciones al reanudar:** `git status --short`, `git rev-parse HEAD`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=dev`, `docker info` y `npm run test:postgres` con la URL de prueba.
 
+### Plantilla de reanudación — S-008
+
+- **Fecha:** 2026-11-01
+- **Rama/commit inspeccionados:** `main` / `10e65d8cb7f46898342323d223076255e7b95bb4`
+- **Estado del árbol:** cambios sin commit en `backend/`, `frontend/`, `README.md`, `orchestrator-state.md` y `docs/implementation/`; `backend/node_modules`, `backend/dist` y `frontend/node_modules` ignorados.
+- **Tarea activa al iniciar:** eliminar la persistencia en memoria, diagnosticar el baseline y construir una primera entrega demostrable.
+- **Tarea terminada:** adaptador en memoria eliminado; PostgreSQL obligatorio; catálogo público; migración `003`; seed demo; frontend Next.js; documentación de implementación; verificación local de Gates A–E.
+- **Archivos creados/modificados:** `backend/src/config.ts`, `factory.ts`, `app.ts`, `server.ts`, `modules/catalog/**`, `migrations/003_catalog.sql`, `scripts/seed-demo.ts`, `tests/**`, `openapi.yaml`, `README.md`; `frontend/**`; `docs/implementation/**`; `README.md`; `orchestrator-state.md`.
+- **Decisiones nuevas:** `DEC-V1-001`…`014`.
+- **Bloqueos nuevos:** ninguno funcional. Autenticación/autorización, carrito, checkout, pagos, CI y validador OpenAPI siguen pendientes. Espacio en disco bajo.
+- **Pruebas ejecutadas:** `npm run typecheck` OK; `npm test` 8 archivos/51 pruebas; `npm run test:postgres` 3 archivos/11 pruebas; `npm run build` OK en backend y frontend; smoke end-to-end con home `200`/8, catálogo `200`/6, página 2 `200`/2, detalle `200`, inexistente/malformado `404`.
+- **Pruebas pendientes:** CI, lint, validador semántico OpenAPI y e2e de navegador.
+- **Discrepancias estado/repositorio:** el prompt citaba Go y un alcance mayor; se preservó TypeScript/Fastify y se registró en `DEC-V1-001`. Las plantillas S-001…S-007 son históricas.
+- **Tarea que debe continuar:** decidir `ADR-004`, `L-01` y el contrato de `PI-02`; llevar las suites a CI.
+- **NEXT_ACTION:** formular autenticación/autorización administrativa y el contrato de alta de vendedor + primera bodega; no ampliar a carrito, checkout ni pagos.
+- **Prerequisitos:** PostgreSQL disponible; `TEST_DATABASE_URL` de una base local terminada en `_test`; autorización del propietario para cualquier ampliación.
+- **Comprobaciones al reanudar:** `git status --short`, `git rev-parse HEAD`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:postgres` y `cd frontend; npm run typecheck; npm run build`.
+
 ---
 
 ## 16. Estado de entrega
 
 | Capacidad | Estado | Evidencia requerida |
 |---|---|---|
-| Dominio y reglas | `IMPLEMENTED` para `PI-01`; resto `DOCUMENTED` / `NOT_IMPLEMENTED` | `backend/src/shared/domain/*`, `backend/src/modules/*/domain/*`; pruebas unitarias |
+| Dominio y reglas | `IMPLEMENTED` para `PI-01` y catálogo público; resto `DOCUMENTED` / `NOT_IMPLEMENTED` | `backend/src/shared/domain/*`, `backend/src/modules/*/domain/*`; pruebas unitarias |
 | Arquitectura hexagonal | `PARTIAL` (módulos/adaptadores) | `backend/src`; separación dominio/aplicación/infraestructura/HTTP |
-| PostgreSQL | `IMPLEMENTED` y verificado con suite automatizada | `backend/migrations/001_initial.sql`; `postgres-buyer-registration-store.ts`; `tests/postgres/**`; CI pendiente |
-| MongoDB | `NOT_STARTED` | Sin colecciones; fuera de `PI-01` |
-| OpenAPI | `PARTIAL` (tres rutas) | `backend/openapi.yaml`; `tests/contract/openapi.test.ts`; sin validador semántico |
+| PostgreSQL | `IMPLEMENTED` y verificado con suite automatizada | `backend/migrations/001_initial.sql`, `003_catalog.sql`; `postgres-*-repository.ts`; `tests/postgres/**`; CI pendiente |
+| Catálogo público | `IMPLEMENTED` (lectura) | `modules/catalog/**`; 8 productos demo; pruebas HTTP/PostgreSQL |
+| Frontend | `IMPLEMENTED` (home, catálogo, detalle) | `frontend/**`; typecheck/build; smoke end-to-end |
+| MongoDB | `NOT_STARTED` | Sin colecciones; fuera de este corte |
+| OpenAPI | `PARTIAL` (seis rutas) | `backend/openapi.yaml` 0.2.0; `tests/contract/openapi.test.ts`; sin validador semántico |
 | Autenticación | `NOT_STARTED` / `DEFERRED` | `L-27` acotada; `ADR-004` pendiente |
-| Autorización y ownership | `N/A` en `PI-01` | Registro público; matriz para el resto pendiente |
-| Inventario y concurrencia | `DOCUMENTED` / `NOT_IMPLEMENTED` | Reglas `INV-*`; sin pruebas |
-| Pago | `DOCUMENTED` / `NOT_IMPLEMENTED` | `PAY-*`; `CON-004` resuelto: sin pagos en `PI-01` |
+| Autorización y ownership | `N/A` en registro y catálogo público | Matriz administrativa pendiente |
+| Inventario y concurrencia | `PARTIAL` (lectura de disponibilidad; sin reserva) | Consulta SQL; reglas `INV-*` sin mutaciones |
+| Pago | `DOCUMENTED` / `NOT_IMPLEMENTED` | `PAY-*`; `CON-004` resuelto: sin pagos en V1 |
 | Docker | `IMPLEMENTED` y verificado | Docker 29.8.0; `compose.yaml`; PostgreSQL 17.11 healthy |
-| Integración | `DONE` local (HTTP/memoria + PostgreSQL automatizado) | `tests/integration/register-buyer-http.test.ts`; `tests/postgres/**`; CI pendiente |
+| Integración | `DONE` local (HTTP/PostgreSQL + frontend) | `tests/integration/**`; `tests/postgres/**`; smoke; CI pendiente |
 | Seguridad | `PARTIAL` (Argon2id, sin secretos en auditoría) | Pruebas de hash y ausencia de contraseña |
-| Documentación | `W0 DONE`; `W1-01 DONE`; `PI-01` documentado | `docs/backend/*`; revisión independiente `PASS` |
+| Documentación | `W0 DONE`; `W1-01 DONE`; V1 documentada | `docs/backend/*`; `docs/implementation/*`; revisión independiente de V1 pendiente |
 | Release candidate | `NOT_STARTED` | `GATE-W8` no ejecutado |
 
 ---
 
 ## 17. Protocolo de reanudación
 
-1. Leer `prompt-orquestador-backend.md`, este archivo, `docs/backend/w1/01-resolution-matrix.md` y `docs/backend/w1/03-decisions.md`.
-2. Verificar `git status`, rama, commit y artefactos de `docs/backend/w0/` y `docs/backend/w1/`.
-3. Confirmar que `GATE-W0` y `GATE-W1-01` siguen en `PASS`; `GATE-W1` sigue `NOT_RUN` como gate amplio. `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`.
-4. No iniciar `PI-02`, catálogo ni fases posteriores sin sus decisiones; el siguiente trabajo es la revisión independiente y la decisión de autenticación/dirección/ruta.
-5. No implementar catálogo, devoluciones, imágenes ni pagos sin sus gates; `L-10`/`L-22` siguen abiertas y `L-27` está acotada a tres rutas.
+1. Leer `prompt-orquestador-backend.md`, este archivo, `docs/implementation/IMPLEMENTATION-STATUS.md` y `docs/implementation/DECISIONS-LOG.md`.
+2. Verificar `git status`, rama, commit y artefactos de `backend/`, `frontend/` y `docs/implementation/`.
+3. Confirmar que `GATE-W0`, `GATE-W1-01`, `GATE-PI01-*` y `GATE-V1-A`…`E` siguen en `PASS` local. `GATE-W1` y `GATE-W2`…`W8` siguen `NOT_RUN` como gates amplios.
+4. No iniciar `PI-02`, carrito, checkout, pagos ni mutaciones de catálogo sin sus decisiones y contratos.
+5. Ejecutar las suites backend de forma secuencial y el build del frontend por separado para evitar OOM/ENOSPC.
 6. Actualizar este archivo en el mismo cambio de trabajo.
 
 ---
@@ -727,4 +766,4 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` (`DEC-I
 
 El proyecto no puede declararse completo porque el servidor arranque. La entrega final requiere requisitos trazables, dominio e invariantes respetados, contratos coherentes, persistencia justificada, transacciones/concurrencia verificadas, seguridad comprobada, pruebas críticas ejecutadas, Docker reproducible, documentación actualizada y `GATE-W8` aprobado.
 
-**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer` implementado con Fastify/TypeScript, 29 pruebas aprobadas, contrato de tres rutas probado y PostgreSQL 17.11 automatizado con concurrencia, `409`, rollback y limpieza. `GATE-PI01-CODE = PASS` (revisión independiente `PASS`), `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS` y `GATE-PI01-POSTGRES = PASS`. `PI-02` sigue bloqueado por autenticación, `U-004` (`L-01`) y contrato; `L-22`, `L-10` y el resto de `L-27` siguen abiertos. Los requisitos excluidos o pendientes están identificados en `03-discrepancies.md`, `docs/backend/w1/01-resolution-matrix.md`, `docs/backend/w1/03-decisions.md` y `docs/backend/implementation/01-acceptance-and-unblock.md`, y no se presentan como funcionalidades completas.
+**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer` y catálogo público implementados con Fastify/TypeScript, 51 pruebas aprobadas, contrato de seis rutas probado y PostgreSQL 17.11 automatizado con concurrencia, `409`, rollback y limpieza. El frontend Next.js compila y consume la API real. `GATE-V1-A`…`E = PASS` local. Autenticación, autorización administrativa, carrito, checkout, pagos y CI siguen pendientes; `L-22`, `L-10` y el resto de `L-27` siguen abiertos. Los requisitos excluidos o pendientes están identificados en `docs/implementation/IMPLEMENTATION-STATUS.md`, `docs/implementation/DECISIONS-LOG.md` y `docs/backend/*`, y no se presentan como funcionalidades completas.

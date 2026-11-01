@@ -72,10 +72,18 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     expect(document.openapi).toBe("3.1.0");
     expect(Object.keys(document.paths).sort()).toEqual([
       "/api/v1/buyers",
+      "/api/v1/categories",
+      "/api/v1/products",
+      "/api/v1/products/{productId}",
       "/health",
       "/ready"
     ]);
     expect(Object.keys(document.paths["/api/v1/buyers"] ?? {})).toEqual(["post"]);
+    expect(Object.keys(document.paths["/api/v1/products"] ?? {})).toEqual(["get"]);
+    expect(Object.keys(document.paths["/api/v1/products/{productId}"] ?? {})).toEqual([
+      "get"
+    ]);
+    expect(Object.keys(document.paths["/api/v1/categories"] ?? {})).toEqual(["get"]);
     expect(Object.keys(document.paths["/health"] ?? {})).toEqual(["get"]);
     expect(Object.keys(document.paths["/ready"] ?? {})).toEqual(["get"]);
   });
@@ -96,6 +104,17 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
+    expect(
+      Object.keys(
+        (document.paths["/api/v1/products"]?.get?.responses ?? {}) as JsonObject
+      ).sort()
+    ).toEqual(["200", "400", "500", "503"]);
+    expect(
+      Object.keys(
+        (document.paths["/api/v1/products/{productId}"]?.get?.responses ??
+          {}) as JsonObject
+      ).sort()
+    ).toEqual(["200", "400", "404", "500", "503"]);
     expect(Object.keys(healthResponses as JsonObject)).toEqual(["200"]);
     expect(Object.keys(readyResponses as JsonObject).sort()).toEqual(["200", "503"]);
   });

@@ -5,6 +5,7 @@ export type ErrorCode =
   | "DEPENDENCIA_NO_DISPONIBLE"
   | "NO_AUTORIZADO"
   | "RUTA_NO_ENCONTRADA"
+  | "RECURSO_NO_ENCONTRADO"
   | "METODO_NO_PERMITIDO";
 
 export class ApplicationError extends Error {
@@ -38,6 +39,12 @@ export class UniquenessConflictError extends ApplicationError {
 export class BusinessRuleError extends ApplicationError {
   constructor(message: string, details?: Record<string, unknown>) {
     super("REGLA_NEGOCIO_INCUMPLIDA", message, details);
+  }
+}
+
+export class ResourceNotFoundError extends ApplicationError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super("RECURSO_NO_ENCONTRADO", message, details);
   }
 }
 

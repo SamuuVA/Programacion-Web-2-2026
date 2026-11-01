@@ -1,6 +1,9 @@
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
-import { createBuyerRegistrationStore } from "./infrastructure/factory.js";
+import {
+  createBuyerRegistrationStore,
+  createCatalogQueryRepository
+} from "./infrastructure/factory.js";
 import { Argon2PasswordHasher } from "./modules/identity/infrastructure/argon2-password-hasher.js";
 import { SystemClock } from "./shared/infrastructure/system-clock.js";
 import { UuidGenerator } from "./shared/infrastructure/uuid-generator.js";
@@ -8,6 +11,7 @@ import { UuidGenerator } from "./shared/infrastructure/uuid-generator.js";
 const config = loadConfig();
 const app = await buildApp(config, {
   store: createBuyerRegistrationStore(config),
+  catalog: createCatalogQueryRepository(config),
   hasher: new Argon2PasswordHasher(),
   clock: new SystemClock(),
   ids: new UuidGenerator()

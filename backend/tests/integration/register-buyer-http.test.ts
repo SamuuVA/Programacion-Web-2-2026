@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config.js";
 import type { BuyerRegistrationStore } from "../../src/modules/buyers/application/ports.js";
-import { MemoryBuyerRegistrationStore } from "../../src/modules/buyers/infrastructure/memory-buyer-registration-store.js";
+import { FakeBuyerRegistrationStore } from "../support/fake-buyer-registration-store.js";
+import { FakeCatalogQueryRepository } from "../support/fake-catalog-query-repository.js";
 import { Argon2PasswordHasher } from "../../src/modules/identity/infrastructure/argon2-password-hasher.js";
 import { DependencyUnavailableError } from "../../src/shared/domain/errors.js";
 import type { CorreoElectronico } from "../../src/shared/domain/value-objects.js";
@@ -24,27 +25,27 @@ const payload = {
   credencial: PASSWORD
 };
 
-class FailingHealthStore extends MemoryBuyerRegistrationStore {
+class FailingHealthStore extends FakeBuyerRegistrationStore {
   override async healthCheck(): Promise<void> {
     throw new DependencyUnavailableError("Base de datos no disponible.");
   }
 }
 
-class FailingLookupStore extends MemoryBuyerRegistrationStore {
+class FailingLookupStore extends FakeBuyerRegistrationStore {
   override async existsByEmail(_email: CorreoElectronico): Promise<boolean> {
     throw new DependencyUnavailableError("Base de datos no disponible.");
   }
 }
 
 function createApp(
-  store: BuyerRegistrationStore = new MemoryBuyerRegistrationStore(),
+  store: BuyerRegistrationStore = new FakeBuyerRegistrationStore(),
   environment: Record<string, string> = {}
 ) {
   const config = loadConfig({
     NODE_ENV: "test",
     HOST: "127.0.0.1",
     PORT: "3000",
-    PERSISTENCE: "memory",
+    DATABASE_URL: "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test",
     LOG_LEVEL: "silent",
     ...environment
   });
@@ -54,6 +55,7 @@ function createApp(
     build: async () => {
       app = await buildApp(config, {
         store,
+        catalog: new FakeCatalogQueryRepository(),
         hasher: new Argon2PasswordHasher(),
         clock: new FixedClock(),
         ids: new SequentialIds()
@@ -77,7 +79,7 @@ describe("Contrato HTTP de PI-01", () => {
   });
 
   it("registra un comprador y responde 201 con el contrato declarado", async () => {
-    const store = new MemoryBuyerRegistrationStore();
+    const store = new FakeBuyerRegistrationStore();
     const subject = createApp(store);
     current = await subject.build();
 
@@ -252,7 +254,7 @@ describe("Contrato HTTP de PI-01", () => {
   });
 
   it("devuelve 400 por cuerpo inválido sin persistir", async () => {
-    const store = new MemoryBuyerRegistrationStore();
+    const store = new FakeBuyerRegistrationStore();
     const subject = createApp(store);
     current = await subject.build();
 

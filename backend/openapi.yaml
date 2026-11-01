@@ -1,11 +1,18 @@
 openapi: 3.1.0
 info:
-  title: NexusMarket API - primer vertical
-  version: 0.1.0
+  title: NexusMarket API - registro y catálogo público
+  version: 0.2.0
   description: |
-    Contrato del alcance implementado: `POST /api/v1/buyers`, `/health` y `/ready`.
-    No cubre autenticación, autorización, pagos, imágenes, catálogo, direcciones,
-    carrito operativo ni otros puertos de entrada.
+    Contrato del alcance implementado: `POST /api/v1/buyers`, consulta pública de
+    catálogo (`GET /api/v1/products`, `GET /api/v1/products/{productId}`,
+    `GET /api/v1/categories`), `/health` y `/ready`.
+
+    El catálogo público solo devuelve productos PUBLICADOS de vendedores ACTIVOS.
+    En V1 no existen variantes comerciales: cada producto es una combinación
+    vendible independiente con SKU, precio e imágenes propias.
+
+    No cubre autenticación, autorización, pagos, carrito operativo, pedidos ni
+    otros puertos de entrada.
 
     Todas las respuestas incluyen `x-correlation-id`. Si el cliente envía un valor
     válido (1–200 caracteres, alfabeto `A-Z a-z 0-9 . _ : -`), se reutiliza; en caso
@@ -120,6 +127,198 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/products:
+    get:
+      operationId: listPublicProducts
+      summary: Listar el catálogo público
+      description: |
+        Devuelve únicamente productos PUBLICADOS cuyo vendedor está ACTIVO.
+        `disponible` es la suma de `onHand - reserved - unavailable` en bodegas
+        ACTIVAS y es `null` para productos con entrega DIGITAL.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Búsqueda textual sobre nombre y descripción.
+          schema:
+            type: string
+            maxLength: 100
+        - name: categoria
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CategoriaProducto'
+        - name: orden
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [recientes, precio_asc, precio_desc, nombre_asc]
+            default: recientes
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 48
+            default: 12
+      responses:
+        '200':
+          description: Página de catálogo público.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    additionalProperties: false
+                    required: [items, pagination]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductoResumen'
+                      pagination:
+                        $ref: '#/components/schemas/PaginacionCatalogo'
+        '400':
+          description: Filtros inválidos o propiedades desconocidas.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno no controlado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Persistencia no disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/products/{productId}:
+    get:
+      operationId: getPublicProduct
+      summary: Consultar el detalle de un producto publicado
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: x-correlation-id
+          in: header
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+      responses:
+        '200':
+          description: Producto publicado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductoDetalle'
+        '400':
+          description: Identificador con formato inválido.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El producto no existe o no está publicado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno no controlado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Persistencia no disponible.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/categories:
+    get:
+      operationId: listCategories
+      summary: Listar el catálogo controlado de categorías
+      responses:
+        '200':
+          description: Categorías disponibles.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [codigo, nombre]
+                      properties:
+                        codigo:
+                          $ref: '#/components/schemas/CategoriaProducto'
+                        nombre:
+                          type: string
   /health:
     get:
       operationId: health
@@ -288,6 +487,162 @@ components:
         correoNormalizado:
           type: string
           format: email
+    CategoriaProducto:
+      type: string
+      enum: [ELECTRONICA, ROPA, HOGAR, DIGITAL]
+    PrecioProducto:
+      type: object
+      additionalProperties: false
+      required: [montoCentavos, moneda]
+      properties:
+        montoCentavos:
+          type: integer
+          minimum: 1
+          description: Importe exacto en la unidad mínima de la moneda.
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+    ImagenProducto:
+      type: object
+      additionalProperties: false
+      required: [id, url, alt, orden]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          minLength: 1
+        alt:
+          type: string
+        orden:
+          type: integer
+          minimum: 0
+    VendedorResumen:
+      type: object
+      additionalProperties: false
+      required: [id, nombreComercial]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombreComercial:
+          type: string
+    ProductoResumen:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - nombre
+        - descripcion
+        - categoria
+        - tipoEntrega
+        - precio
+        - imagenPrincipal
+        - disponible
+        - vendedor
+        - creadoEn
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        categoria:
+          $ref: '#/components/schemas/CategoriaProducto'
+        tipoEntrega:
+          type: string
+          enum: [FISICA, DIGITAL]
+        precio:
+          $ref: '#/components/schemas/PrecioProducto'
+        imagenPrincipal:
+          anyOf:
+            - $ref: '#/components/schemas/ImagenProducto'
+            - type: 'null'
+        disponible:
+          type: [integer, 'null']
+          minimum: 0
+          description: Unidades disponibles; null para entrega digital.
+        vendedor:
+          $ref: '#/components/schemas/VendedorResumen'
+        creadoEn:
+          type: string
+          format: date-time
+    ProductoDetalle:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - nombre
+        - descripcion
+        - categoria
+        - tipoEntrega
+        - precio
+        - imagenPrincipal
+        - disponible
+        - vendedor
+        - creadoEn
+        - sku
+        - imagenes
+        - actualizadoEn
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        categoria:
+          $ref: '#/components/schemas/CategoriaProducto'
+        tipoEntrega:
+          type: string
+          enum: [FISICA, DIGITAL]
+        precio:
+          $ref: '#/components/schemas/PrecioProducto'
+        imagenPrincipal:
+          anyOf:
+            - $ref: '#/components/schemas/ImagenProducto'
+            - type: 'null'
+        disponible:
+          type: [integer, 'null']
+          minimum: 0
+        vendedor:
+          $ref: '#/components/schemas/VendedorResumen'
+        creadoEn:
+          type: string
+          format: date-time
+        sku:
+          type: string
+          minLength: 1
+        imagenes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ImagenProducto'
+        actualizadoEn:
+          type: string
+          format: date-time
+    PaginacionCatalogo:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 48
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 1
     HealthResponse:
       type: object
       additionalProperties: false
@@ -337,6 +692,7 @@ components:
                 - DEPENDENCIA_NO_DISPONIBLE
                 - NO_AUTORIZADO
                 - RUTA_NO_ENCONTRADA
+                - RECURSO_NO_ENCONTRADO
                 - METODO_NO_PERMITIDO
                 - ERROR_INTERNO
             mensaje:

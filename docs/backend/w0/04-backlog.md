@@ -7,6 +7,8 @@
 **Actualizado por:** `W1-01`, `W1-02` y `W1-03` (2026-10-28) — estado real de W1; no se inició ninguna tarea de implementación.
 **Regla:** ninguna tarea se marca `DONE` sin artefacto verificable y prueba ejecutada. Las tareas de implementación no se inician en W0.
 
+> **Nota histórica (2026-11-01):** este backlog conserva el plan de W0/W1 del 2026-10-28. El catálogo público ya se implementó como lectura (migración `003`, rutas y frontend), pero las mutaciones de catálogo, el alta administrativa de vendedores, carrito, checkout y pagos siguen pendientes. El adaptador en memoria fue eliminado. El estado vigente está en [`docs/implementation/IMPLEMENTATION-STATUS.md`](../../implementation/IMPLEMENTATION-STATUS.md) y las decisiones en [`docs/implementation/DECISIONS-LOG.md`](../../implementation/DECISIONS-LOG.md).
+
 ---
 
 ## 1. Estrategia

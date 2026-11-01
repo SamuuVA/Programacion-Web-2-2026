@@ -1,17 +1,25 @@
-import { UniquenessConflictError } from "../../../shared/domain/errors.js";
-import type { RegistroAuditoria, EventoDominio } from "../../../shared/domain/audit.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../../shared/domain/value-objects.js";
-import type { BuyerRegistrationRecord, BuyerRegistrationStore } from "../application/ports.js";
-import type { Usuario } from "../../identity/domain/usuario.js";
-import type { PerfilComprador } from "../domain/perfil-comprador.js";
-import type { Carrito } from "../../cart/domain/carrito.js";
+import { UniquenessConflictError } from "../../src/shared/domain/errors.js";
+import type { RegistroAuditoria, EventoDominio } from "../../src/shared/domain/audit.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../src/shared/domain/value-objects.js";
+import type {
+  BuyerRegistrationRecord,
+  BuyerRegistrationStore
+} from "../../src/modules/buyers/application/ports.js";
+import type { Usuario } from "../../src/modules/identity/domain/usuario.js";
+import type { PerfilComprador } from "../../src/modules/buyers/domain/perfil-comprador.js";
+import type { Carrito } from "../../src/modules/cart/domain/carrito.js";
 
 /**
- * Adaptador efímero para desarrollo local y pruebas.
- * No es una fuente de verdad de producción; el adaptador PostgreSQL es el
- * mecanismo persistente seleccionado para el primer vertical.
+ * Doble de prueba exclusivo de la suite automatizada.
+ *
+ * No se importa desde `src/` ni se registra en el composition root: la
+ * aplicación en ejecución usa siempre PostgreSQL. Su única finalidad es
+ * aislar casos de uso y contratos HTTP sin levantar una base de datos.
  */
-export class MemoryBuyerRegistrationStore implements BuyerRegistrationStore {
+export class FakeBuyerRegistrationStore implements BuyerRegistrationStore {
   private readonly users = new Map<string, Usuario>();
   private readonly buyers = new Map<string, PerfilComprador>();
   private readonly carts = new Map<string, Carrito>();
@@ -27,8 +35,6 @@ export class MemoryBuyerRegistrationStore implements BuyerRegistrationStore {
   }
 
   async saveRegistration(record: BuyerRegistrationRecord): Promise<void> {
-    // Las comprobaciones y las escrituras son síncronas entre sí: una petición
-    // concurrente no puede intercalarse dentro de esta sección en Node.js.
     if (this.findUserByEmail(record.usuario.correoElectronico.value)) {
       throw new UniquenessConflictError("El correo electrónico ya está registrado.");
     }
@@ -47,7 +53,7 @@ export class MemoryBuyerRegistrationStore implements BuyerRegistrationStore {
   }
 
   async healthCheck(): Promise<void> {
-    // El adaptador en memoria siempre está disponible mientras el proceso viva.
+    // El doble está disponible mientras viva el proceso de prueba.
   }
 
   async close(): Promise<void> {
@@ -58,7 +64,7 @@ export class MemoryBuyerRegistrationStore implements BuyerRegistrationStore {
     this.events.length = 0;
   }
 
-  // Introspección exclusiva para pruebas y para el adaptador de demostración.
+  // Introspección exclusiva para aserciones de la suite.
   getUserByEmail(email: string): Usuario | undefined {
     return this.findUserByEmail(email.trim().toLowerCase());
   }

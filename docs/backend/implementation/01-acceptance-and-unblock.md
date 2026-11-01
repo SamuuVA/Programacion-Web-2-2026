@@ -5,6 +5,8 @@
 **Alcance:** auditoría de aceptación, decisiones técnicas reversibles y primer vertical ejecutable.
 **Regla aplicada:** no se declara verificado ningún artefacto sin inspeccionarlo o ejecutarlo.
 
+> **Nota histórica (2026-11-01):** este informe documenta el corte de `PI-01` del 2026-10-28. Desde entonces se eliminó el adaptador en memoria y la bandera `PERSISTENCE`; PostgreSQL es obligatorio. También se añadieron el catálogo público y el frontend. El estado vigente está en [`docs/implementation/IMPLEMENTATION-STATUS.md`](../../implementation/IMPLEMENTATION-STATUS.md); las referencias a “memoria”, “tres rutas” o 29 pruebas en este archivo describen el corte histórico y no el estado actual.
+
 ---
 
 ## 1. Método y baseline

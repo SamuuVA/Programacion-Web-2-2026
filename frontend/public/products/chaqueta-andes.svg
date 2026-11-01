@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 660" role="img" aria-labelledby="title">
+  <title id="title">Chaqueta cortavientos verde oliva</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef3ea" />
+      <stop offset="1" stop-color="#d5e0d0" />
+    </linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c8b5c" />
+      <stop offset="1" stop-color="#5b6b43" />
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#2f3a26" flood-opacity="0.24" />
+    </filter>
+  </defs>
+  <rect width="800" height="660" fill="url(#bg)" />
+  <circle cx="400" cy="330" r="226" fill="#f8faf5" opacity="0.6" />
+  <circle cx="650" cy="150" r="72" fill="#c9d8c4" opacity="0.6" />
+  <g filter="url(#shadow)">
+    <path d="M342 198c0-54 116-54 116 0-22-18-94-18-116 0Z" fill="#4c5a38" />
+    <path d="M310 196 372 168q28 22 56 0l62 28 66 50 68 126-64 32-44-74v218q-116 26-232 0V330l-44 74-64-32 68-126Z" fill="url(#cloth)" stroke="#4a5836" stroke-width="4" stroke-linejoin="round" />
+    <path d="M400 200v352" stroke="#33402a" stroke-width="7" stroke-linecap="round" />
+    <path d="M400 200v352" stroke="#a9b78e" stroke-width="2" stroke-dasharray="4 8" stroke-linecap="round" />
+    <circle cx="400" cy="238" r="9" fill="#c9d6b0" stroke="#33402a" stroke-width="3" />
+    <path d="m330 420 54 26M470 420l-54 26" stroke="#4a5836" stroke-width="5" stroke-linecap="round" />
+    <path d="M198 316l60 30M602 316l-60 30" stroke="#4a5836" stroke-width="4" stroke-linecap="round" />
+    <path d="M284 526q116 22 232 0" fill="none" stroke="#4a5836" stroke-width="4" />
+  </g>
+  <g fill="#5b6b43" opacity="0.45">
+    <circle cx="170" cy="200" r="5" />
+    <circle cx="640" cy="500" r="6" />
+    <circle cx="608" cy="540" r="4" />
+  </g>
+</svg>
