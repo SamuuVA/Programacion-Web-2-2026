@@ -1,0 +1,2 @@
+# 08 — Seller UX
+Dashboard, listado de productos, formulario de producto, edición y consulta de inventario solo si está contratado. Seller no se auto-registra. No existen variantes comerciales. SKU e imágenes son requisitos para publicar. Backend valida ownership y permisos. No inventar campos obligatorios. Aceptación: validación accesible, errores API visibles, preview/carga de imágenes con estados y publicación solo cuando el contrato lo permita.
