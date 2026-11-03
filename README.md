@@ -25,7 +25,7 @@
 
 </div>
 
-> **Estado actual:** existe una primera entrega demostrable. El backend (`backend/`, TypeScript/Node.js, Fastify y PostgreSQL) implementa `PI-01 RegisterBuyer` y la consulta pública de catálogo `PI-07`; el frontend (`frontend/`, Next.js) muestra home, catálogo, filtros, paginación y detalle contra la API real. Verificado localmente con typecheck, 51 pruebas de backend, 11 pruebas PostgreSQL, build de ambos proyectos y smoke end-to-end con 8 productos persistidos. El adaptador en memoria fue eliminado: PostgreSQL es obligatorio. Autenticación, autorización, carrito, checkout, pagos y CI siguen pendientes y no se presentan como implementados.
+> **Estado actual:** existe una entrega funcional local (corte 2026-11-03). El backend (`backend/`, TypeScript/Node.js, Fastify y PostgreSQL) implementa `PI-01 RegisterBuyer`, catálogo público `PI-07`, autenticación y sesiones (`ADR-004`), direcciones de comprador (`L-01`), alta administrativa de vendedor (`PI-02`), carrito persistente y checkout con pago simulado (`UC-01`) con idempotencia y reservas de inventario; el frontend (`frontend/`, Next.js) integra login, carrito, checkout, pedidos, direcciones y administración. Verificado localmente con typecheck, 92 pruebas de backend, 21 pruebas PostgreSQL, validación OpenAPI (`19 rutas, 22 operaciones`), build de ambos proyectos, smoke HTTP 15/15 y E2E navegador 13/13. PostgreSQL es obligatorio (sin adaptador en memoria). Reembolsos/logística inversa, CI ejecutado en GitHub, lint y despliegue siguen pendientes y no se presentan como implementados.
 
 ---
 
@@ -81,7 +81,7 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 | Casos de uso | [`nexusmarket-use-cases-checkout-query-order.md`](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | Completo · `UC-01`, `UC-02` |
 | Adaptadores | [`nexusmarket-adapters.md`](BackendSDD/Adapters/nexusmarket-adapters.md) + 14 documentos | Completo · `ADIN-01`, `ADOUT-01`…`ADOUT-13` |
 | Alineación de contratos | [`nexusmarket-contract-alignment.md`](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Completo · `CT-01`…`CT-13` |
-| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) · [`frontend/`](frontend/) | **PI-01 y catálogo público implementados**; PostgreSQL 17.11, 51 pruebas de backend, 11 PostgreSQL y frontend Next.js construido |
+| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) · [`frontend/`](frontend/) | **PI-01, catálogo público, auth, direcciones, PI-02, carrito y checkout con pago simulado implementados**; PostgreSQL 17, 92 pruebas de backend, 21 PostgreSQL, OpenAPI 0.3.0 (19 rutas) y frontend Next.js construido |
 
 ### Indicadores de la especificación
 
@@ -109,19 +109,21 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 
 **No incluye todavía**
 
-- Autenticación, sesiones y autorización.
-- Alta administrativa de vendedores y bodegas.
-- Carrito operativo, checkout, pedidos, pagos, facturación, logística, devoluciones y reembolsos.
+- Autenticación y sesiones implementadas; falta autorización granular por recurso en algunas rutas administrativas futuras.
+- Reembolsos y logística inversa (fuera de alcance de esta etapa).
+- Resolución de pagos `DESCONOCIDO` (pendiente; no se trata como éxito ni rechazo).
 - Subida de imágenes y variantes comerciales.
-- `PI-02 RegisterSeller` (bloqueado por autenticación administrativa, `L-01` y contrato de ruta).
+- Recuperación de contraseña / MFA.
+- CI ejecutado en GitHub (`READY_FOR_REVIEW`; no ejecutado).
+- Lint (`BLOCKED`: sin herramienta configurada).
+- Despliegue / producción.
 - SDKs, clientes, integraciones reales ni credenciales.
-- CI/CD, ejecución de PostgreSQL en pipeline y observabilidad de release candidate.
 
 ---
 
 ## Primeros verticales implementados
 
-**`PI-01 RegisterBuyer`** permite registrar una cuenta de comprador y demuestra el estilo arquitectónico completo. **`PI-07 QueryCatalog`** expone el catálogo público y alimenta el frontend.
+**`PI-01 RegisterBuyer`**, **`PI-07 QueryCatalog`**, autenticación/sesiones, direcciones de comprador, **`PI-02 RegisterSeller`** (alta administrativa), carrito persistente y **`UC-01 Checkout`** con pago simulado (confirmado/rechazado/desconocido, idempotencia y reservas) están implementados. El frontend Next.js integra login, carrito, checkout, pedidos, direcciones y administración.
 
 | Elemento | Implementación |
 |---|---|
@@ -187,13 +189,13 @@ La especificación original define doce objetivos estratégicos (`OBJ-01`…`OBJ
 | Runtime | Node.js 24 LTS (`>=24 <25`) | Implementado |
 | API | REST | Implementado para `PI-01` |
 | Framework HTTP | Fastify 5 | Implementado |
-| Contrato de API | OpenAPI 3.1 de registro, catálogo, categorías, `/health` y `/ready` | Cerrado para seis rutas; contract test sin validador semántico |
+| Contrato de API | OpenAPI 3.1 de registro, catálogo, auth, direcciones, sellers, carrito, checkout, pedidos, `/health` y `/ready` | Cerrado para 19 rutas; validador offline |
 | Persistencia relacional | PostgreSQL + `pg` con SQL directo (sin ORM) | Implementado y verificado con PostgreSQL 17.11 local y suite automatizada |
 | Persistencia documental | MongoDB (auditoría y documentos justificados) | No usada en `PI-01`; decisión futura |
 | Arquitectura | DDD + Hexagonal (Ports & Adapters) | Implementada en el vertical |
 | Estilo | Monolito modular | Implementado en el vertical |
 | Contenedores | Docker + Docker Compose | `compose.yaml` validado; PostgreSQL 17.11 levantado |
-| Pruebas | Vitest 5 + pruebas HTTP/PostgreSQL | Implementado; 51 pruebas + 11 PostgreSQL |
+| Pruebas | Vitest 5 + pruebas HTTP/PostgreSQL | Implementado; 92 pruebas + 21 PostgreSQL |
 | Validación de entrada | Zod 4 en el borde HTTP | Implementado |
 | Hash de credenciales | `@node-rs/argon2` 2.2.2 | Implementado y probado |
 
