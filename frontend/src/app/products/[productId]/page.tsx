@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowRightIcon, InfoIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Price } from "@/components/ui/price";
+import { getSession } from "@/features/auth/session";
 import { fetchProduct } from "@/features/catalog/api";
+import { AddToCartForm } from "@/features/cart/components/add-to-cart-form";
 import { ProductGallery } from "@/features/catalog/components/product-gallery";
 import { isProductId } from "@/features/catalog/ids";
 import {
@@ -54,11 +56,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const product = await fetchProduct(productId);
+  const [product, session] = await Promise.all([
+    fetchProduct(productId),
+    getSession()
+  ]);
 
   if (!product) {
     notFound();
   }
+
+  const isBuyer = session?.rol === "COMPRADOR" && session.compradorId !== null;
 
   const disponibilidad = disponibilidadTexto(
     product.disponible,
@@ -131,15 +138,33 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             </dl>
 
-            <div className="detail-note" role="note">
-              <InfoIcon />
-              <span>
-                Esta primera entrega permite explorar el catálogo y consultar el
-                detalle de cada producto. El carrito y el pago simulado se
-                habilitarán en la siguiente iteración; todavía no hay compra
-                disponible.
-              </span>
-            </div>
+            {isBuyer ? (
+              <AddToCartForm
+                productoId={product.id}
+                disponible={product.disponible}
+                tipoEntrega={product.tipoEntrega}
+              />
+            ) : (
+              <div className="detail-note" role="note">
+                <InfoIcon />
+                <span>
+                  {session ? (
+                    <>
+                      El carrito está disponible solo para compradores. Esta
+                      sesión tiene el rol <strong>{session.rol}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      <Link className="text-link" href={`/login?redirect=/products/${product.id}`}>
+                        Ingresa como comprador
+                      </Link>{" "}
+                      para agregar este producto al carrito y completar una compra
+                      con pago simulado.
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
 
             <div className="detail-back">
               <Link className="text-link" href="/products">

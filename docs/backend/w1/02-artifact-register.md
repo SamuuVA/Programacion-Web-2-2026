@@ -7,6 +7,8 @@
 **Estado:** `PLANNED` — plan registrado. En el corte del 2026-10-28 se crearon el OpenAPI mínimo de `PI-01`, la migración `001_initial.sql` y código ejecutable; los ADR de esta tabla siguen `MISSING` salvo `ADR-009`, que tiene decisión. Este registro describe el plan de W1-01 y no debe confundirse con el estado implementado.
 **Regla:** este documento no crea OpenAPI, esquemas, migraciones, SDKs ni ADR. Solo asigna qué falta, quién lo produce, de qué depende y en qué gate se exige.
 
+> **Actualización 2026-11-03:** este registro es un artefacto histórico de planificación de W1 y no refleja el estado implementado. La fuente autoritativa es `docs/implementation/IMPLEMENTATION-STATUS.md`. En particular, `ADR-004` quedó resuelto en la práctica como sesión opaca server-side (`DEC-V2-001`), `L-01` como dirección mínima de comprador (`DEC-V2-002`) y `PI-02` como alta atómica de vendedor + bodega (`DEC-V2-003`); sus rutas están en `backend/openapi.yaml` 0.3.0 y cubiertas por pruebas. Las filas `MISSING` de este documento se conservan como registro del plan original, no como estado actual.
+
 ---
 
 ## 1. Propósito y límites

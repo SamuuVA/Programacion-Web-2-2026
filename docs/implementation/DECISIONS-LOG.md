@@ -1,7 +1,7 @@
 # NexusMarket — Registro de decisiones V1
 
-**Corte:** 2026-11-01
-**Alcance:** decisiones tomadas para construir la primera entrega demostrable (persistencia real, catálogo público y frontend).
+**Corte:** 2026-11-03
+**Alcance:** decisiones tomadas para construir la primera entrega demostrable (persistencia real, catálogo público y frontend) y la segunda iteración (autenticación, direcciones, vendedores, carrito, checkout y CI).
 **Regla:** una decisión solo está vigente si el código y las pruebas la sostienen. Las alternativas descartadas se conservan para evitar reabrirlas sin contexto.
 
 ---
@@ -24,6 +24,16 @@
 | `DEC-V1-012` | Frontend con Server Components y cliente API solo servidor | Vigente | `lib/api/client.ts`, páginas |
 | `DEC-V1-013` | Fronteras de carga por route group; detalle sin `loading.tsx` | Vigente | `app/(home)`, `products/(catalog)` |
 | `DEC-V1-014` | UI honesta: sin carrito falso y sin datos inventados | Vigente | Detalle, estados vacíos/error |
+| `DEC-V2-001` | Sesión opaca server-side (`ADR-004`) | Vigente | `sessions`, `session-tokens.ts`, rutas auth |
+| `DEC-V2-002` | Dirección mínima de comprador (`L-01`) | Vigente | `005_buyer_addresses.sql`, `direccion-entrega.ts` |
+| `DEC-V2-003` | Alta atómica de vendedor + bodega (`PI-02`) | Vigente | `POST /admin/sellers`, prueba de rollback |
+| `DEC-V2-004` | Carrito persistente basado en producto, sin variantes | Vigente | `006_cart_checkout.sql`, `Carrito` |
+| `DEC-V2-005` | Checkout por vendedor con reservas e idempotencia | Vigente | `checkout_attempts`, `inventory_reservations` |
+| `DEC-V2-006` | Pago simulado con resultado desconocido explícito | Vigente | `PENDIENTE_DE_PAGO`/`PENDIENTE` |
+| `DEC-V2-007` | Detección de cambio de precio con confirmación | Vigente | `precio_referencial_centavos`, `PRECIO_CAMBIADO` |
+| `DEC-V2-008` | Frontend con Server Actions y cookie `HttpOnly` propia | Vigente | `features/auth/session.ts`, acciones |
+| `DEC-V2-009` | `ApiError` en módulo neutral | Vigente | `lib/api/errors.ts` |
+| `DEC-V2-010` | CI con validador OpenAPI offline y 4 jobs | Vigente (local) | `validate-openapi.ts`, `.github/workflows/ci.yml` |
 
 ---
 
@@ -141,15 +151,97 @@
 
 ---
 
-## Decisiones pendientes que bloquean la siguiente iteración
+## DEC-V2-001 — Sesión opaca server-side (`ADR-004`)
+
+- **Contexto:** el marketplace necesita identidad verificable sin proveedores externos, y el cliente no puede declarar `actorId`/rol.
+- **Decisión:** token aleatorio de 256 bits; solo se guarda su hash SHA-256 en `sessions`; TTL de 8 horas; cookie `nexus_session` `HttpOnly`/`SameSite=Lax`; se acepta `Authorization: Bearer` para API y pruebas; logout y expiración revocan.
+- **Alternativas descartadas:** JWT firmado sin estado (revocación difícil y secreto adicional); identidad enviada por el cliente (suplantación); proveedor externo (requisito de funcionamiento local).
+- **Consecuencias:** el backend es la única autoridad de sesión y rol. El frontend guarda el token en su propia cookie y lo reenvía como bearer.
+- **Evidencia:** `backend/migrations/004_identity_sessions.sql`, `src/shared/infrastructure/session-tokens.ts`, `src/modules/identity/**`, `tests/unit/login-user.test.ts`, `tests/integration/marketplace-http.test.ts`.
+
+## DEC-V2-002 — Dirección mínima de comprador (`L-01`)
+
+- **Contexto:** `PI-02` y el checkout necesitaban una composición de dirección que no inventara reglas.
+- **Decisión:** campos mínimos `destinatario`, `telefono`, `linea1`, `linea2?`, `ciudad`, `region`, `codigoPostal?`, `pais` ISO-3166-1 alpha-2; una principal por comprador vía índice único parcial; al eliminar la principal se promueve la más antigua; el pedido guarda un snapshot JSON inmutable.
+- **Alternativas descartadas:** cadena opaca (no validable); dirección compartida entre compradores (fuga de datos); recalcular desde la dirección viva (pedidos históricos mutables).
+- **Consecuencias:** checkout exige dirección para productos físicos; los pedidos conservan la dirección aunque se edite después.
+- **Evidencia:** `backend/migrations/005_buyer_addresses.sql`, `src/modules/buyers/domain/direccion-entrega.ts`, `tests/postgres/marketplace-postgres.test.ts`.
+
+## DEC-V2-003 — Alta atómica de vendedor + primera bodega (`PI-02`)
+
+- **Contexto:** el requisito exige que un administrador cree vendedor y primera bodega en una sola operación.
+- **Decisión:** `POST /api/v1/admin/sellers`, solo `ADMINISTRADOR` activo; una transacción PostgreSQL inserta `users` (rol `VENDEDOR`), `sellers`, `warehouses` y auditoría/outbox. Si falla la bodega, revierte todo. El cuerpo no declara identidad ni rol.
+- **Alternativas descartadas:** crear vendedor sin bodega (viola la postcondición); endpoint público (inseguro); operación interna sin HTTP (no cubre el borde real).
+- **Consecuencias:** se cierra el bloqueo histórico de `PI-02`; el autoregistro de vendedores sigue prohibido.
+- **Evidencia:** `src/modules/sellers/**`, `tests/unit/register-seller.test.ts`, `tests/postgres/marketplace-postgres.test.ts` (éxito y rollback).
+
+## DEC-V2-004 — Carrito persistente basado en producto
+
+- **Contexto:** el carrito debía ser real y coherente con el catálogo sin variantes.
+- **Decisión:** `carts`/`cart_items` con `producto_id`, `cantidad` y `precio_referencial_centavos`; sin variantes; el backend valida producto público, vendedor activo y cantidades.
+- **Alternativas descartadas:** carrito en `localStorage` (no autoritativo, se pierde); variantes simuladas (fuera de V1); precios enviados por el cliente (fraude).
+- **Consecuencias:** el carrito sobrevive reinicios y el checkout puede detectar cambios de precio.
+- **Evidencia:** `backend/migrations/006_cart_checkout.sql`, `src/modules/cart/**`, `tests/unit/cart-use-cases.test.ts`.
+
+## DEC-V2-005 — Checkout por vendedor con reservas e idempotencia
+
+- **Contexto:** un carrito puede mezclar vendedores y los reintentos no deben duplicar pedidos.
+- **Decisión:** un pedido por vendedor; reservas en `inventory_reservations`; `checkout_attempts` con único `(comprador_id, idempotency_key)`; la misma clave devuelve el mismo resultado.
+- **Alternativas descartadas:** un pedido único multi-vendedor (complica envíos y ownership); crear pedido antes de reservar (sobreventa); ignorar idempotencia (duplicados).
+- **Consecuencias:** el frontend conserva la clave en reintentos; las reservas se liberan exactamente una vez en rechazo.
+- **Evidencia:** `src/modules/orders/infrastructure/postgres-checkout-store.ts`, `tests/postgres/marketplace-postgres.test.ts`.
+
+## DEC-V2-006 — Pago simulado con resultado desconocido explícito
+
+- **Contexto:** el resultado desconocido no puede tratarse como éxito ni como rechazo.
+- **Decisión:** `resultadoPagoSimulado` acepta `CONFIRMADO`, `RECHAZADO`, `DESCONOCIDO`. Confirmado → `EN_PREPARACION`/`CAPTURADO`; rechazado → `CANCELADO`/`RECHAZADO`; desconocido → `PENDIENTE_DE_PAGO`/`PENDIENTE` y `202`.
+- **Alternativas descartadas:** mapear desconocido a éxito (cobro no confirmado); mapearlo a rechazo (pierde una venta válida); reintentar automáticamente sin control (duplicados).
+- **Consecuencias:** el pedido desconocido queda pendiente de reconciliación; no hay reembolsos ni logística inversa en esta etapa.
+- **Evidencia:** `src/modules/orders/**`, `tests/postgres/marketplace-postgres.test.ts`, smoke HTTP real.
+
+## DEC-V2-007 — Detección de cambio de precio
+
+- **Contexto:** el precio puede cambiar entre agregar al carrito y confirmar.
+- **Decisión:** comparar contra `cart_items.precio_referencial_centavos`; si cambió, `422 REGLA_NEGOCIO_INCUMPLIDA` con `motivo: "PRECIO_CAMBIADO"` salvo `confirmarPrecio: true`.
+- **Alternativas descartadas:** cobrar el precio viejo (pérdida); cobrar el nuevo sin avisar (sorpresa); bloquear siempre (fricción innecesaria).
+- **Consecuencias:** el frontend muestra el aviso y permite confirmar; la clave de idempotencia se conserva.
+- **Evidencia:** `postgres-checkout-store.ts`, `checkout-form.tsx`, pruebas PostgreSQL y smoke HTTP.
+
+## DEC-V2-008 — Frontend con Server Actions y cookie `HttpOnly` propia
+
+- **Contexto:** el navegador no debe ver el token ni la URL interna de la API.
+- **Decisión:** Server Actions para login/logout y mutaciones; el token se guarda en una cookie `HttpOnly` del frontend y se reenvía como bearer desde el servidor.
+- **Alternativas descartadas:** exponer el token al cliente (XSS); llamar a la API desde el navegador (CORS y exposición); guardar el token en `localStorage`.
+- **Consecuencias:** las guardas de ruta viven en el servidor; el backend sigue validando cada operación.
+- **Evidencia:** `frontend/src/features/auth/**`, `frontend/src/app/login/`, smoke y E2E.
+
+## DEC-V2-009 — `ApiError` en módulo neutral
+
+- **Contexto:** importar `ApiError` desde `client.ts` arrastraba `server-only` a componentes cliente y rompía el build.
+- **Decisión:** mover `ApiError` a `frontend/src/lib/api/errors.ts`; `client.ts` lo reexporta.
+- **Alternativas descartadas:** duplicar la clase (deriva); quitar `server-only` (expone el cliente).
+- **Consecuencias:** componentes cliente pueden tipar errores sin incluir el cliente de servidor.
+- **Evidencia:** `frontend/src/lib/api/errors.ts`, `client.ts`, `action-state.ts`, build de producción.
+
+## DEC-V2-010 — CI con validador OpenAPI offline
+
+- **Contexto:** se necesitaba validación reproducible sin depender de un servicio externo.
+- **Decisión:** script propio con la dependencia `yaml` ya presente; workflow con cuatro jobs (backend estático, tests, PostgreSQL y frontend).
+- **Alternativas descartadas:** Spectral (dependencia adicional); solo pruebas de contrato (no valida sintaxis/estructura); CI sin migraciones (no prueba PostgreSQL real).
+- **Consecuencias:** la validación corre localmente y en CI; el lint sigue sin herramienta y se declara `BLOCKED`.
+- **Evidencia:** `backend/scripts/validate-openapi.ts`, `.github/workflows/ci.yml`, `npm run validate:openapi`.
+
+---
+
+## Decisiones pendientes
 
 | Tema | Estado | Por qué importa |
 |---|---|---|
-| Autenticación y sesiones (`ADR-004`) | Pendiente | Sin identidad no hay vendedor, carrito ni checkout |
-| Autorización administrativa | Pendiente | Requisito para crear vendedor + primera bodega |
-| Contrato de `PI-02 RegisterSeller` | Pendiente | No se debe implementar sin ruta y permisos |
-| Direcciones (`L-01`) | Pendiente | Afecta checkout y envío |
-| Pagos simulados y resultado desconocido | Pendiente | El resultado desconocido no puede tratarse como éxito ni fallo |
-| CI y validador OpenAPI | Pendiente | La verificación es local, no continua |
+| Reconciliación de pagos `DESCONOCIDO` | Pendiente | El pedido queda pendiente; falta consulta o reintento controlado |
+| Reembolsos y logística inversa | Fuera de alcance | Requieren decisión de negocio y contrato propio |
+| Lint (ESLint/Biome) | `BLOCKED` | No hay herramienta configurada |
+| Ejecución de CI en GitHub | `READY_FOR_REVIEW` | El workflow existe y es válido, pero no se ejecutó en remoto |
+| Subida de imágenes y variantes | Pendiente | Fuera de V1 por decisión |
 
 Estas decisiones no se resuelven por conveniencia en este corte.
+

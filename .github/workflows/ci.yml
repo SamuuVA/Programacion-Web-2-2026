@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-static:
+    name: Backend · typecheck, OpenAPI y build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Typecheck (análisis estático)
+        run: npm run typecheck
+      - name: Validar contrato OpenAPI
+        run: npm run validate:openapi
+      - name: Compilar
+        run: npm run build
+
+  backend-tests:
+    name: Backend · pruebas unitarias e integración
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  backend-postgres:
+    name: Backend · migraciones y pruebas PostgreSQL
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nexusmarket
+          POSTGRES_PASSWORD: nexusmarket
+          POSTGRES_DB: nexusmarket_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexusmarket -d nexusmarket_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Aplicar migraciones a la base de prueba
+        env:
+          DATABASE_URL: postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test
+        run: npm run db:migrate
+      - name: Pruebas contra PostgreSQL real
+        run: npm run test:postgres
+
+  frontend:
+    name: Frontend · typecheck y build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Typecheck (análisis estático)
+        run: npm run typecheck
+      - name: Compilar producción
+        run: npm run build

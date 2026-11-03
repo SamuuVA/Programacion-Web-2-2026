@@ -26,18 +26,21 @@ describe("Migraciones versionadas contra PostgreSQL real", () => {
 
   it("crea el esquema desde cero, registra historial y es idempotente", async () => {
     const first = await runMigrations({ pool, schema });
-    expect(first.applied).toEqual(["001", "002", "003"]);
+    expect(first.applied).toEqual(["001", "002", "003", "004", "005", "006"]);
     expect(first.baselined).toEqual([]);
 
     const second = await runMigrations({ pool, schema });
     expect(second.applied).toEqual([]);
-    expect(second.skipped).toEqual(["001", "002", "003"]);
+    expect(second.skipped).toEqual(["001", "002", "003", "004", "005", "006"]);
 
     const status = await getMigrationStatus({ pool, schema });
     expect(status.applied.map((migration) => migration.version)).toEqual([
       "001",
       "002",
-      "003"
+      "003",
+      "004",
+      "005",
+      "006"
     ]);
     expect(status.pending).toHaveLength(0);
 

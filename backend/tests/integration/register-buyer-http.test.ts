@@ -238,7 +238,7 @@ describe("Contrato HTTP de PI-01", () => {
     expect(preflight.statusCode).toBe(204);
     expect(preflight.headers["access-control-allow-origin"]).toBe(allowedOrigin);
     expect(preflight.headers["access-control-allow-methods"]).toBe(
-      "GET, POST, OPTIONS"
+      "GET, POST, PATCH, DELETE, OPTIONS"
     );
     expect(preflight.headers["access-control-allow-headers"]).toContain(
       "x-correlation-id"

@@ -2,14 +2,20 @@ import { ValidationError } from "../../../shared/domain/errors.js";
 import type { CarritoId, CompradorId } from "../../../shared/domain/ids.js";
 import type { Instant } from "../../../shared/domain/value-objects.js";
 
+/**
+ * Carrito V1: una línea por producto, sin variantes comerciales.
+ *
+ * `precioReferencialCentavos` conserva el precio que el comprador vio al
+ * agregar la línea. El checkout lo compara con el precio actual (CAR-07) y no
+ * cobra silenciosamente un importe distinto.
+ */
 export interface ItemCarrito {
-  readonly varianteId: string;
+  readonly productoId: string;
   readonly cantidad: number;
-  readonly precioReferencial: {
-    readonly importe: string;
-    readonly moneda: string;
-  };
+  readonly precioReferencialCentavos: number;
+  readonly monedaReferencial: string;
   readonly agregadoEn: Instant;
+  readonly actualizadoEn: Instant;
 }
 
 export interface CarritoProps {
@@ -20,9 +26,6 @@ export interface CarritoProps {
   version: number;
 }
 
-/**
- * Carrito activo del comprador. PI-01 crea una instancia vacía y con versión 1.
- */
 export class Carrito {
   private constructor(private readonly props: CarritoProps) {}
 
@@ -41,6 +44,11 @@ export class Carrito {
   static create(input: CarritoProps): Carrito {
     if (!Number.isInteger(input.version) || input.version < 1) {
       throw new ValidationError("La versión del carrito debe ser un entero positivo.");
+    }
+    for (const item of input.items) {
+      if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
+        throw new ValidationError("La cantidad del carrito debe ser un entero positivo.");
+      }
     }
     return new Carrito({ ...input, items: [...input.items] });
   }

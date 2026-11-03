@@ -48,3 +48,27 @@ export function DetailSkeleton() {
     </div>
   );
 }
+
+export function PageSkeleton({
+  label = "Cargando información",
+  rows = 4
+}: {
+  label?: string;
+  rows?: number;
+}) {
+  return (
+    <div className="page-skeleton" aria-busy="true" aria-label={label}>
+      <div className="skeleton skeleton-line short" />
+      <div className="skeleton skeleton-line" style={{ height: 40 }} />
+      <div className="skeleton skeleton-line short" />
+      {Array.from({ length: rows }, (_, index) => (
+        <div
+          className="skeleton skeleton-line"
+          key={index}
+          style={{ height: index === rows - 1 ? 64 : 22 }}
+        />
+      ))}
+    </div>
+  );
+}
+

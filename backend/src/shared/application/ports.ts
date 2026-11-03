@@ -1,4 +1,19 @@
-import type { AuditId, CarritoId, CompradorId, EventId, UsuarioId } from "../domain/ids.js";
+import type {
+  AddressId,
+  AuditId,
+  CarritoId,
+  CheckoutId,
+  CompradorId,
+  EventId,
+  OrderId,
+  OrderItemId,
+  PaymentId,
+  ReservationId,
+  SellerId,
+  SessionId,
+  UsuarioId,
+  WarehouseId
+} from "../domain/ids.js";
 import type { Instant } from "../domain/value-objects.js";
 
 export interface Clock {
@@ -11,9 +26,22 @@ export interface IdGenerator {
   carritoId(): CarritoId;
   auditId(): AuditId;
   eventId(): EventId;
+  sessionId(): SessionId;
+  sellerId(): SellerId;
+  warehouseId(): WarehouseId;
+  addressId(): AddressId;
+  checkoutId(): CheckoutId;
+  orderId(): OrderId;
+  orderItemId(): OrderItemId;
+  paymentId(): PaymentId;
+  reservationId(): ReservationId;
 }
 
 export interface PasswordHasher {
   hash(plainPassword: string): Promise<string>;
   verify(hash: string, plainPassword: string): Promise<boolean>;
+}
+
+export interface SessionTokenGenerator {
+  generate(): { token: string; tokenHash: string };
 }

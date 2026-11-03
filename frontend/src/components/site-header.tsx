@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { MenuIcon, SearchIcon } from "@/components/icons";
+import {
+  CartIcon,
+  MapPinIcon,
+  MenuIcon,
+  PackageIcon,
+  SearchIcon,
+  StoreIcon,
+  UserIcon
+} from "@/components/icons";
+import { LogoutButton } from "@/features/auth/components/logout-button";
+import { getSession } from "@/features/auth/session";
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -8,7 +18,34 @@ const NAV_LINKS = [
   { href: "/products?categoria=HOGAR", label: "Hogar" }
 ] as const;
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const session = await getSession();
+  const isBuyer = session?.rol === "COMPRADOR" && session.compradorId !== null;
+  const isAdmin = session?.rol === "ADMINISTRADOR";
+
+  const accountLinks = [
+    ...(isBuyer
+      ? [
+          { href: "/cart", label: "Carrito", icon: <CartIcon width={18} height={18} /> },
+          { href: "/orders", label: "Pedidos", icon: <PackageIcon width={18} height={18} /> },
+          {
+            href: "/addresses",
+            label: "Direcciones",
+            icon: <MapPinIcon width={18} height={18} />
+          }
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            href: "/admin/sellers",
+            label: "Vendedores",
+            icon: <StoreIcon width={18} height={18} />
+          }
+        ]
+      : [])
+  ];
+
   return (
     <header className="site-header">
       <div className="container header-inner">
@@ -50,6 +87,35 @@ export function SiteHeader() {
           </button>
         </form>
 
+        <div className="header-account">
+          {accountLinks.map((link) => (
+            <Link
+              key={link.href}
+              className="header-account-link"
+              href={link.href}
+            >
+              {link.icon}
+              <span className="header-account-label">{link.label}</span>
+            </Link>
+          ))}
+
+          {session ? (
+            <div className="header-user">
+              <span className="header-user-name" title={session.correoElectronico}>
+                <UserIcon width={18} height={18} />
+                <span className="header-account-label">
+                  {session.nombreCompleto.split(" ")[0]}
+                </span>
+              </span>
+              <LogoutButton />
+            </div>
+          ) : (
+            <Link className="btn btn-primary btn-sm" href="/login">
+              Ingresar
+            </Link>
+          )}
+        </div>
+
         <details className="mobile-menu">
           <summary aria-label="Abrir menú de navegación">
             <MenuIcon />
@@ -61,6 +127,21 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
+              {accountLinks.map((link) => (
+                <Link key={link.href} href={link.href}>
+                  {link.label}
+                </Link>
+              ))}
+              {session ? (
+                <>
+                  <span className="mobile-menu-user">
+                    {session.nombreCompleto} · {session.rol}
+                  </span>
+                  <LogoutButton />
+                </>
+              ) : (
+                <Link href="/login">Ingresar</Link>
+              )}
             </nav>
             <form action="/products" method="get" role="search">
               <label className="sr-only" htmlFor="mobile-search">

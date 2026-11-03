@@ -1,18 +1,29 @@
 openapi: 3.1.0
 info:
-  title: NexusMarket API - registro y catálogo público
-  version: 0.2.0
+  title: NexusMarket API - marketplace demostrable
+  version: 0.3.0
   description: |
-    Contrato del alcance implementado: `POST /api/v1/buyers`, consulta pública de
-    catálogo (`GET /api/v1/products`, `GET /api/v1/products/{productId}`,
-    `GET /api/v1/categories`), `/health` y `/ready`.
+    Contrato del alcance implementado:
+
+    - Registro de comprador y catálogo público.
+    - Autenticación con sesiones opacas (`nexus_session` HttpOnly o `Bearer`).
+    - Direcciones de entrega del comprador (L-01) y dirección principal.
+    - Alta administrativa de vendedor con primera bodega (PI-02).
+    - Carrito persistente sin variantes comerciales.
+    - Checkout con pago simulado, pedidos, reservas y reintentos idempotentes.
+    - `/health` y `/ready`.
 
     El catálogo público solo devuelve productos PUBLICADOS de vendedores ACTIVOS.
     En V1 no existen variantes comerciales: cada producto es una combinación
     vendible independiente con SKU, precio e imágenes propias.
 
-    No cubre autenticación, autorización, pagos, carrito operativo, pedidos ni
-    otros puertos de entrada.
+    El backend es la autoridad de precios, cantidades, stock, permisos y
+    transiciones de estado. El cliente nunca envía importes ni cantidades
+    confiables: solo referencias y cantidades solicitadas, que se revalidan.
+
+    No se implementan reembolsos ni logística inversa. Un resultado de pago
+    `DESCONOCIDO` deja el pedido pendiente y no se interpreta como éxito ni como
+    rechazo.
 
     Todas las respuestas incluyen `x-correlation-id`. Si el cliente envía un valor
     válido (1–200 caracteres, alfabeto `A-Z a-z 0-9 . _ : -`), se reutiliza; en caso
@@ -23,7 +34,8 @@ info:
     la cabecera `Allow`.
 
     CORS es opcional y se configura con `CORS_ORIGINS` (lista de orígenes exactos,
-    separados por comas). No se habilitan credenciales de navegador por defecto.
+    separados por comas). Con CORS activo se permiten credenciales para que el
+    navegador envíe la cookie de sesión.
 servers:
   - url: http://127.0.0.1:3000
 x-global-errors:
@@ -319,6 +331,566 @@ paths:
                           $ref: '#/components/schemas/CategoriaProducto'
                         nombre:
                           type: string
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      summary: Iniciar sesión
+      description: |
+        Valida correo y credencial con Argon2id y crea una sesión opaca de 8
+        horas. La respuesta establece la cookie HttpOnly `nexus_session` y
+        devuelve también el token para clientes de API. Un 401 no distingue
+        entre correo inexistente, credencial incorrecta o cuenta inactiva.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión creada.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+            set-cookie:
+              description: Cookie HttpOnly `nexus_session` con el token de sesión.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Cerrar la sesión actual
+      description: Revoca el token recibido y borra la cookie. Es idempotente.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '204':
+          description: Sesión revocada o token ausente.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/auth/session:
+    get:
+      operationId: getSession
+      summary: Consultar la sesión actual
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Sesión válida.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/buyers/me/addresses:
+    get:
+      operationId: listAddresses
+      summary: Listar las direcciones del comprador autenticado
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Direcciones ordenadas por principal y antigüedad.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressListEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    post:
+      operationId: createAddress
+      summary: Crear una dirección de entrega
+      description: |
+        La primera dirección de un comprador se marca como principal. Si se
+        envía `esPrincipal: true`, desplaza a la anterior de forma atómica.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAddressRequest'
+      responses:
+        '201':
+          description: Dirección creada.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/buyers/me/addresses/{direccionId}:
+    parameters:
+      - name: direccionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateAddress
+      summary: Actualizar una dirección propia
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAddressRequest'
+      responses:
+        '200':
+          description: Dirección actualizada.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      operationId: deleteAddress
+      summary: Eliminar una dirección propia
+      description: |
+        Si se elimina la dirección principal, la más antigua restante se
+        promueve automáticamente. Los pedidos conservan su snapshot.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '204':
+          description: Dirección eliminada.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/buyers/me/addresses/{direccionId}/principal:
+    post:
+      operationId: setPrincipalAddress
+      summary: Marcar una dirección como principal
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - name: direccionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '204':
+          description: Dirección principal actualizada.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/admin/sellers:
+    post:
+      operationId: registerSeller
+      summary: Registrar un vendedor y su primera bodega (PI-02)
+      description: |
+        Solo un ADMINISTRADOR activo. Usuario, perfil de vendedor, primera
+        bodega, auditoría y evento de outbox se confirman en una única
+        transacción PostgreSQL. El autorregistro de vendedores no existe.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterSellerRequest'
+      responses:
+        '201':
+          description: Vendedor y bodega creados.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterSellerEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/cart:
+    get:
+      operationId: getCart
+      summary: Consultar el carrito del comprador autenticado
+      description: |
+        Devuelve las líneas con el precio actual y el precio referencial. Si
+        difieren, `requiereConfirmacionPrecio` es `true`. No reserva stock.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Carrito actual.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/cart/items:
+    post:
+      operationId: addCartItem
+      summary: Agregar un producto al carrito
+      description: |
+        Rechaza cantidades no enteras o fuera de rango, productos inexistentes,
+        no publicados o de vendedores no activos, y cantidades superiores al
+        stock disponible. La operación suma a la cantidad existente.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '200':
+          description: Carrito actualizado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/cart/items/{productoId}:
+    parameters:
+      - name: productoId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateCartItem
+      summary: Reemplazar la cantidad de una línea del carrito
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: Carrito actualizado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      operationId: removeCartItem
+      summary: Quitar una línea del carrito
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Carrito actualizado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/checkout:
+    post:
+      operationId: checkout
+      summary: Confirmar el carrito y simular el pago
+      description: |
+        Valida carrito, productos, stock y dirección; crea un pedido por
+        vendedor; reserva inventario; registra el pago simulado y devuelve el
+        resultado. `idempotencyKey` identifica el intento: repetir la misma clave
+        devuelve el mismo resultado sin volver a reservar ni cobrar.
+
+        - `CONFIRMADO`: pedido `EN_PREPARACION`, pago `CAPTURADO`, carrito vacío.
+        - `RECHAZADO`: pedido `CANCELADO`, pago `RECHAZADO`, reservas liberadas.
+        - `DESCONOCIDO`: pedido `PENDIENTE_DE_PAGO`, pago `PENDIENTE`; no se
+          interpreta como éxito ni como rechazo.
+
+        Si un precio cambió desde que se agregó al carrito, responde `422` con
+        `motivo: PRECIO_CAMBIADO` salvo que `confirmarPrecio` sea `true`.
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '201':
+          description: Checkout confirmado o rechazado.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEnvelope'
+        '202':
+          description: Resultado de pago desconocido; pedido pendiente.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/orders:
+    get:
+      operationId: listOrders
+      summary: Listar los pedidos del comprador autenticado
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Pedidos del comprador, más recientes primero.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Consultar un pedido propio
+      security:
+        - SessionCookie: []
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: Detalle del pedido.
+          headers:
+            x-correlation-id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /health:
     get:
       operationId: health
@@ -382,6 +954,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotReadyResponse'
 components:
+  parameters:
+    CorrelationIdHeader:
+      name: x-correlation-id
+      in: header
+      required: false
+      description: |
+        Identificador de correlación. Si falta o no cumple el patrón, el servidor
+        genera un UUID y lo devuelve en la respuesta.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$'
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: nexus_session
+      description: Cookie HttpOnly emitida por `/api/v1/auth/login`.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Token de sesión devuelto por `/api/v1/auth/login`.
   headers:
     CorrelationId:
       description: Correlación de la petición.
@@ -413,6 +1008,69 @@ components:
           $ref: '#/components/headers/CorrelationId'
         allow:
           $ref: '#/components/headers/Allow'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Cuerpo o parámetros inválidos.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No hay sesión válida o las credenciales no son correctas.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: La sesión es válida, pero el rol o el ámbito no permiten la operación.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflicto de unicidad (correo o documento ya registrado).
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntity:
+      description: Regla de negocio incumplida (stock, precio, estado o dirección).
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Dependencia de persistencia no disponible.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Error interno no controlado.
+      headers:
+        x-correlation-id:
+          $ref: '#/components/headers/CorrelationId'
       content:
         application/json:
           schema:
@@ -690,6 +1348,7 @@ components:
                 - CONFLICTO_UNICIDAD
                 - REGLA_NEGOCIO_INCUMPLIDA
                 - DEPENDENCIA_NO_DISPONIBLE
+                - NO_AUTENTICADO
                 - NO_AUTORIZADO
                 - RUTA_NO_ENCONTRADA
                 - RECURSO_NO_ENCONTRADO
@@ -702,3 +1361,741 @@ components:
             detalles:
               type: object
               additionalProperties: true
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [correoElectronico, credencial]
+      properties:
+        correoElectronico:
+          type: string
+          minLength: 1
+          format: email
+        credencial:
+          type: string
+          minLength: 1
+          maxLength: 128
+          writeOnly: true
+    RolSistema:
+      type: string
+      enum: [COMPRADOR, VENDEDOR, OPERADOR_LOGISTICO, ADMINISTRADOR, SUPERVISOR]
+    EstadoUsuario:
+      type: string
+      enum: [ACTIVO, INACTIVO, BLOQUEADO]
+    AuthenticatedUser:
+      type: object
+      additionalProperties: false
+      required:
+        - usuarioId
+        - nombreCompleto
+        - correoElectronico
+        - rol
+        - estado
+        - compradorId
+        - sellerId
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        nombreCompleto:
+          type: string
+        correoElectronico:
+          type: string
+          format: email
+        rol:
+          $ref: '#/components/schemas/RolSistema'
+        estado:
+          $ref: '#/components/schemas/EstadoUsuario'
+        compradorId:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        sellerId:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [token, expiraEn, usuario]
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: Token opaco; también se entrega en la cookie HttpOnly.
+        expiraEn:
+          type: string
+          format: date-time
+        usuario:
+          $ref: '#/components/schemas/AuthenticatedUser'
+    LoginEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LoginResponse'
+    SessionResponse:
+      type: object
+      additionalProperties: false
+      required: [usuario]
+      properties:
+        usuario:
+          $ref: '#/components/schemas/AuthenticatedUser'
+    SessionEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/SessionResponse'
+    Address:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - destinatario
+        - telefono
+        - linea1
+        - linea2
+        - ciudad
+        - region
+        - codigoPostal
+        - pais
+        - esPrincipal
+        - creadaEn
+        - actualizadaEn
+      properties:
+        id:
+          type: string
+          format: uuid
+        destinatario:
+          type: string
+          minLength: 1
+        telefono:
+          type: string
+          minLength: 1
+        linea1:
+          type: string
+          minLength: 1
+        linea2:
+          type: [string, 'null']
+        ciudad:
+          type: string
+          minLength: 1
+        region:
+          type: string
+          minLength: 1
+        codigoPostal:
+          type: [string, 'null']
+        pais:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        esPrincipal:
+          type: boolean
+        creadaEn:
+          type: string
+          format: date-time
+        actualizadaEn:
+          type: string
+          format: date-time
+    CreateAddressRequest:
+      type: object
+      additionalProperties: false
+      required: [destinatario, telefono, linea1, ciudad, region]
+      properties:
+        destinatario:
+          type: string
+          minLength: 1
+          maxLength: 120
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 30
+        linea1:
+          type: string
+          minLength: 1
+          maxLength: 160
+        linea2:
+          type: [string, 'null']
+          maxLength: 160
+        ciudad:
+          type: string
+          minLength: 1
+          maxLength: 80
+        region:
+          type: string
+          minLength: 1
+          maxLength: 80
+        codigoPostal:
+          type: [string, 'null']
+          maxLength: 20
+        pais:
+          type: string
+          minLength: 2
+          maxLength: 2
+          default: CO
+          description: Código ISO 3166-1 alfa-2.
+        esPrincipal:
+          type: boolean
+    UpdateAddressRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        destinatario:
+          type: string
+          minLength: 1
+          maxLength: 120
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 30
+        linea1:
+          type: string
+          minLength: 1
+          maxLength: 160
+        linea2:
+          type: [string, 'null']
+          maxLength: 160
+        ciudad:
+          type: string
+          minLength: 1
+          maxLength: 80
+        region:
+          type: string
+          minLength: 1
+          maxLength: 80
+        codigoPostal:
+          type: [string, 'null']
+          maxLength: 20
+        pais:
+          type: string
+          minLength: 2
+          maxLength: 2
+    AddressListEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+    AddressEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Address'
+    WarehouseInput:
+      type: object
+      additionalProperties: false
+      required: [nombre, ubicacion]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        ubicacion:
+          type: string
+          minLength: 1
+          maxLength: 200
+    RegisterSellerRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombreCompleto
+        - correoElectronico
+        - documentoIdentidad
+        - credencial
+        - nombreComercial
+        - bodega
+      properties:
+        nombreCompleto:
+          type: string
+          minLength: 1
+        correoElectronico:
+          type: string
+          minLength: 1
+          format: email
+        documentoIdentidad:
+          $ref: '#/components/schemas/DocumentoIdentidad'
+        credencial:
+          type: string
+          minLength: 12
+          maxLength: 128
+          writeOnly: true
+        nombreComercial:
+          type: string
+          minLength: 1
+          maxLength: 120
+        bodega:
+          $ref: '#/components/schemas/WarehouseInput'
+    RegisterSellerResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - usuarioId
+        - sellerId
+        - warehouseId
+        - estadoUsuario
+        - estadoVendedor
+        - estadoBodega
+        - correoNormalizado
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        warehouseId:
+          type: string
+          format: uuid
+        estadoUsuario:
+          type: string
+          enum: [ACTIVO]
+        estadoVendedor:
+          type: string
+          enum: [ACTIVO]
+        estadoBodega:
+          type: string
+          enum: [ACTIVA]
+        correoNormalizado:
+          type: string
+          format: email
+    RegisterSellerEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/RegisterSellerResponse'
+    MotivoNoVendible:
+      type: string
+      enum: [PRODUCTO_NO_PUBLICADO, VENDEDOR_NO_ACTIVO, STOCK_INSUFICIENTE]
+    CartItem:
+      type: object
+      additionalProperties: false
+      required:
+        - productoId
+        - nombre
+        - sku
+        - categoria
+        - tipoEntrega
+        - precioCentavos
+        - moneda
+        - estadoProducto
+        - vendedorId
+        - vendedorNombre
+        - estadoVendedor
+        - disponible
+        - cantidad
+        - precioReferencialCentavos
+        - monedaReferencial
+        - subtotalCentavos
+        - vendible
+        - motivoNoVendible
+      properties:
+        productoId:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        sku:
+          type: string
+        categoria:
+          $ref: '#/components/schemas/CategoriaProducto'
+        tipoEntrega:
+          type: string
+          enum: [FISICA, DIGITAL]
+        precioCentavos:
+          type: integer
+          minimum: 1
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        estadoProducto:
+          type: string
+          enum: [PUBLICADO, SUSPENDIDO, DESCONTINUADO]
+        vendedorId:
+          type: string
+          format: uuid
+        vendedorNombre:
+          type: string
+        estadoVendedor:
+          type: string
+          enum: [EN_REVISION, ACTIVO, SUSPENDIDO, INACTIVO]
+        disponible:
+          type: [integer, 'null']
+          minimum: 0
+        cantidad:
+          type: integer
+          minimum: 1
+          maximum: 999
+        precioReferencialCentavos:
+          type: integer
+          minimum: 1
+        monedaReferencial:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        subtotalCentavos:
+          type: integer
+          minimum: 1
+        vendible:
+          type: boolean
+        motivoNoVendible:
+          anyOf:
+            - $ref: '#/components/schemas/MotivoNoVendible'
+            - type: 'null'
+    Cart:
+      type: object
+      additionalProperties: false
+      required:
+        - carritoId
+        - compradorId
+        - items
+        - totalCentavos
+        - moneda
+        - actualizadoEn
+        - version
+        - requiereConfirmacionPrecio
+      properties:
+        carritoId:
+          type: string
+          format: uuid
+        compradorId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        totalCentavos:
+          type: integer
+          minimum: 0
+        moneda:
+          anyOf:
+            - type: string
+              pattern: '^[A-Z]{3}$'
+            - type: 'null'
+        actualizadoEn:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+        requiereConfirmacionPrecio:
+          type: boolean
+    CartEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Cart'
+    AddCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [productoId, cantidad]
+      properties:
+        productoId:
+          type: string
+          format: uuid
+        cantidad:
+          type: integer
+          minimum: 1
+          maximum: 999
+    UpdateCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [cantidad]
+      properties:
+        cantidad:
+          type: integer
+          minimum: 1
+          maximum: 999
+    EstadoPedido:
+      type: string
+      enum:
+        - PENDIENTE_DE_PAGO
+        - PAGADO
+        - EN_PREPARACION
+        - DESPACHADO
+        - ENTREGADO
+        - CANCELADO
+        - CERRADO
+    EstadoPago:
+      type: string
+      enum:
+        - PENDIENTE
+        - AUTORIZADO
+        - CAPTURADO
+        - RECHAZADO
+        - CANCELADO
+        - REEMBOLSO_PARCIAL
+        - REEMBOLSADO
+    ResultadoPagoSimulado:
+      type: string
+      enum: [CONFIRMADO, RECHAZADO, DESCONOCIDO]
+    OrderItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - productoId
+        - nombreProducto
+        - sku
+        - tipoEntrega
+        - cantidad
+        - precioUnitarioCentavos
+        - moneda
+        - subtotalCentavos
+      properties:
+        id:
+          type: string
+          format: uuid
+        productoId:
+          type: string
+          format: uuid
+        nombreProducto:
+          type: string
+        sku:
+          type: string
+        tipoEntrega:
+          type: string
+          enum: [FISICA, DIGITAL]
+        cantidad:
+          type: integer
+          minimum: 1
+        precioUnitarioCentavos:
+          type: integer
+          minimum: 1
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        subtotalCentavos:
+          type: integer
+          minimum: 1
+    Payment:
+      type: object
+      additionalProperties: false
+      required: [id, estado, proveedor, referencia, montoCentavos, moneda]
+      properties:
+        id:
+          type: string
+          format: uuid
+        estado:
+          $ref: '#/components/schemas/EstadoPago'
+        proveedor:
+          type: string
+        referencia:
+          type: [string, 'null']
+        montoCentavos:
+          type: integer
+          minimum: 1
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+    AddressSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - direccionId
+        - destinatario
+        - telefono
+        - linea1
+        - linea2
+        - ciudad
+        - region
+        - codigoPostal
+        - pais
+        - capturadaEn
+      properties:
+        direccionId:
+          type: string
+          format: uuid
+        destinatario:
+          type: string
+        telefono:
+          type: string
+        linea1:
+          type: string
+        linea2:
+          type: [string, 'null']
+        ciudad:
+          type: string
+        region:
+          type: string
+        codigoPostal:
+          type: [string, 'null']
+        pais:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        capturadaEn:
+          type: string
+          format: date-time
+    OrderSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - numero
+        - vendedorId
+        - vendedorNombre
+        - estado
+        - estadoPago
+        - moneda
+        - totalCentavos
+        - itemsCount
+        - creadoEn
+      properties:
+        id:
+          type: string
+          format: uuid
+        numero:
+          type: string
+        vendedorId:
+          type: string
+          format: uuid
+        vendedorNombre:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoPedido'
+        estadoPago:
+          $ref: '#/components/schemas/EstadoPago'
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        totalCentavos:
+          type: integer
+          minimum: 1
+        itemsCount:
+          type: integer
+          minimum: 1
+        creadoEn:
+          type: string
+          format: date-time
+    OrderDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - numero
+        - vendedorId
+        - vendedorNombre
+        - estado
+        - estadoPago
+        - moneda
+        - totalCentavos
+        - itemsCount
+        - creadoEn
+        - items
+        - pago
+        - direccionEntrega
+      properties:
+        id:
+          type: string
+          format: uuid
+        numero:
+          type: string
+        vendedorId:
+          type: string
+          format: uuid
+        vendedorNombre:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoPedido'
+        estadoPago:
+          $ref: '#/components/schemas/EstadoPago'
+        moneda:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        totalCentavos:
+          type: integer
+          minimum: 1
+        itemsCount:
+          type: integer
+          minimum: 1
+        creadoEn:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        pago:
+          anyOf:
+            - $ref: '#/components/schemas/Payment'
+            - type: 'null'
+        direccionEntrega:
+          anyOf:
+            - $ref: '#/components/schemas/AddressSnapshot'
+            - type: 'null'
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotencyKey]
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Clave estable por intento; un reintento devuelve el mismo resultado.
+        direccionEntregaId:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Obligatoria si el carrito contiene productos físicos.
+        confirmarPrecio:
+          type: boolean
+          default: false
+          description: Acepta explícitamente los precios actuales si cambiaron.
+        resultadoPagoSimulado:
+          allOf:
+            - $ref: '#/components/schemas/ResultadoPagoSimulado'
+          default: CONFIRMADO
+          description: Desenlace simulado solicitado por el cliente de demostración.
+    CheckoutResult:
+      type: object
+      additionalProperties: false
+      required: [estado, checkoutId, pedidos, mensaje]
+      properties:
+        estado:
+          $ref: '#/components/schemas/ResultadoPagoSimulado'
+        checkoutId:
+          type: string
+          format: uuid
+        pedidos:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderDetail'
+        mensaje:
+          type: string
+    CheckoutEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CheckoutResult'
+    OrderListEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderSummary'
+    OrderEnvelope:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/OrderDetail'

@@ -69,3 +69,17 @@ La postcondición es explícita: si falla la bodega, no debe quedar un vendedor 
 - `201`/errores de autorización, validación y conflicto documentados y probados.
 - Migración versionada y prueba PostgreSQL real.
 - Sin implementar catálogo, inventario, productos ni transiciones no aprobadas.
+
+---
+
+## 7. Resolución (2026-11-03)
+
+Este documento registra la evaluación del 2026-10-28, cuando `PI-02` estaba `BLOCKED`. La situación cambió en la iteración 2:
+
+- **`ADR-004` resuelto:** sesión opaca server-side con token de 256 bits, hash SHA-256 en `sessions`, cookie `HttpOnly`/`SameSite=Lax`, TTL de 8 h y `Authorization: Bearer`. Ver `DEC-V2-001`.
+- **`L-01` resuelto:** dirección mínima con `destinatario`, `telefono`, `linea1`, `linea2?`, `ciudad`, `region`, `codigoPostal?` y `pais` ISO-3166-1 alpha-2. Ver `DEC-V2-002`.
+- **Ruta aprobada e implementada:** `POST /api/v1/admin/sellers`, solo `ADMINISTRADOR` activo.
+- **Atomicidad implementada:** una transacción crea `users` + `sellers` + `warehouses` + auditoría/outbox; el fallo de bodega revierte todo.
+- **Evidencia:** `backend/src/modules/sellers/**`, `backend/tests/unit/register-seller.test.ts` (5) y `backend/tests/postgres/marketplace-postgres.test.ts` (éxito y rollback).
+
+El estado actual de `PI-02` es `PASS`, según `docs/implementation/IMPLEMENTATION-STATUS.md`. Las preguntas de la sección 5 quedaron respondidas por las decisiones `DEC-V2-001`, `DEC-V2-002` y `DEC-V2-003`.

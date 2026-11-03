@@ -5,29 +5,11 @@ import "server-only";
  * recibe la URL interna de la API ni secretos de configuración.
  */
 
+import { ApiError } from "./errors";
+
+export { ApiError };
+
 const DEFAULT_TIMEOUT_MS = 8_000;
-
-export class ApiError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly correlationId: string | undefined;
-  readonly details: Record<string, unknown> | undefined;
-
-  constructor(input: {
-    message: string;
-    status: number;
-    code: string;
-    correlationId?: string;
-    details?: Record<string, unknown>;
-  }) {
-    super(input.message);
-    this.name = "ApiError";
-    this.status = input.status;
-    this.code = input.code;
-    this.correlationId = input.correlationId;
-    this.details = input.details;
-  }
-}
 
 export function getApiBaseUrl(): string {
   const raw = process.env.API_URL?.trim() || "http://127.0.0.1:3000";
@@ -43,16 +25,43 @@ export function getApiBaseUrl(): string {
   return parsed.origin;
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+export interface ApiRequestOptions {
+  readonly method?: "GET" | "POST" | "PATCH" | "DELETE";
+  readonly body?: unknown;
+  readonly token?: string | null;
+  readonly timeoutMs?: number;
+}
+
+/**
+ * Ejecuta una petición contra la API y devuelve el cuerpo JSON. El token de
+ * sesión se reenvía como Bearer para que las cookies del backend no dependan
+ * del dominio del navegador.
+ */
+export async function apiRequest<T>(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<T> {
   const url = new URL(path, getApiBaseUrl());
+  const method = options.method ?? "GET";
+  const headers: Record<string, string> = { accept: "application/json" };
+
+  if (options.token) {
+    headers.authorization = `Bearer ${options.token}`;
+  }
+  if (options.body !== undefined) {
+    headers["content-type"] = "application/json";
+  }
 
   let response: Response;
   try {
     response = await fetch(url, {
-      method: "GET",
-      headers: { accept: "application/json" },
+      method,
+      headers,
+      ...(options.body !== undefined
+        ? { body: JSON.stringify(options.body) }
+        : {}),
       cache: "no-store",
-      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+      signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
     });
   } catch {
     throw new ApiError({
@@ -67,7 +76,8 @@ export async function apiGet<T>(path: string): Promise<T> {
 
   if (!response.ok) {
     const envelope = await safeJson(response);
-    const error = isRecord(envelope) && isRecord(envelope.error) ? envelope.error : undefined;
+    const error =
+      isRecord(envelope) && isRecord(envelope.error) ? envelope.error : undefined;
     throw new ApiError({
       status: response.status,
       code: typeof error?.codigo === "string" ? error.codigo : "ERROR_HTTP",
@@ -80,6 +90,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     });
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const body = await safeJson(response);
   if (!isRecord(body)) {
     throw new ApiError({
@@ -89,6 +103,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     });
   }
   return body as T;
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  return apiRequest<T>(path);
 }
 
 async function safeJson(response: Response): Promise<unknown> {

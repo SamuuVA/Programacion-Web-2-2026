@@ -14,6 +14,23 @@ import { Argon2PasswordHasher } from "../src/modules/identity/infrastructure/arg
 
 const DEMO_PASSWORD = process.env.DEMO_SEED_PASSWORD ?? "NexusMarketDemo2026!";
 
+const ADMIN = {
+  usuarioId: "70000000-0000-4000-8000-000000000001",
+  nombreUsuario: "Administrador Nexus",
+  correo: "admin@nexusmarket.demo",
+  documento: "DEMO-ADMIN-001"
+} as const;
+
+const BUYER = {
+  usuarioId: "70000000-0000-4000-8000-000000000002",
+  compradorId: "71000000-0000-4000-8000-000000000002",
+  carritoId: "72000000-0000-4000-8000-000000000002",
+  direccionId: "73000000-0000-4000-8000-000000000002",
+  nombreUsuario: "Compradora Demo",
+  correo: "comprador@nexusmarket.demo",
+  documento: "DEMO-BUYER-001"
+} as const;
+
 const SELLERS = [
   {
     usuarioId: "10000000-0000-4000-8000-000000000001",
@@ -168,6 +185,97 @@ try {
   try {
     await client.query("BEGIN");
 
+    await client.query(
+      `INSERT INTO users (
+         id, nombre_completo, correo_normalizado, documento_tipo, documento_pais,
+         documento_numero, hash_credencial, rol, estado, creado_en, actualizado_en
+       ) VALUES ($1, $2, $3, 'CC', 'CO', $4, $5, 'ADMINISTRADOR', 'ACTIVO', $6, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         nombre_completo = EXCLUDED.nombre_completo,
+         correo_normalizado = EXCLUDED.correo_normalizado,
+         documento_numero = EXCLUDED.documento_numero,
+         hash_credencial = EXCLUDED.hash_credencial,
+         rol = 'ADMINISTRADOR',
+         estado = 'ACTIVO',
+         actualizado_en = EXCLUDED.actualizado_en`,
+      [
+        ADMIN.usuarioId,
+        ADMIN.nombreUsuario,
+        ADMIN.correo,
+        ADMIN.documento,
+        hash,
+        now
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO users (
+         id, nombre_completo, correo_normalizado, documento_tipo, documento_pais,
+         documento_numero, hash_credencial, rol, estado, creado_en, actualizado_en
+       ) VALUES ($1, $2, $3, 'CC', 'CO', $4, $5, 'COMPRADOR', 'ACTIVO', $6, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         nombre_completo = EXCLUDED.nombre_completo,
+         correo_normalizado = EXCLUDED.correo_normalizado,
+         documento_numero = EXCLUDED.documento_numero,
+         hash_credencial = EXCLUDED.hash_credencial,
+         rol = 'COMPRADOR',
+         estado = 'ACTIVO',
+         actualizado_en = EXCLUDED.actualizado_en`,
+      [
+        BUYER.usuarioId,
+        BUYER.nombreUsuario,
+        BUYER.correo,
+        BUYER.documento,
+        hash,
+        now
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO buyers (id, usuario_id, estado_comercial, creado_en)
+       VALUES ($1, $2, 'HABILITADO', $3)
+       ON CONFLICT (usuario_id) DO UPDATE SET estado_comercial = 'HABILITADO'`,
+      [BUYER.compradorId, BUYER.usuarioId, now]
+    );
+    await client.query(
+      `INSERT INTO carts (id, comprador_id, actualizado_en, version)
+       VALUES ($1, $2, $3, 1)
+       ON CONFLICT (comprador_id) DO NOTHING`,
+      [BUYER.carritoId, BUYER.compradorId, now]
+    );
+    await client.query(
+      `UPDATE buyer_addresses SET es_principal = false WHERE comprador_id = $1`,
+      [BUYER.compradorId]
+    );
+    await client.query(
+      `INSERT INTO buyer_addresses (
+         id, comprador_id, destinatario, telefono, linea1, linea2, ciudad,
+         region, codigo_postal, pais, es_principal, creada_en, actualizada_en
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'CO', true, $10, $10)
+       ON CONFLICT (id) DO UPDATE SET
+         destinatario = EXCLUDED.destinatario,
+         telefono = EXCLUDED.telefono,
+         linea1 = EXCLUDED.linea1,
+         linea2 = EXCLUDED.linea2,
+         ciudad = EXCLUDED.ciudad,
+         region = EXCLUDED.region,
+         codigo_postal = EXCLUDED.codigo_postal,
+         es_principal = true,
+         actualizada_en = EXCLUDED.actualizada_en`,
+      [
+        BUYER.direccionId,
+        BUYER.compradorId,
+        BUYER.nombreUsuario,
+        "+57 300 000 0000",
+        "Calle 10 # 20-30",
+        "Apto 401",
+        "Bogotá",
+        "Cundinamarca",
+        "110111",
+        now
+      ]
+    );
+
     for (const seller of SELLERS) {
       await client.query(
         `INSERT INTO users (
@@ -287,7 +395,10 @@ try {
 
     await client.query("COMMIT");
     console.log(`Seed de demostración aplicado: ${PRODUCTS.length} productos publicados.`);
+    console.log("Administrador demo: admin@nexusmarket.demo");
+    console.log("Comprador demo: comprador@nexusmarket.demo");
     console.log("Vendedores demo: aurora@nexusmarket.demo / nido@nexusmarket.demo");
+    console.log(`Contraseña demo (todos): ${DEMO_PASSWORD}`);
     console.log("La contraseña demo solo se usa para desarrollo local.");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
