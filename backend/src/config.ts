@@ -5,8 +5,7 @@ const environmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   HOST: z.string().min(1).default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  PERSISTENCE: z.enum(["memory", "postgres"]).default("memory"),
-  DATABASE_URL: z.string().min(1).optional(),
+  DATABASE_URL: z.string().min(1),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   CORS_ORIGINS: z.string().default("")
 });
@@ -29,9 +28,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   }
 
   const config = parsed.data;
-  if (config.PERSISTENCE === "postgres" && !config.DATABASE_URL) {
-    throw new Error("DATABASE_URL es obligatoria cuando PERSISTENCE=postgres.");
-  }
 
   return {
     ...config,

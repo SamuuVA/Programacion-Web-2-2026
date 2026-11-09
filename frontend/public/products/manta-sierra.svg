@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 660" role="img" aria-labelledby="title">
+  <title id="title">Manta tejida doblada sobre una superficie clara</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef4ec" />
+      <stop offset="1" stop-color="#d9e5d8" />
+    </linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8f0e6" />
+      <stop offset="1" stop-color="#cfe0d3" />
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#24483d" flood-opacity="0.2" />
+    </filter>
+  </defs>
+  <rect width="800" height="660" fill="url(#bg)" />
+  <ellipse cx="400" cy="540" rx="270" ry="42" fill="#24483d" opacity="0.1" />
+  <g filter="url(#shadow)">
+    <rect x="196" y="414" width="408" height="112" rx="22" fill="#3f765b" />
+    <rect x="220" y="332" width="360" height="104" rx="22" fill="#5b8f73" />
+    <rect x="244" y="254" width="312" height="98" rx="22" fill="url(#top)" />
+    <g stroke="#24483d" opacity="0.18" stroke-width="6">
+      <path d="M214 458h372M214 488h372" />
+      <path d="M238 374h324M238 404h324" />
+      <path d="M262 292h276M262 322h276" />
+    </g>
+    <g stroke="#3f765b" stroke-width="4" opacity="0.55">
+      <path d="M262 270h276M262 282h276" />
+    </g>
+  </g>
+  <g stroke="#5b8f73" stroke-width="5" stroke-linecap="round" opacity="0.8">
+    <path d="M604 430v18M616 430v18M628 430v18M640 430v18" />
+    <path d="M160 430v18M172 430v18M184 430v18" />
+  </g>
+  <g fill="#5b8f73" opacity="0.5">
+    <circle cx="168" cy="180" r="6" />
+    <circle cx="648" cy="220" r="5" />
+    <circle cx="672" cy="470" r="6" />
+  </g>
+</svg>

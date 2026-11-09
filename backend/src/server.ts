@@ -1,16 +1,41 @@
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
-import { createBuyerRegistrationStore } from "./infrastructure/factory.js";
+import {
+  createAddressStore,
+  createBuyerRegistrationStore,
+  createCartStore,
+  createCatalogQueryRepository,
+  createCheckoutStore,
+  createIdentityStore,
+  createLogisticsStore,
+  createSellerRegistrationStore,
+  createSellerWorkspaceStore,
+  createSupervisorStore,
+  createAdminStore
+} from "./infrastructure/factory.js";
 import { Argon2PasswordHasher } from "./modules/identity/infrastructure/argon2-password-hasher.js";
 import { SystemClock } from "./shared/infrastructure/system-clock.js";
+import { SecureSessionTokens } from "./shared/infrastructure/session-tokens.js";
 import { UuidGenerator } from "./shared/infrastructure/uuid-generator.js";
 
 const config = loadConfig();
+const ids = new UuidGenerator();
 const app = await buildApp(config, {
   store: createBuyerRegistrationStore(config),
+  catalog: createCatalogQueryRepository(config),
   hasher: new Argon2PasswordHasher(),
   clock: new SystemClock(),
-  ids: new UuidGenerator()
+  ids,
+  identity: createIdentityStore(config),
+  sessionTokens: new SecureSessionTokens(),
+  addresses: createAddressStore(config),
+  sellers: createSellerRegistrationStore(config),
+  cart: createCartStore(config),
+  checkout: createCheckoutStore(config, ids),
+  sellerWorkspace: createSellerWorkspaceStore(config),
+  logistics: createLogisticsStore(config, ids),
+  supervisor: createSupervisorStore(config),
+  admin: createAdminStore(config)
 });
 
 const shutdown = async (signal: string): Promise<void> => {

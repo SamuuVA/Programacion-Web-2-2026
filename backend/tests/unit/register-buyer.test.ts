@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RegisterBuyer } from "../../src/modules/buyers/application/register-buyer.js";
 import type { RegisterBuyerCommand } from "../../src/modules/buyers/application/register-buyer.js";
-import { MemoryBuyerRegistrationStore } from "../../src/modules/buyers/infrastructure/memory-buyer-registration-store.js";
+import { FakeBuyerRegistrationStore } from "../support/fake-buyer-registration-store.js";
 import { Argon2PasswordHasher } from "../../src/modules/identity/infrastructure/argon2-password-hasher.js";
 import { UniquenessConflictError, ValidationError } from "../../src/shared/domain/errors.js";
 import { FixedClock, SequentialIds } from "../support/doubles.js";
@@ -9,7 +9,7 @@ import { FixedClock, SequentialIds } from "../support/doubles.js";
 const PASSWORD = "correct horse battery staple";
 
 function createSubject() {
-  const store = new MemoryBuyerRegistrationStore();
+  const store = new FakeBuyerRegistrationStore();
   const useCase = new RegisterBuyer(
     store,
     new Argon2PasswordHasher(),

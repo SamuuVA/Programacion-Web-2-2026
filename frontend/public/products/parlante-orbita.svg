@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 660" role="img" aria-labelledby="title">
+  <title id="title">Parlante portátil cilíndrico color arena</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5efe2" />
+      <stop offset="1" stop-color="#dfe8dd" />
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#315d47" />
+      <stop offset="0.5" stop-color="#3f765b" />
+      <stop offset="1" stop-color="#24483d" />
+    </linearGradient>
+    <pattern id="mesh" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="6" cy="6" r="2.6" fill="#ffffff" opacity="0.18" />
+      <circle cx="16" cy="16" r="2.6" fill="#ffffff" opacity="0.12" />
+    </pattern>
+    <filter id="shadow" x="-40%" y="-30%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#24483d" flood-opacity="0.24" />
+    </filter>
+  </defs>
+  <rect width="800" height="660" fill="url(#bg)" />
+  <ellipse cx="400" cy="562" rx="196" ry="34" fill="#24483d" opacity="0.12" />
+  <circle cx="622" cy="148" r="76" fill="#e7dcc4" opacity="0.7" />
+  <circle cx="168" cy="520" r="52" fill="#cfe0d3" opacity="0.6" />
+  <g filter="url(#shadow)">
+    <path d="M400 126c34 0 62 14 62 32v18" fill="none" stroke="#8a6f4a" stroke-width="12" stroke-linecap="round" />
+    <rect x="288" y="168" width="224" height="356" rx="112" fill="url(#body)" />
+    <ellipse cx="400" cy="178" rx="112" ry="46" fill="#4b8a6c" />
+    <ellipse cx="400" cy="178" rx="76" ry="28" fill="#24483d" opacity="0.35" />
+    <ellipse cx="400" cy="514" rx="112" ry="46" fill="#1e3b31" />
+    <rect x="310" y="222" width="180" height="248" rx="90" fill="url(#mesh)" />
+    <rect x="364" y="228" width="72" height="10" rx="5" fill="#b9d8c3" opacity="0.55" />
+    <circle cx="400" cy="486" r="6" fill="#b9d8c3" opacity="0.7" />
+  </g>
+  <g fill="#8a6f4a" opacity="0.55">
+    <circle cx="196" cy="188" r="5" />
+    <circle cx="646" cy="442" r="5" />
+    <circle cx="612" cy="486" r="4" />
+  </g>
+</svg>

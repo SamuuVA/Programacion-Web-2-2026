@@ -25,7 +25,7 @@
 
 </div>
 
-> **Estado actual:** la documentación de diseño está completa y el **primer vertical ejecutable `PI-01 RegisterBuyer`** ya existe en `backend/` (TypeScript/Node.js, Fastify y PostgreSQL/memoria). Está verificado con typecheck, 29 pruebas, build, smoke HTTP y **PostgreSQL 17.11 local**: migración aplicada, alta `201`, duplicado `409`, concurrencia con un solo ganador, rollback y auditoría/outbox atómicos. La prueba PostgreSQL está automatizada en `npm run test:postgres`, el contrato de las tres rutas existentes está probado y la revisión independiente terminó en `PASS`; CI, autenticación y el resto del sistema siguen pendientes y no se presentan como implementados.
+> **Estado actual:** existe una entrega funcional local (corte 2026-11-06). El backend (`backend/`, TypeScript/Node.js, Fastify y PostgreSQL) implementa `PI-01 RegisterBuyer`, catálogo público `PI-07`, autenticación y sesiones (`ADR-004`), direcciones de comprador (`L-01`), alta administrativa de vendedor (`PI-02`), carrito persistente, checkout con pago simulado (`UC-01`) con idempotencia y reservas de inventario, espacio de trabajo del vendedor, operación logística y supervisión de solo lectura; el frontend (`frontend/`, Next.js) integra login, carrito, checkout, pedidos, direcciones, administración, `/seller`, `/logistics` y `/supervisor`. Verificado localmente con typecheck, 145 pruebas de backend, 37 pruebas PostgreSQL, validación OpenAPI (`52 rutas, 59 operaciones`), build de ambos proyectos, smoke HTTP 33/33 y E2E navegador 6/6. PostgreSQL es obligatorio (sin adaptador en memoria). Reembolsos/logística inversa, reportes administrativos (`L-19`), CI ejecutado en GitHub, lint y despliegue siguen pendientes y no se presentan como implementados.
 
 ---
 
@@ -81,7 +81,7 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 | Casos de uso | [`nexusmarket-use-cases-checkout-query-order.md`](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | Completo · `UC-01`, `UC-02` |
 | Adaptadores | [`nexusmarket-adapters.md`](BackendSDD/Adapters/nexusmarket-adapters.md) + 14 documentos | Completo · `ADIN-01`, `ADOUT-01`…`ADOUT-13` |
 | Alineación de contratos | [`nexusmarket-contract-alignment.md`](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Completo · `CT-01`…`CT-13` |
-| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) | **PI-01 implementado**; PostgreSQL 17.11 y suite automatizada; contrato de tres rutas probado |
+| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) · [`frontend/`](frontend/) | **PI-01, catálogo público, auth, direcciones, PI-02, carrito, checkout con pago simulado, vendedor, logística y supervisión implementados**; PostgreSQL 17, 145 pruebas de backend, 37 PostgreSQL, OpenAPI 0.6.0 (52 rutas) y frontend Next.js construido |
 
 ### Indicadores de la especificación
 
@@ -102,33 +102,41 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 - Casos de uso de checkout y consulta de pedido.
 - Especificación de 14 adaptadores y verificación de la cadena completa.
 - Registro de decisiones, conflictos, limitaciones y trazabilidad.
-- Primer vertical ejecutable `PI-01 RegisterBuyer` con Fastify, Argon2id, adaptador en memoria/PostgreSQL, migración, contrato OpenAPI de tres rutas, 29 pruebas y suite PostgreSQL automatizada.
+- Primer vertical ejecutable `PI-01 RegisterBuyer` con Fastify, Argon2id, PostgreSQL obligatorio, migración versionada, contrato OpenAPI de seis rutas y 51 pruebas.
+- Catálogo público de solo lectura (`PI-07`) con productos, detalle, categorías, búsqueda sin acentos, filtros, orden y paginación.
+- Frontend Next.js con home, catálogo y detalle consumiendo la API real.
+- Seed demo explícito con 2 vendedores y 8 productos persistidos en PostgreSQL.
 
 **No incluye todavía**
 
-- Autenticación, sesiones y autorización.
-- Catálogo, inventario, direcciones, pedidos, pagos, facturación, logística, devoluciones, imágenes y frontend.
-- `PI-02 RegisterSeller` (bloqueado por autenticación administrativa, `L-01` y contrato de ruta).
+- Autenticación y sesiones implementadas; falta autorización granular por recurso en algunas rutas administrativas futuras.
+- Reembolsos y logística inversa (fuera de alcance de esta etapa).
+- Resolución de pagos `DESCONOCIDO` (pendiente; no se trata como éxito ni rechazo).
+- Subida de imágenes y variantes comerciales.
+- Recuperación de contraseña / MFA.
+- CI ejecutado en GitHub (`READY_FOR_REVIEW`; no ejecutado).
+- Lint (`BLOCKED`: sin herramienta configurada).
+- Despliegue / producción.
 - SDKs, clientes, integraciones reales ni credenciales.
-- CI/CD, ejecución de PostgreSQL en pipeline y observabilidad de release candidate.
 
 ---
 
-## Primer vertical implementado
+## Primeros verticales implementados
 
-**`PI-01 RegisterBuyer`** permite registrar una cuenta de comprador y demuestra el estilo arquitectónico completo sin implementar el resto del marketplace.
+**`PI-01 RegisterBuyer`**, **`PI-07 QueryCatalog`**, autenticación/sesiones, direcciones de comprador, **`PI-02 RegisterSeller`** (alta administrativa), carrito persistente y **`UC-01 Checkout`** con pago simulado (confirmado/rechazado/desconocido, idempotencia y reservas) están implementados. El frontend Next.js integra login, carrito, checkout, pedidos, direcciones y administración.
 
 | Elemento | Implementación |
 |---|---|
-| Alcance | `Usuario` ACTIVO, `PerfilComprador` HABILITADO, `Carrito` vacío, auditoría y outbox en la misma transacción |
-| Endpoints | `POST /api/v1/buyers`, `/health`, `/ready` (`L-27` cerrada solo para estas rutas) |
-| Persistencia | PostgreSQL autoritativo (`backend/migrations/001_initial.sql`) y adaptador en memoria para desarrollo/pruebas |
+| Alcance | Alta de comprador con `Usuario` ACTIVO, `PerfilComprador` HABILITADO, `Carrito` vacío, auditoría y outbox en la misma transacción; catálogo público de productos, detalle y categorías |
+| Endpoints | `POST /api/v1/buyers`, `GET /api/v1/products`, `GET /api/v1/products/{productId}`, `GET /api/v1/categories`, `/health`, `/ready` |
+| Persistencia | PostgreSQL autoritativo (`001_initial.sql`, `003_catalog.sql`); sin adaptador en memoria en ejecución |
 | Credenciales | Argon2id PHC `m=19456,t=2,p=1`, sal de 16 bytes (`DEC-W1-008`) |
-| Contrato | [`backend/openapi.yaml`](backend/openapi.yaml) y `backend/tests/contract/openapi.test.ts` |
-| Pruebas | `npm run typecheck`, `npm test` (5 archivos/29 pruebas), `npm run test:postgres` (2 pruebas) y `npm run build` aprobados; smoke HTTP real con `201`, `409`, `/health` y `/ready` |
-| Evidencia y límites | [`docs/backend/implementation/01-acceptance-and-unblock.md`](docs/backend/implementation/01-acceptance-and-unblock.md) |
+| Contrato | [`backend/openapi.yaml`](backend/openapi.yaml) versión 0.2.0 y `backend/tests/contract/openapi.test.ts` |
+| Pruebas | `npm run typecheck`, `npm test` (8 archivos/51 pruebas), `npm run test:postgres` (3 archivos/11 pruebas) y `npm run build` aprobados; smoke HTTP real con `201`, `409`, catálogo, detalle, `404`, `/health` y `/ready` |
+| Frontend | [`frontend/`](frontend/) con home, catálogo, filtros, paginación y detalle; `npm run typecheck` y `npm run build` aprobados |
+| Evidencia y límites | [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) |
 
-**Verificado:** `docker compose config`, PostgreSQL 17.11, migración `001_initial.sql`, alta `201`, duplicado `409`, concurrencia con un único ganador, rollback y auditoría/outbox atómicos. La prueba PostgreSQL está automatizada con `TEST_DATABASE_URL`, exige una base local terminada en `_test` y limpia solo sus propios registros. **Límite:** no se ejecuta en CI; autenticación, versionado general y rutas futuras siguen fuera del contrato. Las instrucciones están en [`backend/README.md`](backend/README.md).
+**Verificado:** `docker compose config`, PostgreSQL 17.11, migraciones `001`–`003`, alta `201`, duplicado `409`, concurrencia con un único ganador, rollback y auditoría/outbox atómicos, 8 productos publicados de 2 vendedores, búsqueda sin acentos y paginación real. **Límite:** no se ejecuta en CI; autenticación, carrito, checkout y rutas administrativas siguen fuera del contrato. Las instrucciones están en [`backend/README.md`](backend/README.md) y [`frontend/README.md`](frontend/README.md).
 
 ---
 
@@ -181,13 +189,13 @@ La especificación original define doce objetivos estratégicos (`OBJ-01`…`OBJ
 | Runtime | Node.js 24 LTS (`>=24 <25`) | Implementado |
 | API | REST | Implementado para `PI-01` |
 | Framework HTTP | Fastify 5 | Implementado |
-| Contrato de API | OpenAPI 3.1 de `POST /api/v1/buyers`, `/health` y `/ready` | Cerrado para tres rutas; contract test sin validador semántico |
-| Persistencia relacional | PostgreSQL + `pg` con SQL directo (sin ORM en `PI-01`) | Implementado y verificado con PostgreSQL 17.11 local y suite automatizada |
+| Contrato de API | OpenAPI 3.1 de registro, catálogo, auth, direcciones, sellers, carrito, checkout, pedidos, `/health` y `/ready` | Cerrado para 19 rutas; validador offline |
+| Persistencia relacional | PostgreSQL + `pg` con SQL directo (sin ORM) | Implementado y verificado con PostgreSQL 17.11 local y suite automatizada |
 | Persistencia documental | MongoDB (auditoría y documentos justificados) | No usada en `PI-01`; decisión futura |
 | Arquitectura | DDD + Hexagonal (Ports & Adapters) | Implementada en el vertical |
 | Estilo | Monolito modular | Implementado en el vertical |
 | Contenedores | Docker + Docker Compose | `compose.yaml` validado; PostgreSQL 17.11 levantado |
-| Pruebas | Vitest 5 | Implementado; 29 pruebas + 2 PostgreSQL |
+| Pruebas | Vitest 5 + pruebas HTTP/PostgreSQL | Implementado; 92 pruebas + 21 PostgreSQL |
 | Validación de entrada | Zod 4 en el borde HTTP | Implementado |
 | Hash de credenciales | `@node-rs/argon2` 2.2.2 | Implementado y probado |
 
@@ -449,7 +457,7 @@ Requisito → regla → entidad/VO/servicio → caso de uso → puerto de entrad
 
 | ID | Contrato | Adaptador | Estado | Bloqueo principal |
 |---|---|---|---|---|
-| `CT-01` | HTTP/OpenAPI | `ADIN-01` | `PARCIAL` (tres rutas implementadas) | `L-27` cerrada solo para `POST /api/v1/buyers`, `/health` y `/ready`; auth y rutas futuras abiertas |
+| `CT-01` | HTTP/OpenAPI | `ADIN-01` | `PARCIAL` (seis rutas implementadas) | `L-27` cerrada solo para registro, catálogo, categorías, `/health` y `/ready`; auth y rutas futuras abiertas |
 | `CT-02` | Eventos de dominio y outbox | `ADOUT-04` | `ALINEADO_CON_PROPUESTA` | `L-14`: catálogo y payloads incompletos |
 | `CT-03` | Auditoría | `ADOUT-05` | `ALINEADO_CON_PROPUESTA` | `L-11`, `L-15`: composición y retención |
 | `CT-04` | Pago | `ADOUT-07` | `ALINEADO_CON_PROPUESTA` (diferido; sin pagos en `PI-01`) | `L-22`: protocolo y webhooks |
@@ -497,14 +505,21 @@ Programacion-Web-2-2026/
 │   │   └── nexusmarket-adapter-*.md        # 14 documentos individuales
 │   └── Contracts/
 │       └── nexusmarket-contract-alignment.md
-├── backend/                                # Primer vertical ejecutable
+├── backend/                                # API Fastify: registro y catálogo público
 │   ├── src/                                # Dominio, aplicación, adaptadores y bootstrap
-│   ├── tests/                              # Unitarias e integración HTTP
-│   ├── migrations/001_initial.sql          # Esquema PostgreSQL
-│   ├── openapi.yaml                        # Contrato de las tres rutas de PI-01
+│   ├── tests/                              # Unitarias, HTTP, contrato y PostgreSQL
+│   ├── migrations/                         # 001_initial.sql, 002_*, 003_catalog.sql
+│   ├── scripts/seed-demo.ts                # Datos de demostración persistentes
+│   ├── openapi.yaml                        # Contrato de las seis rutas implementadas
 │   ├── compose.yaml                        # PostgreSQL local validado
 │   └── README.md                           # Instalación, ejecución y límites
-├── docs/backend/                           # Auditoría, decisiones y estado de implementación
+├── frontend/                               # Next.js: home, catálogo y detalle
+│   ├── src/app/                            # App Router
+│   ├── src/features/catalog/               # Tipos, API, formato y componentes
+│   ├── public/products/                    # Imágenes SVG de la demo
+│   └── README.md                           # Instalación, ejecución y alcance
+├── docs/backend/                           # Auditoría y decisiones históricas
+├── docs/implementation/                    # Estado, plan, contrato y bitácoras
 ├── orchestrator-state.md                   # Estado operativo
 ├── README.md
 ├── LICENSE
@@ -570,28 +585,45 @@ git clone https://github.com/SamuuVA/Programacion-Web-2-2026.git
 cd Programacion-Web-2-2026
 ```
 
-Para ejecutar y probar el primer vertical:
+Para ejecutar la entrega demostrable:
 
 ```powershell
+# 1. PostgreSQL (el compose vive en backend/)
 cd backend
+docker compose up -d
+
+# 2. Backend
 npm install
 Copy-Item .env.example .env
-$env:PERSISTENCE = "memory"
+npm run db:migrate
+npm run db:seed:demo   # opcional: 8 productos de demostración
 npm run dev
+
+# 3. Frontend (otra terminal)
+cd frontend
+npm install
+npm run dev -- -p 3001
 ```
+
+Abrir `http://127.0.0.1:3001`. La API queda en `http://127.0.0.1:3000`.
 
 Verificación:
 
 ```powershell
+cd backend
 npm run typecheck
 npm test
 npm run build
 
 $env:TEST_DATABASE_URL = "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test"
 npm run test:postgres
+
+cd ..\frontend
+npm run typecheck
+npm run build
 ```
 
-El detalle del endpoint, PostgreSQL y los límites está en [`backend/README.md`](backend/README.md). PostgreSQL 17.11 se levantó con Compose y la suite automatizada exige una base local cuyo nombre termine en `_test`; si no está disponible, el comando falla y el gate queda `BLOCKED`.
+`DATABASE_URL` es obligatoria: no existe un modo en memoria. El detalle de endpoints, catálogo y PostgreSQL está en [`backend/README.md`](backend/README.md); el frontend en [`frontend/README.md`](frontend/README.md). PostgreSQL 17.11 se levantó con Compose y la suite automatizada exige una base local cuyo nombre termine en `_test`; si no está disponible, el comando falla y el gate queda `BLOCKED`.
 
 ### Ruta de lectura recomendada
 
@@ -603,9 +635,9 @@ El detalle del endpoint, PostgreSQL y los límites está en [`backend/README.md`
 6. Lee los [casos de uso](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md).
 7. Revisa los [adaptadores](BackendSDD/Adapters/nexusmarket-adapters.md).
 8. Cierra con la [alineación de contratos](BackendSDD/Contracts/nexusmarket-contract-alignment.md) y el [estado documental](BackendSDD/DOCUMENTATION_STATUS.md).
-9. Para el corte implementado, lee el [informe de aceptación](docs/backend/implementation/01-acceptance-and-unblock.md) y `orchestrator-state.md`.
+9. Para el corte implementado, lee [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md), [`docs/implementation/API-CONTRACT-STATUS.md`](docs/implementation/API-CONTRACT-STATUS.md) y `orchestrator-state.md`.
 
-> Si vas a retomar el trabajo, **empieza por `orchestrator-state.md`** y por el [informe de aceptación](docs/backend/implementation/01-acceptance-and-unblock.md): contienen el estado real, la evidencia ejecutada, los bloqueos y la siguiente acción exacta.
+> Si vas a retomar el trabajo, **empieza por `orchestrator-state.md`** y por [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md): contienen el estado real, la evidencia ejecutada, los bloqueos y la siguiente acción exacta.
 
 ---
 
@@ -635,9 +667,9 @@ El detalle del endpoint, PostgreSQL y los límites está en [`backend/README.md`
 | Fase | Entregable | Estado |
 |---|---|---|
 | **0. Especificación** | Modelo, VOs, servicios, puertos, casos de uso, adaptadores y contratos | Completada |
-| **1. Decisiones de negocio** | Resolver `DEC-BIZ-01`…`DEC-BIZ-07` y las limitaciones bloqueantes | Parcial: `CON-001`…`CON-004`, `DEC-W1-007`/`008` y `DEC-IMPL-001`…`009` cerrados; restan `DEC-BIZ-01`, `03`…`07`, `L-01`, `L-22` y `L-10`. `L-27` está acotada a tres rutas; auth/versionado general siguen abiertos |
-| **2. Contratos ejecutables** | OpenAPI, esquemas de eventos, contratos de proveedor y migraciones | Parcial: contrato de tres rutas con contract test y migración de `PI-01`; sin validador semántico ni CI |
-| **3. Implementación vertical** | Primer módulo completo: dominio + caso de uso + puerto + adaptador + pruebas | **`PI-01` implementado y verificado en memoria y PostgreSQL 17.11**, con suite PostgreSQL automatizada y revisión independiente `PASS` |
+| **1. Decisiones de negocio** | Resolver `DEC-BIZ-01`…`DEC-BIZ-07` y las limitaciones bloqueantes | Parcial: `CON-001`…`CON-004`, `DEC-W1-007`/`008` y `DEC-IMPL-001`…`009` cerrados; restan `DEC-BIZ-01`, `03`…`07`, `L-01`, `L-22` y `L-10`. `L-27` está acotada a las seis rutas implementadas; auth/versionado general siguen abiertos |
+| **2. Contratos ejecutables** | OpenAPI, esquemas de eventos, contratos de proveedor y migraciones | Parcial: contrato de seis rutas (registro y catálogo) con contract test y migraciones `001`–`003`; sin validador semántico ni CI |
+| **3. Implementación vertical** | Módulos completos: dominio + caso de uso + puerto + adaptador + pruebas | **`PI-01` y consulta pública `PI-07` implementados y verificados con PostgreSQL 17.11**, 51 pruebas de backend, 11 PostgreSQL y frontend Next.js construido |
 | **4. Integraciones** | Pago, logística, notificaciones y entrega digital con idempotencia | Pendiente |
 | **5. Calidad y despliegue** | CI, Docker multi-stage, observabilidad, backups y seguridad | Pendiente |
 

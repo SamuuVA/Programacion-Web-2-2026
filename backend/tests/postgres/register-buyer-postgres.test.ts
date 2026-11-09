@@ -178,12 +178,16 @@ describe("PI-01 contra PostgreSQL real", () => {
         NODE_ENV: "test",
         HOST: "127.0.0.1",
         PORT: "3000",
-        PERSISTENCE: "postgres",
         DATABASE_URL: databaseUrl,
         LOG_LEVEL: "silent"
       }),
       {
         store,
+        catalog: {
+          searchPublic: async () => ({ items: [], total: 0 }),
+          findPublicById: async () => null,
+          close: async () => undefined
+        },
         hasher,
         clock: new FixedClock(),
         ids: new SequentialIds()
