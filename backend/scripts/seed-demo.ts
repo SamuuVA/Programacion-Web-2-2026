@@ -31,8 +31,7 @@ const BUYER = {
   documento: "DEMO-BUYER-001"
 } as const;
 
-const SELLERS = [
-  {
+const SELLERS = [  {
     usuarioId: "10000000-0000-4000-8000-000000000001",
     sellerId: "20000000-0000-4000-8000-000000000001",
     warehouseId: "30000000-0000-4000-8000-000000000001",
@@ -53,6 +52,22 @@ const SELLERS = [
     bodega: "Bodega Nido · Medellín"
   }
 ] as const;
+
+const LOGISTICS = {
+  usuarioId: "80000000-0000-4000-8000-000000000001",
+  operadorId: "81000000-0000-4000-8000-000000000001",
+  nombreUsuario: "Operador Logístico Demo",
+  correo: "logistica@nexusmarket.demo",
+  documento: "DEMO-LOGISTICA-001",
+  nombreOperador: "Centro Logístico Nexus"
+} as const;
+
+const SUPERVISOR = {
+  usuarioId: "90000000-0000-4000-8000-000000000001",
+  nombreUsuario: "Supervisor Nexus",
+  correo: "supervisor@nexusmarket.demo",
+  documento: "DEMO-SUPERVISOR-001"
+} as const;
 
 const PRODUCTS = [
   {
@@ -325,6 +340,72 @@ try {
       );
     }
 
+    await client.query(
+      `INSERT INTO users (
+         id, nombre_completo, correo_normalizado, documento_tipo, documento_pais,
+         documento_numero, hash_credencial, rol, estado, creado_en, actualizado_en
+       ) VALUES ($1, $2, $3, 'CC', 'CO', $4, $5, 'OPERADOR_LOGISTICO', 'ACTIVO', $6, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         nombre_completo = EXCLUDED.nombre_completo,
+         correo_normalizado = EXCLUDED.correo_normalizado,
+         documento_numero = EXCLUDED.documento_numero,
+         hash_credencial = EXCLUDED.hash_credencial,
+         rol = 'OPERADOR_LOGISTICO',
+         estado = 'ACTIVO',
+         actualizado_en = EXCLUDED.actualizado_en`,
+      [
+        LOGISTICS.usuarioId,
+        LOGISTICS.nombreUsuario,
+        LOGISTICS.correo,
+        LOGISTICS.documento,
+        hash,
+        now
+      ]
+    );
+    await client.query(
+      `INSERT INTO logistics_operators (id, usuario_id, nombre_operador, estado, creado_en)
+       VALUES ($1, $2, $3, 'ACTIVO', $4)
+       ON CONFLICT (id) DO UPDATE SET
+         nombre_operador = EXCLUDED.nombre_operador,
+         estado = 'ACTIVO'`,
+      [LOGISTICS.operadorId, LOGISTICS.usuarioId, LOGISTICS.nombreOperador, now]
+    );
+    await client.query(
+      "DELETE FROM logistics_operator_warehouses WHERE operador_id = $1",
+      [LOGISTICS.operadorId]
+    );
+    for (const seller of SELLERS) {
+      await client.query(
+        `INSERT INTO logistics_operator_warehouses (operador_id, bodega_id, asignada_en)
+         VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [LOGISTICS.operadorId, seller.warehouseId, now]
+      );
+    }
+
+    await client.query(
+      `INSERT INTO users (
+         id, nombre_completo, correo_normalizado, documento_tipo, documento_pais,
+         documento_numero, hash_credencial, rol, estado, creado_en, actualizado_en
+       ) VALUES ($1, $2, $3, 'CC', 'CO', $4, $5, 'SUPERVISOR', 'ACTIVO', $6, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         nombre_completo = EXCLUDED.nombre_completo,
+         correo_normalizado = EXCLUDED.correo_normalizado,
+         documento_numero = EXCLUDED.documento_numero,
+         hash_credencial = EXCLUDED.hash_credencial,
+         rol = 'SUPERVISOR',
+         estado = 'ACTIVO',
+         actualizado_en = EXCLUDED.actualizado_en`,
+      [
+        SUPERVISOR.usuarioId,
+        SUPERVISOR.nombreUsuario,
+        SUPERVISOR.correo,
+        SUPERVISOR.documento,
+        hash,
+        now
+      ]
+    );
+
     for (const product of PRODUCTS) {
       const tipoEntrega = product.stock === null ? "DIGITAL" : "FISICA";
       await client.query(
@@ -398,6 +479,8 @@ try {
     console.log("Administrador demo: admin@nexusmarket.demo");
     console.log("Comprador demo: comprador@nexusmarket.demo");
     console.log("Vendedores demo: aurora@nexusmarket.demo / nido@nexusmarket.demo");
+    console.log("Operador logístico demo: logistica@nexusmarket.demo");
+    console.log("Supervisor demo: supervisor@nexusmarket.demo");
     console.log(`Contraseña demo (todos): ${DEMO_PASSWORD}`);
     console.log("La contraseña demo solo se usa para desarrollo local.");
   } catch (error) {

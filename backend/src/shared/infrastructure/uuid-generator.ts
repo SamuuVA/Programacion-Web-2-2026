@@ -7,12 +7,23 @@ import {
   checkoutId,
   compradorId,
   eventId,
+  inventarioId,
+  movimientoInventarioId,
   orderId,
   orderItemId,
+  orderStatusHistoryId,
   paymentId,
+  productImageId,
+  productoId,
   reservationId,
   sellerId,
   sessionId,
+  shipmentEventId,
+  shipmentId,
+  shipmentItemId,
+  deliveryEvidenceId,
+  logisticsOperationId,
+  logisticsOperatorId,
   usuarioId,
   warehouseId
 } from "../domain/ids.js";
@@ -72,5 +83,49 @@ export class UuidGenerator implements IdGenerator {
 
   reservationId() {
     return reservationId(randomUUID());
+  }
+
+  productoId() {
+    return productoId(randomUUID());
+  }
+
+  productImageId() {
+    return productImageId(randomUUID());
+  }
+
+  inventarioId() {
+    return inventarioId(randomUUID());
+  }
+
+  movimientoInventarioId() {
+    return movimientoInventarioId(randomUUID());
+  }
+
+  logisticsOperatorId() {
+    return logisticsOperatorId(randomUUID());
+  }
+
+  shipmentId() {
+    return shipmentId(randomUUID());
+  }
+
+  shipmentItemId() {
+    return shipmentItemId(randomUUID());
+  }
+
+  shipmentEventId() {
+    return shipmentEventId(randomUUID());
+  }
+
+  deliveryEvidenceId() {
+    return deliveryEvidenceId(randomUUID());
+  }
+
+  orderStatusHistoryId() {
+    return orderStatusHistoryId(randomUUID());
+  }
+
+  logisticsOperationId() {
+    return logisticsOperationId(randomUUID());
   }
 }

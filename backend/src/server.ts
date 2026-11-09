@@ -7,7 +7,11 @@ import {
   createCatalogQueryRepository,
   createCheckoutStore,
   createIdentityStore,
-  createSellerRegistrationStore
+  createLogisticsStore,
+  createSellerRegistrationStore,
+  createSellerWorkspaceStore,
+  createSupervisorStore,
+  createAdminStore
 } from "./infrastructure/factory.js";
 import { Argon2PasswordHasher } from "./modules/identity/infrastructure/argon2-password-hasher.js";
 import { SystemClock } from "./shared/infrastructure/system-clock.js";
@@ -27,7 +31,11 @@ const app = await buildApp(config, {
   addresses: createAddressStore(config),
   sellers: createSellerRegistrationStore(config),
   cart: createCartStore(config),
-  checkout: createCheckoutStore(config, ids)
+  checkout: createCheckoutStore(config, ids),
+  sellerWorkspace: createSellerWorkspaceStore(config),
+  logistics: createLogisticsStore(config, ids),
+  supervisor: createSupervisorStore(config),
+  admin: createAdminStore(config)
 });
 
 const shutdown = async (signal: string): Promise<void> => {

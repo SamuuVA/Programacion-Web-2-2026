@@ -20,6 +20,7 @@
     "db:migrate:baseline": "tsx scripts/migrate.ts --baseline",
     "db:status": "tsx scripts/migrate.ts --status",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
+    "smoke:seller": "tsx scripts/seller-smoke.ts",
     "verify": "npm run typecheck && npm test && npm run validate:openapi && npm run build"
   },
   "dependencies": {

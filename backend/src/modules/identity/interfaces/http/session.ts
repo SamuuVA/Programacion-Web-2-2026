@@ -127,4 +127,21 @@ export class SessionAuthenticator {
     }
     return user.sellerId;
   }
+
+  requireLogistics(user: AuthenticatedUser): string {
+    this.requireRole(user, ["OPERADOR_LOGISTICO"]);
+    return user.usuarioId;
+  }
+
+  /**
+   * `SUP-01`: el Supervisor solo consulta. No se concede equivalencia con el
+   * Administrador ni con ningún otro rol.
+   */
+  requireSupervisor(user: AuthenticatedUser): string {
+    this.requireRole(user, ["SUPERVISOR"]);
+    if (user.estado !== "ACTIVO") {
+      throw new AuthorizationError("La cuenta del supervisor no está activa.");
+    }
+    return user.usuarioId;
+  }
 }

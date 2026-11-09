@@ -297,7 +297,9 @@ export class PostgresCheckoutStore implements CheckoutStore {
         cartId,
         orderIds,
         command.resultadoPagoSimulado,
-        command.now
+        command.now,
+        command.compradorId,
+        command.correlationId
       );
 
       const pedidos: OrderDetail[] = [];
@@ -568,8 +570,16 @@ export class PostgresCheckoutStore implements CheckoutStore {
     cartId: string,
     orderIds: readonly string[],
     outcome: CheckoutCommand["resultadoPagoSimulado"],
-    now: string
+    now: string,
+    compradorId: string,
+    correlationId: string
   ): Promise<void> {
+    const actor = await client.query<{ usuario_id: string }>(
+      "SELECT usuario_id FROM buyers WHERE id = $1",
+      [compradorId]
+    );
+    const actorId = actor.rows[0]?.usuario_id ?? null;
+
     if (outcome === "CONFIRMADO") {
       for (const orderId of orderIds) {
         await client.query(
@@ -587,6 +597,17 @@ export class PostgresCheckoutStore implements CheckoutStore {
             WHERE id = $1`,
           [orderId, now]
         );
+        await this.insertOrderHistory(client, {
+          pedidoId: orderId,
+          estadoPrevio: "PENDIENTE_DE_PAGO",
+          estadoNuevo: "EN_PREPARACION",
+          actorId,
+          actorRol: "COMPRADOR",
+          now,
+          referenciaTipo: "PAGO",
+          referenciaId: await this.paymentReference(client, orderId),
+          correlationId
+        });
       }
       await this.clearCart(client, cartId, now);
       return;
@@ -609,6 +630,17 @@ export class PostgresCheckoutStore implements CheckoutStore {
             WHERE id = $1`,
           [orderId, now]
         );
+        await this.insertOrderHistory(client, {
+          pedidoId: orderId,
+          estadoPrevio: "PENDIENTE_DE_PAGO",
+          estadoNuevo: "CANCELADO",
+          actorId,
+          actorRol: "COMPRADOR",
+          now,
+          referenciaTipo: "PAGO",
+          referenciaId: await this.paymentReference(client, orderId),
+          correlationId
+        });
       }
       await this.releaseReservations(client, checkoutId, now);
       return;
@@ -618,6 +650,51 @@ export class PostgresCheckoutStore implements CheckoutStore {
     // pagado ni como rechazado. Se vacía el carrito para que un nuevo intento
     // no genere un pedido duplicado; el comprador puede consultar el pedido.
     await this.clearCart(client, cartId, now);
+  }
+
+  private async paymentReference(
+    client: PoolClient,
+    orderId: string
+  ): Promise<string> {
+    const result = await client.query<{ referencia: string }>(
+      "SELECT referencia FROM payments WHERE pedido_id = $1",
+      [orderId]
+    );
+    return result.rows[0]?.referencia ?? orderId;
+  }
+
+  private async insertOrderHistory(
+    client: PoolClient,
+    input: {
+      readonly pedidoId: string;
+      readonly estadoPrevio: EstadoPedido | null;
+      readonly estadoNuevo: EstadoPedido;
+      readonly actorId: string | null;
+      readonly actorRol: string;
+      readonly now: string;
+      readonly referenciaTipo: string;
+      readonly referenciaId: string;
+      readonly correlationId: string;
+    }
+  ): Promise<void> {
+    await client.query(
+      `INSERT INTO order_status_history (
+         id, pedido_id, estado_previo, estado_nuevo, actor_id, actor_rol,
+         ocurrido_en, referencia_tipo, referencia_id, correlation_id
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        this.ids.orderStatusHistoryId(),
+        input.pedidoId,
+        input.estadoPrevio,
+        input.estadoNuevo,
+        input.actorId,
+        input.actorRol,
+        input.now,
+        input.referenciaTipo,
+        input.referenciaId,
+        input.correlationId
+      ]
+    );
   }
 
   private async clearCart(client: PoolClient, cartId: string, now: string): Promise<void> {

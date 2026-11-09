@@ -47,6 +47,8 @@ export async function registerSellerAction(
       { method: "POST", token, body: payload }
     );
     revalidatePath("/admin/sellers");
+    revalidatePath("/admin/sellers/new");
+    revalidatePath("/admin");
     return {
       status: "success",
       message: `Vendedor ${response.data.correoNormalizado} creado con su primera bodega.`,

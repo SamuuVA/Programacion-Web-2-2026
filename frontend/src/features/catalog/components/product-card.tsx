@@ -7,6 +7,7 @@ import {
   formatPrecio
 } from "@/features/catalog/format";
 import type { ProductoResumen } from "@/features/catalog/types";
+import { ProductImage } from "./product-image";
 
 export function ProductCard({ product }: { product: ProductoResumen }) {
   const disponibilidad = disponibilidadTexto(
@@ -23,7 +24,7 @@ export function ProductCard({ product }: { product: ProductoResumen }) {
         aria-label={`Ver ${product.nombre}`}
       >
         {product.imagenPrincipal ? (
-          <img
+          <ProductImage
             src={product.imagenPrincipal.url}
             alt={product.imagenPrincipal.alt}
             width={800}

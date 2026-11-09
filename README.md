@@ -25,7 +25,7 @@
 
 </div>
 
-> **Estado actual:** existe una entrega funcional local (corte 2026-11-03). El backend (`backend/`, TypeScript/Node.js, Fastify y PostgreSQL) implementa `PI-01 RegisterBuyer`, catálogo público `PI-07`, autenticación y sesiones (`ADR-004`), direcciones de comprador (`L-01`), alta administrativa de vendedor (`PI-02`), carrito persistente y checkout con pago simulado (`UC-01`) con idempotencia y reservas de inventario; el frontend (`frontend/`, Next.js) integra login, carrito, checkout, pedidos, direcciones y administración. Verificado localmente con typecheck, 92 pruebas de backend, 21 pruebas PostgreSQL, validación OpenAPI (`19 rutas, 22 operaciones`), build de ambos proyectos, smoke HTTP 15/15 y E2E navegador 13/13. PostgreSQL es obligatorio (sin adaptador en memoria). Reembolsos/logística inversa, CI ejecutado en GitHub, lint y despliegue siguen pendientes y no se presentan como implementados.
+> **Estado actual:** existe una entrega funcional local (corte 2026-11-06). El backend (`backend/`, TypeScript/Node.js, Fastify y PostgreSQL) implementa `PI-01 RegisterBuyer`, catálogo público `PI-07`, autenticación y sesiones (`ADR-004`), direcciones de comprador (`L-01`), alta administrativa de vendedor (`PI-02`), carrito persistente, checkout con pago simulado (`UC-01`) con idempotencia y reservas de inventario, espacio de trabajo del vendedor, operación logística y supervisión de solo lectura; el frontend (`frontend/`, Next.js) integra login, carrito, checkout, pedidos, direcciones, administración, `/seller`, `/logistics` y `/supervisor`. Verificado localmente con typecheck, 145 pruebas de backend, 37 pruebas PostgreSQL, validación OpenAPI (`52 rutas, 59 operaciones`), build de ambos proyectos, smoke HTTP 33/33 y E2E navegador 6/6. PostgreSQL es obligatorio (sin adaptador en memoria). Reembolsos/logística inversa, reportes administrativos (`L-19`), CI ejecutado en GitHub, lint y despliegue siguen pendientes y no se presentan como implementados.
 
 ---
 
@@ -81,7 +81,7 @@ El proyecto se desarrolla como un **monolito modular**: una sola unidad desplega
 | Casos de uso | [`nexusmarket-use-cases-checkout-query-order.md`](BackendSDD/Application/nexusmarket-use-cases-checkout-query-order.md) | Completo · `UC-01`, `UC-02` |
 | Adaptadores | [`nexusmarket-adapters.md`](BackendSDD/Adapters/nexusmarket-adapters.md) + 14 documentos | Completo · `ADIN-01`, `ADOUT-01`…`ADOUT-13` |
 | Alineación de contratos | [`nexusmarket-contract-alignment.md`](BackendSDD/Contracts/nexusmarket-contract-alignment.md) | Completo · `CT-01`…`CT-13` |
-| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) · [`frontend/`](frontend/) | **PI-01, catálogo público, auth, direcciones, PI-02, carrito y checkout con pago simulado implementados**; PostgreSQL 17, 92 pruebas de backend, 21 PostgreSQL, OpenAPI 0.3.0 (19 rutas) y frontend Next.js construido |
+| Código de aplicación | [`backend/`](backend/) · [`backend/README.md`](backend/README.md) · [`frontend/`](frontend/) | **PI-01, catálogo público, auth, direcciones, PI-02, carrito, checkout con pago simulado, vendedor, logística y supervisión implementados**; PostgreSQL 17, 145 pruebas de backend, 37 PostgreSQL, OpenAPI 0.6.0 (52 rutas) y frontend Next.js construido |
 
 ### Indicadores de la especificación
 
@@ -588,11 +588,11 @@ cd Programacion-Web-2-2026
 Para ejecutar la entrega demostrable:
 
 ```powershell
-# 1. PostgreSQL
+# 1. PostgreSQL (el compose vive en backend/)
+cd backend
 docker compose up -d
 
 # 2. Backend
-cd backend
 npm install
 Copy-Item .env.example .env
 npm run db:migrate

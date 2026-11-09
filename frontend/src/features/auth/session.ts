@@ -58,6 +58,49 @@ export async function requireAdmin(redirectTo: string): Promise<AuthenticatedUse
   return user;
 }
 
+export async function requireSeller(
+  redirectTo: string
+): Promise<AuthenticatedUser & { sellerId: string }> {
+  const user = await getSession();
+  if (!user) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+  }
+  if (user.rol !== "VENDEDOR" || !user.sellerId) {
+    redirect("/");
+  }
+  return user as AuthenticatedUser & { sellerId: string };
+}
+
+export async function requireLogistics(
+  redirectTo: string
+): Promise<AuthenticatedUser> {
+  const user = await getSession();
+  if (!user) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+  }
+  if (user.rol !== "OPERADOR_LOGISTICO" || user.estado !== "ACTIVO") {
+    redirect("/");
+  }
+  return user;
+}
+
+/**
+ * `SUP-01`: el Supervisor es un perfil de consulta. No se concede acceso al
+ * Administrador ni a ningún otro rol.
+ */
+export async function requireSupervisor(
+  redirectTo: string
+): Promise<AuthenticatedUser> {
+  const user = await getSession();
+  if (!user) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+  }
+  if (user.rol !== "SUPERVISOR" || user.estado !== "ACTIVO") {
+    redirect("/");
+  }
+  return user;
+}
+
 export function safeRedirect(value: string): string {
   if (value.startsWith("/") && !value.startsWith("//")) {
     return value;

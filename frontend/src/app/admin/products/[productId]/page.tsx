@@ -1,0 +1,238 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowRightIcon, StoreIcon } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
+import { getSessionToken, requireAdmin } from "@/features/auth/session";
+import { fetchAdminProduct } from "@/features/admin/api";
+import {
+  CATEGORIA_LABEL,
+  ESTADO_PRODUCTO_LABEL,
+  estadoProductoTone,
+  formatFechaHora,
+  formatMoney
+} from "@/features/admin/format";
+import { isAdminResourceId } from "@/features/admin/ids";
+import { toActionError } from "@/lib/action-state";
+
+type ProductPageProps = {
+  params: Promise<{ productId: string }>;
+};
+
+export async function generateMetadata({
+  params
+}: ProductPageProps): Promise<Metadata> {
+  const { productId } = await params;
+  if (!isAdminResourceId(productId)) {
+    notFound();
+  }
+  return { title: "Detalle del producto" };
+}
+
+export default async function AdminProductDetailPage({ params }: ProductPageProps) {
+  const { productId } = await params;
+  if (!isAdminResourceId(productId)) {
+    notFound();
+  }
+
+  await requireAdmin(`/admin/products/${productId}`);
+  const token = await getSessionToken();
+  if (!token) {
+    return null;
+  }
+
+  let product: Awaited<ReturnType<typeof fetchAdminProduct>>;
+  try {
+    product = await fetchAdminProduct(token, productId);
+  } catch (error) {
+    const state = toActionError(error, "No pudimos cargar el producto.");
+    return (
+      <section className="section-tight">
+        <div className="container">
+          <ErrorState
+            description={state.message ?? "Intenta de nuevo más tarde."}
+            correlationId={state.correlationId}
+          />
+        </div>
+      </section>
+    );
+  }
+
+  if (!product) {
+    notFound();
+  }
+
+  return (
+    <>
+      <section className="page-head">
+        <div className="container">
+          <nav className="breadcrumbs" aria-label="Ruta de navegación">
+            <Link href="/admin/products">Productos</Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{product.nombre}</span>
+          </nav>
+          <p className="eyebrow">Producto del catálogo</p>
+          <h1>{product.nombre}</h1>
+          <div className="order-detail-badges">
+            <Badge tone={estadoProductoTone(product.estado)}>
+              {ESTADO_PRODUCTO_LABEL[product.estado]}
+            </Badge>
+            <Badge tone="neutral">{CATEGORIA_LABEL[product.categoria]}</Badge>
+            <span className="order-detail-date">
+              SKU {product.sku} · Actualizado el{" "}
+              {formatFechaHora(product.actualizadoEn)}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-tight">
+        <div className="container seller-detail-layout">
+          <div className="seller-detail-main">
+            <section className="checkout-block">
+              <h2>Información del producto</h2>
+              <ul className="order-items">
+                <li>
+                  <span>Vendedor</span>
+                  <strong>{product.vendedorNombre}</strong>
+                </li>
+                <li>
+                  <span>Tipo de entrega</span>
+                  <strong>
+                    {product.tipoEntrega === "FISICA" ? "Física" : "Digital"}
+                  </strong>
+                </li>
+                <li>
+                  <span>Precio</span>
+                  <strong>
+                    {formatMoney(product.precioCentavos, product.moneda)}
+                  </strong>
+                </li>
+                <li>
+                  <span>Imágenes</span>
+                  <strong>{product.imagenesCount}</strong>
+                </li>
+                <li>
+                  <span>Disponible</span>
+                  <strong>
+                    {product.inventarioDisponible === null
+                      ? "No aplica (digital)"
+                      : `${product.inventarioDisponible} unidades`}
+                  </strong>
+                </li>
+                <li>
+                  <span>Creado</span>
+                  <strong>{formatFechaHora(product.creadoEn)}</strong>
+                </li>
+              </ul>
+              <p className="form-hint">{product.descripcion}</p>
+            </section>
+
+            <section className="checkout-block">
+              <h2>Imágenes</h2>
+              {product.imagenes.length === 0 ? (
+                <p className="form-hint">
+                  El producto no tiene imágenes registradas. Publicar exige al
+                  menos una imagen y un SKU.
+                </p>
+              ) : (
+                <ul className="order-items">
+                  {product.imagenes.map((image) => (
+                    <li key={image.id}>
+                      <div>
+                        <strong>{image.alt}</strong>
+                        <span>{image.url}</span>
+                      </div>
+                      <span>Orden {image.orden}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="checkout-block">
+              <h2>Inventario por almacén</h2>
+              {product.inventario.length === 0 ? (
+                <p className="form-hint">
+                  {product.tipoEntrega === "DIGITAL"
+                    ? "Los productos digitales no requieren inventario físico."
+                    : "El producto no tiene posiciones de inventario registradas."}
+                </p>
+              ) : (
+                <div className="seller-table-wrap">
+                  <table className="seller-table">
+                    <caption className="sr-only">
+                      Inventario del producto por almacén
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Almacén</th>
+                        <th scope="col">En mano</th>
+                        <th scope="col">Reservado</th>
+                        <th scope="col">No disponible</th>
+                        <th scope="col">Disponible</th>
+                        <th scope="col">Actualizado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {product.inventario.map((position) => (
+                        <tr key={position.bodegaId}>
+                          <td>
+                            <Link
+                              className="text-link"
+                              href={`/admin/warehouses/${position.bodegaId}`}
+                            >
+                              {position.bodegaNombre}
+                            </Link>
+                          </td>
+                          <td>{position.onHand}</td>
+                          <td>{position.reserved}</td>
+                          <td>{position.unavailable}</td>
+                          <td>
+                            <strong>{position.disponible}</strong>
+                          </td>
+                          <td>{formatFechaHora(position.actualizadoEn)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="seller-detail-aside">
+            <section className="checkout-block">
+              <h2>Consulta de solo lectura</h2>
+              <p className="form-hint">
+                <StoreIcon width={16} height={16} /> El Administrador no edita,
+                publica, suspende ni descontinúa productos desde esta pantalla. Esas
+                acciones pertenecen al vendedor propietario.
+              </p>
+            </section>
+
+            <section className="checkout-block">
+              <h2>Vendedor</h2>
+              <Link
+                className="text-link"
+                href={`/admin/sellers/${product.vendedorId}`}
+              >
+                Ver vendedor propietario
+              </Link>
+            </section>
+
+            <Link className="text-link" href="/admin/products">
+              <ArrowRightIcon
+                width={16}
+                height={16}
+                style={{ transform: "rotate(180deg)" }}
+              />
+              Volver a productos
+            </Link>
+          </aside>
+        </div>
+      </section>
+    </>
+  );
+}

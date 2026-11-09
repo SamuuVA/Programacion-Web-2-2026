@@ -13,6 +13,14 @@ import type { CartStore } from "../modules/cart/application/ports.js";
 import { PostgresCartStore } from "../modules/cart/infrastructure/postgres-cart-store.js";
 import type { CheckoutStore } from "../modules/orders/application/ports.js";
 import { PostgresCheckoutStore } from "../modules/orders/infrastructure/postgres-checkout-store.js";
+import type { SellerWorkspaceStore } from "../modules/seller-workspace/application/ports.js";
+import { PostgresSellerWorkspaceStore } from "../modules/seller-workspace/infrastructure/postgres-seller-workspace-store.js";
+import type { LogisticsStore } from "../modules/logistics/application/ports.js";
+import { PostgresLogisticsStore } from "../modules/logistics/infrastructure/postgres-logistics-store.js";
+import type { SupervisorStore } from "../modules/supervisor/application/ports.js";
+import { PostgresSupervisorStore } from "../modules/supervisor/infrastructure/postgres-supervisor-store.js";
+import type { AdminStore } from "../modules/admin/application/ports.js";
+import { PostgresAdminStore } from "../modules/admin/infrastructure/postgres-admin-store.js";
 import type { IdGenerator } from "../shared/application/ports.js";
 
 /**
@@ -50,4 +58,23 @@ export function createCartStore(config: AppConfig): CartStore {
 
 export function createCheckoutStore(config: AppConfig, ids: IdGenerator): CheckoutStore {
   return new PostgresCheckoutStore(config.DATABASE_URL, ids);
+}
+
+export function createSellerWorkspaceStore(config: AppConfig): SellerWorkspaceStore {
+  return new PostgresSellerWorkspaceStore(config.DATABASE_URL);
+}
+
+export function createLogisticsStore(
+  config: AppConfig,
+  ids: IdGenerator
+): LogisticsStore {
+  return new PostgresLogisticsStore(config.DATABASE_URL, ids);
+}
+
+export function createSupervisorStore(config: AppConfig): SupervisorStore {
+  return new PostgresSupervisorStore(config.DATABASE_URL);
+}
+
+export function createAdminStore(config: AppConfig): AdminStore {
+  return new PostgresAdminStore(config.DATABASE_URL);
 }

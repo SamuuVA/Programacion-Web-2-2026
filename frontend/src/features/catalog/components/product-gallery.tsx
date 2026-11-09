@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ImagenProducto } from "../types";
+import { ProductImage } from "./product-image";
 
 export function ProductGallery({
   images,
@@ -26,7 +27,8 @@ export function ProductGallery({
   return (
     <div className="gallery">
       <div className="gallery-main">
-        <img
+        <ProductImage
+          key={active.id}
           src={active.url}
           alt={active.alt || productName}
           width={800}
@@ -46,7 +48,8 @@ export function ProductGallery({
               aria-pressed={index === activeIndex}
               onClick={() => setActiveIndex(index)}
             >
-              <img
+              <ProductImage
+                key={image.id}
                 src={image.url}
                 alt=""
                 width={200}

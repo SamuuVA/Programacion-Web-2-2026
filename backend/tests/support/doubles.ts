@@ -6,12 +6,23 @@ import {
   checkoutId,
   compradorId,
   eventId,
+  inventarioId,
+  movimientoInventarioId,
   orderId,
   orderItemId,
+  orderStatusHistoryId,
   paymentId,
+  productImageId,
+  productoId,
   reservationId,
   sellerId,
   sessionId,
+  shipmentEventId,
+  shipmentId,
+  shipmentItemId,
+  deliveryEvidenceId,
+  logisticsOperationId,
+  logisticsOperatorId,
   usuarioId,
   warehouseId
 } from "../../src/shared/domain/ids.js";
@@ -92,5 +103,65 @@ export class SequentialIds implements IdGenerator {
 
   reservationId() {
     return reservationId(`00000000-0000-4000-8013-${String(++this.sequence).padStart(12, "0")}`);
+  }
+
+  productoId() {
+    return productoId(`00000000-0000-4000-8014-${String(++this.sequence).padStart(12, "0")}`);
+  }
+
+  productImageId() {
+    return productImageId(`00000000-0000-4000-8015-${String(++this.sequence).padStart(12, "0")}`);
+  }
+
+  inventarioId() {
+    return inventarioId(`00000000-0000-4000-8016-${String(++this.sequence).padStart(12, "0")}`);
+  }
+
+  movimientoInventarioId() {
+    return movimientoInventarioId(
+      `00000000-0000-4000-8017-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  logisticsOperatorId() {
+    return logisticsOperatorId(
+      `00000000-0000-4000-8018-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  shipmentId() {
+    return shipmentId(
+      `00000000-0000-4000-8019-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  shipmentItemId() {
+    return shipmentItemId(
+      `00000000-0000-4000-8020-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  shipmentEventId() {
+    return shipmentEventId(
+      `00000000-0000-4000-8021-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  deliveryEvidenceId() {
+    return deliveryEvidenceId(
+      `00000000-0000-4000-8022-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  orderStatusHistoryId() {
+    return orderStatusHistoryId(
+      `00000000-0000-4000-8023-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  logisticsOperationId() {
+    return logisticsOperationId(
+      `00000000-0000-4000-8024-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 }

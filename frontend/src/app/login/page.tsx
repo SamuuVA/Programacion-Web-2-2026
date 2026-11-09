@@ -27,10 +27,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="page-head">
         <div className="container">
           <p className="eyebrow">Cuenta NexusMarket</p>
-          <h1>Ingresa para comprar</h1>
+          <h1>Ingresa a NexusMarket</h1>
           <p>
-            El carrito, las direcciones y los pedidos se guardan en tu cuenta.
-            La sesión se valida en el backend en cada petición.
+            Compra, revisa tus pedidos o administra tu tienda desde una cuenta
+            verificada. La sesión se valida en el backend en cada petición.
           </p>
         </div>
       </section>

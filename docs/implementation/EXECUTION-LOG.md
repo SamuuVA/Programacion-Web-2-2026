@@ -1,7 +1,7 @@
 # NexusMarket — Registro de ejecución
 
-**Corte:** 2026-11-03
-**Sesiones:** S-006 (cierre de `PI-01` y catálogo) y S-007 (marketplace funcional)
+**Corte:** 2026-11-06
+**Sesiones:** S-006 (cierre de `PI-01` y catálogo), S-007 (marketplace funcional), S-009 (espacio de trabajo del vendedor), S-012 (operación logística) y S-013 (supervisión de solo lectura)
 **Regla:** solo se registran comandos ejecutados y resultados observados. Lo no ejecutado se declara como tal.
 
 ---
@@ -18,9 +18,10 @@
 | Backend dev | `http://127.0.0.1:3000` |
 | Frontend prod | `http://127.0.0.1:3001` |
 | Base de prueba | `nexusmarket_test` |
-| Rama | `main` |
-| Commit HEAD al iniciar | `10e65d8cb7f46898342323d223076255e7b95bb4` |
-| Árbol | cambios sin commit (backend, frontend y documentación) |
+| Rama | `entrega-1-catalogo` |
+| Commit HEAD al iniciar | `90e2c70` (`actualizacion 2026113`) |
+| Árbol | cambios sin commit (backend, frontend y documentación; trabajo del vendedor, logística y supervisión) |
+| E2E | Playwright con Microsoft Edge del sistema, frontend en `127.0.0.1:3001` |
 
 ---
 
@@ -151,7 +152,7 @@ Se actualizaron `backend/README.md`, `README.md`, `orchestrator-state.md` y nota
 
 ---
 
-## 3. Comandos consolidados
+## 3. Comandos consolidados (iteración 1, histórico)
 
 ### Backend
 
@@ -327,7 +328,265 @@ Flujo completo ejecutado en Chrome headless contra el frontend de producción:
 
 ---
 
-## 5. Comandos consolidados (corte actual)
+## 5. Iteración 3 — espacio de trabajo del vendedor (S-009)
+
+### 5.1 Alcance implementado
+
+1. Migración `007_seller_workspace.sql`: estado `BORRADOR` en `products.estado`, tabla `inventory_movements` y índices por vendedor.
+2. Dominio del vendedor: `producto-vendedor.ts` (estados y transiciones aprobadas) e `inventario-vendedor.ts` (invariantes de ingreso).
+3. Aplicación: puertos y casos de uso para perfil, productos, imágenes, bodegas, inventario y pedidos.
+4. Infraestructura PostgreSQL: `PostgresSellerWorkspaceStore` con transacciones, bloqueo asesor e idempotencia de ingresos.
+5. HTTP: 18 rutas `/api/v1/seller/*`; autorización por sesión y ownership derivado del `sellerId`; acceso cruzado `404`.
+6. Frontend: layout protegido `/seller`, inicio, perfil, productos, alta/edición, imágenes, bodegas, inventario y pedidos, con estados de carga/vacío/error/validación/denegado/no encontrado.
+7. OpenAPI `0.4.0` con las rutas y esquemas del vendedor.
+8. Pruebas: unidad, integración HTTP, PostgreSQL, contrato, smoke HTTP y E2E Playwright.
+
+### 5.2 Comandos y resultados
+
+Desde `backend/`:
+
+```powershell
+npm run verify
+$env:TEST_DATABASE_URL = "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test"
+npm run test:postgres
+$env:API_URL = "http://127.0.0.1:3000"
+npm run smoke:seller
+```
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run typecheck` | OK |
+| `npm test` | 14 archivos, 110 pruebas aprobadas |
+| `npm run validate:openapi` | `OpenAPI válido: 33 rutas, 40 operaciones, 419 referencias.` |
+| `npm run build` | OK |
+| `npm run verify` | OK (secuencia completa) |
+| `npm run test:postgres` | 5 archivos, 28 pruebas aprobadas |
+| `npm run smoke:seller` | 33/33 comprobaciones PASS |
+
+Desde `frontend/`:
+
+```powershell
+npm run typecheck
+npm run build
+npm run test:e2e
+```
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run typecheck` | OK |
+| `npm run build` | OK (Next.js 16.4.3, 18 rutas) |
+| `npm run test:e2e` | 4/4 PASS (incluye el recorrido cruzado) |
+
+### 5.3 Smoke HTTP del vendedor (33 comprobaciones)
+
+Cubre, contra la API real y PostgreSQL:
+
+- Sesión `VENDEDOR` con `sellerId` propio.
+- Perfil: lectura y actualización acotada.
+- Rechazo `403` de un comprador en rutas de vendedor.
+- Bodegas propias.
+- Alta de producto en `BORRADOR`, propietario derivado de la sesión.
+- Publicación rechazada sin imagen (`422`) y aceptada con imagen.
+- Producto publicado visible en el catálogo público.
+- Acceso de otro vendedor `404` (sin filtrar existencia).
+- Ingreso de stock `201`, suma de unidades e idempotencia en el reintento.
+- Suspensión y descontinuación con las transiciones aprobadas.
+- Consulta de pedidos con productos propios.
+
+### 5.4 E2E de navegador (Playwright + Microsoft Edge)
+
+| Prueba | Resultado |
+|---|---|
+| Protección de `/seller` para anónimos y compradores | PASS |
+| Recorrido completo: alta, imagen, publicación, ingreso, pedidos y estados | PASS |
+| Aislamiento entre vendedores cambiando el identificador | PASS |
+| Recorrido cruzado: admin registra vendedor → vendedor publica con stock → comprador compra con pago simulado → vendedor ve el pedido | PASS |
+
+**Total: 4/4 PASS**, con `timeout` de 120 s (240 s para el recorrido cruzado) y `expect` de 15 s. El recorrido cruzado usa contextos de navegador independientes por rol y no simula pagos ni logística: usa el checkout y el pago simulado existentes.
+
+### 5.4.1 Continuación S-010 (2026-11-04)
+
+- Se agregó `frontend/e2e/cross-role.spec.ts` para cubrir la integración real entre roles, que era el hueco declarado del corte anterior.
+- El test crea un vendedor y su bodega desde el formulario administrativo, inicia sesión con esas credenciales, publica un producto físico con imagen y stock, y compra ese producto como comprador demo.
+- El vendedor consulta el pedido en `/seller/orders`, abre el detalle y verifica producto, SKU y ausencia de acciones de pago/logística.
+- Resultado: `npx playwright test e2e/cross-role.spec.ts` → 1/1 PASS; suite completa → 4/4 PASS.
+- Incidencias corregidas: aserciones ambiguas por coincidencia parcial de `heading`/`getByText`; se usaron `exact` y `.first()` donde el DOM repite el nombre.
+
+### 5.5 Incidencias y mitigaciones de la iteración 3
+
+| Incidencia | Efecto | Mitigación |
+|---|---|---|
+| Un ingreso devolvió `503` de forma intermitente | Fallo no reproducible en ejecuciones posteriores | Se añadió registro servidor de errores de aplicación 5xx (`request.log.error`) para diagnosticar; el cliente sigue sin recibir detalles internos |
+| La clave de idempotencia se derivaba de `useId` | Se repetía entre cargas y el backend deduplicaba ingresos nuevos | Se genera `crypto.randomUUID()` tras montar; el botón queda deshabilitado hasta tener la clave |
+| `submitAction` capturaba la URL antes de terminar la navegación | Timeout en el E2E de alta/edición | Se espera el `heading` del detalle y se acepta cualquier POST del mismo origen |
+| El login del E2E no esperaba a salir de `/login` | La siguiente navegación usaba una sesión aún no disponible | Se espera a que la URL deje de ser `/login` |
+| Playwright no encontraba Chromium instalado | E2E no arrancaba | Se usa el canal `msedge` del sistema |
+| El test de migraciones no conocía `007` | Falso negativo de esquema | Se actualizó la aserción a `inventory_movements` y al estado `BORRADOR` |
+
+### 5.6 Documentación actualizada
+
+- `docs/implementation/IMPLEMENTATION-STATUS.md`
+- `docs/implementation/EXECUTION-LOG.md`
+- `docs/implementation/DECISIONS-LOG.md`
+- `orchestrator-state.md`
+
+### 5.6.1 Corrección de imágenes (2026-11-04)
+
+- **Síntoma:** el catálogo mostraba imágenes rotas o “desaparecidas”.
+- **Causa:** los productos creados por las pruebas E2E y por `seller-smoke.ts` referenciaban `/products/aurora-lampara.svg` y `/products/smoke.svg`, archivos que no existen en `frontend/public/products`. Eran 19 registros de `product_images`.
+- **Corrección:**
+  - `seller.spec.ts`, `cross-role.spec.ts` y `seller-smoke.ts` ahora usan `/products/lampara-nido.svg`, que sí existe.
+  - Se actualizaron las 19 referencias dañadas en PostgreSQL a una URL válida.
+  - Se agregó `ProductImage`, un componente cliente que muestra el placeholder “NM” cuando la URL falla, en lugar de un icono roto.
+  - Se agregó el activo `frontend/public/products/casa-luna-tazas.svg` para el producto de demostración de Casa Luna.
+- **Verificación:** las 8 URLs distintas de `product_images` tienen archivo en `frontend/public/products`; `GET /products/casa-luna-tazas.svg` responde `200 image/svg+xml`; detalle y catálogo responden `200` con el producto visible; smoke 33/33; E2E 4/4; typecheck y build OK.
+- **Nota:** no se eliminaron productos de prueba; solo se corrigieron sus referencias de imagen.
+
+### 5.7 Límites de la iteración
+
+- Carga binaria de imágenes: `BLOQUEADO` (sin mecanismo/proveedor/límites aprobados); se usan URLs persistentes.
+- Ajustes negativos y movimientos logísticos: no autorizados para el vendedor; solo `INGRESO`.
+- Preparación/despacho: reservados a logística; pedidos de solo lectura.
+- Entrega digital (`PUB-06`): estructura no definida por el SDD; no modelada.
+- Variantes: fuera de V1 por decisión; discrepancia con `CAT-02` registrada.
+
+---
+
+## 6. Iteración 4 — operación logística (S-012)
+
+**Fecha:** 2026-11-05
+**Rama/commit:** `entrega-1-catalogo` / `90e2c70` (trabajo sin confirmar)
+
+### Alcance implementado
+
+- Migración `008_logistics.sql`: `logistics_operators`, `logistics_operator_warehouses`, `shipments`, `shipment_items`, `shipment_events`, `delivery_evidence`, `logistics_operations` y `order_status_history`; reservas `CONSUMIDA`; `orders.entregado_en`.
+- Dominio logístico sin HTTP/SQL: estados del envío, precondiciones de preparación/despacho/entrega y normalización de evidencia.
+- Casos de uso: perfil, bodegas, inventario, resumen, pedidos, detalle, preparación, despacho, entrega y alta administrativa de operadores.
+- Adaptador PostgreSQL transaccional con ámbito por bodegas, bloqueos asesores, idempotencia persistente, consumo de reservas, movimiento `SALIDA_VENTA` e historial de estados.
+- 9 rutas `/api/v1/logistics/*` más `POST /api/v1/admin/logistics-operators`; `requireLogistics()` exige rol y perfil activo.
+- Frontend `/logistics`: resumen, pedidos, detalle operable, bodegas e inventario; guardas de servidor y Server Actions.
+- Seed demo con `logistica@nexusmarket.demo` y asignación a las bodegas de Aurora y Nido.
+- OpenAPI `0.5.0`: 43 rutas, 50 operaciones, 544 referencias.
+- El checkout ahora escribe `order_status_history` para pago confirmado y rechazado.
+
+### Evidencia ejecutada
+
+| Comprobación | Resultado |
+|---|---|
+| `backend`: `npm run verify` | OK; 16 archivos / 131 pruebas; OpenAPI 43/50/544; build OK |
+| `backend`: `npm run test:postgres` | 6 archivos / 34 pruebas OK |
+| `backend`: `npm run smoke:seller` | 33/33 PASS (regresión) |
+| `backend`: login real del operador demo | rol `OPERADOR_LOGISTICO`, estado `ACTIVO`, 2 bodegas |
+| `frontend`: `npm run typecheck` / `npm run build` | OK; 22 rutas |
+| `frontend`: `npm run test:e2e` | 5/5 PASS, incluido el flujo logístico completo |
+
+### Decisiones
+
+`DEC-V2-019`…`DEC-V2-026`: ámbito por bodegas, preparación con reservas, despacho con salida de inventario, entrega con evidencia, idempotencia por operador/tipo, historial con actor y referencia causal, frontend con guardas de servidor y límites explícitos.
+
+### Límites
+
+- Asignación automática, transportistas externos, tracking integrado y evidencia del proveedor: `BLOQUEADO` (`L-23`).
+- `CloseOrder` (`ENTREGADO → CERRADO`): `BLOQUEADO`; sin actor ni proceso definido.
+- Lint `BLOCKED`; CI `READY_FOR_REVIEW`.
+
+---
+
+## 7. Iteración 5 — supervisión de solo lectura (S-013)
+
+**Fecha:** 2026-11-06
+**Rama/commit:** `entrega-1-catalogo` / `90e2c70` (trabajo sin confirmar)
+
+### Alcance implementado
+
+- Sin migración nueva: se reutilizan las tablas, consultas y contratos existentes.
+- Módulo `backend/src/modules/supervisor/`: puertos de solo lectura, 9 casos de uso, adaptador PostgreSQL con únicamente `SELECT` y 9 rutas `GET`.
+- Guarda `SUP-01`: cualquier método distinto de `GET`/`HEAD`/`OPTIONS` bajo `/api/v1/supervisor/*` responde `405 METODO_NO_PERMITIDO` con `Allow: GET, HEAD`, antes de resolver la sesión.
+- `requireSupervisor()` exige rol `SUPERVISOR` y usuario `ACTIVO`; `ADMINISTRADOR` no hereda el acceso.
+- Dashboard con conteos directos de estados definidos y suma de inventario `on_hand - reserved - unavailable` (`INV-03`). Sin porcentajes, metas, SLA, rankings ni proyecciones.
+- Privacidad: se omiten comprador, correo/documento del vendedor, dirección de entrega, identificadores de actor y referencia del proveedor de pago.
+- Frontend `/supervisor`: resumen, pedidos (lista y detalle), productos (lista y detalle), almacenes, inventario, envíos y vendedores; sin formularios ni mutaciones.
+- Enlace “Supervisión” en la cabecera solo para el rol `SUPERVISOR`.
+- Seed demo: `supervisor@nexusmarket.demo` / `NexusMarketDemo2026!`.
+- OpenAPI `0.6.0`: 52 rutas, 59 operaciones, 647 referencias.
+- Reportes administrativos: no implementados (`L-19`); la interfaz muestra “No disponibles”.
+
+### Evidencia ejecutada
+
+| Comprobación | Resultado |
+|---|---|
+| `backend`: `npm run verify` | OK; 18 archivos / 145 pruebas; OpenAPI 52/59/647; build OK |
+| `backend`: `npm run test:postgres` | 7 archivos / 37 pruebas OK |
+| `backend`: pruebas de supervisión | `supervisor.test.ts` (5), `supervisor-http.test.ts` (9), `supervisor-postgres.test.ts` (3) |
+| `backend`: guarda de método | `GET` anónimo → `401`; `POST` → `405` con `Allow: GET, HEAD` |
+| `frontend`: `npm run typecheck` / `npm run build` | OK; 29 rutas |
+| `frontend`: `npm run test:e2e` | 6/6 PASS, incluida la suite de supervisión |
+
+### Incidencias corregidas
+
+| Incidencia | Efecto | Mitigación |
+|---|---|---|
+| El E2E usaba `vendedor@nexusmarket.demo`, que no existe en el seed | Login del vendedor `401` y prueba detenida | Se usa `aurora@nexusmarket.demo` |
+| La cuenta demo del supervisor no existía en la base | Login `401` | Se agregó al seed y se re-ejecutó `npm run db:seed:demo` |
+| El listado de productos ordena por fecha y el producto demo no aparecía en la primera página | Falso negativo del E2E | Se navega al detalle por ID y se filtra inventario por bodega |
+| El servidor en ejecución era anterior a la compilación del módulo | `404` en rutas del supervisor | Se reiniciaron backend y frontend tras el build |
+
+### Límites
+
+- Reportes administrativos: `BLOQUEADO` (`L-19`); sin catálogo, fórmulas, filtros ni límites.
+- El supervisor no modifica precios, inventario, pedidos, pagos, vendedores, bodegas, roles ni logística.
+- Lint `BLOCKED`; CI `READY_FOR_REVIEW`.
+
+---
+
+## 8. Iteración 6 — espacio administrativo (S-014)
+
+**Fecha:** 2026-11-08
+**Rama/commit:** `entrega-1-catalogo` / `90e2c70` (trabajo sin confirmar)
+
+### Alcance implementado
+
+- Sin migración nueva: se reutilizan las tablas, consultas y contratos existentes.
+- Módulo `backend/src/modules/admin/`: puertos de solo lectura, casos de uso, adaptador PostgreSQL con únicamente `SELECT` y 17 rutas `GET`.
+- Las altas existentes se preservan intactas: `POST /admin/sellers` (transacción atómica vendedor + primera bodega) y `POST /admin/logistics-operators`.
+- Guarda de método: bajo `/api/v1/admin/*` solo se permiten `GET`/`HEAD`/`OPTIONS`, salvo `POST` en las dos altas; el resto responde `405 METODO_NO_PERMITIDO` con `Allow`.
+- `requireAdmin()` exige rol `ADMINISTRADOR` y usuario `ACTIVO`; `SUPERVISOR` no hereda el acceso.
+- Dashboard y reportes con agregados reales directos: conteos por estado, montos capturados y suma de inventario disponible. Sin porcentajes, metas, SLA, rankings, proyecciones, comisiones ni comparaciones temporales.
+- Privacidad: se omiten `hash_credencial`, documentos, tokens, referencia del proveedor de pago, dirección completa y `actor_id`; el detalle de pedido solo expone `ciudad`, `region`, `pais` y `capturadoEn`.
+- Frontend `/admin`: dashboard, usuarios, vendedores, compradores, bodegas, catálogo, inventario, movimientos, pedidos, pagos y reportes, con listas y detalles. El alta de vendedores se movió a `/admin/sellers/new`.
+- Enlace “Administración” en la cabecera solo para el rol `ADMINISTRADOR`.
+- OpenAPI `0.7.0`: 68 rutas, 76 operaciones, 904 referencias.
+
+### Evidencia ejecutada
+
+| Comprobación | Resultado |
+|---|---|
+| `backend`: `npm run verify` | OK; 20 archivos / 160 pruebas; OpenAPI 68/76/904; build OK |
+| `backend`: `npm run test:postgres` | 8 archivos / 40 pruebas OK |
+| `backend`: pruebas admin | `admin.test.ts` (5), `admin-http.test.ts` (10), `admin-postgres.test.ts` (3) |
+| `backend`: guarda de método | `GET` anónimo → `401`; `POST`/`PATCH`/`DELETE` fuera de las altas → `405` |
+| `frontend`: `npm run typecheck` / `npm run build` | OK; 49 rutas (20 admin) |
+| `frontend`: `npm run test:e2e` | 7/7 PASS, incluida la suite administrativa |
+
+### Incidencias corregidas
+
+| Incidencia | Efecto | Mitigación |
+|---|---|---|
+| El producto demo quedaba fuera de la primera página del catálogo admin (38 productos) | Falso negativo del E2E | El E2E filtra por `?search=Audífonos Aurora` en catálogo e inventario |
+| Playwright accedía por `127.0.0.1` mientras `next dev` se anunciaba en `localhost` | Next bloqueaba recursos de desarrollo y los formularios quedaban deshabilitados | Se agregó `allowedDevOrigins: ["127.0.0.1"]` y se verificó contra build de producción |
+| `.next/dev` y `test-results` consumían espacio con ~3.7 GB libres | Riesgo de `ENOSPC` en builds | Se eliminaron artefactos de desarrollo antes del build final |
+
+### Límites
+
+- Reportes: solo agregados reales directos; catálogo, fórmulas, filtros y exportaciones `BLOQUEADO` (`L-19`).
+- Devoluciones, reembolsos y facturación: `BLOQUEADO`; no hay tablas de persistencia.
+- El administrador no modifica producto, inventario, pedido, pago, rol, vendedor ni bodega; solo ejecuta las dos altas existentes.
+- Autoregistro público de comprador y solicitud comprador → vendedor: diferidos a la siguiente fase.
+- Lint `BLOCKED`; CI `READY_FOR_REVIEW`.
+
+---
+
+## 9. Comandos consolidados (corte actual)
 
 ### Backend
 
@@ -336,12 +595,14 @@ cd backend
 npm run verify            # typecheck + test + validate:openapi + build
 $env:TEST_DATABASE_URL = "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test"
 npm run test:postgres
+$env:API_URL = "http://127.0.0.1:3000"
+npm run smoke:seller
 ```
 
 | Suite | Archivos | Pruebas |
 |---|---:|---:|
-| `npm test` | 12 | 92 |
-| `npm run test:postgres` | 4 | 21 |
+| `npm test` | 20 | 160 |
+| `npm run test:postgres` | 8 | 40 |
 
 ### Frontend
 
@@ -350,21 +611,22 @@ cd frontend
 npm run typecheck
 npm run build
 npm run start -- -p 3001
+npm run test:e2e
 ```
 
 ### PostgreSQL
 
 ```powershell
+cd backend
 docker compose up -d
 docker compose ps
-cd backend
 npm run db:migrate
 npm run db:seed:demo
 ```
 
 ---
 
-## 6. Incidencias de la iteración 1 (histórico)
+## 10. Incidencias de la iteración 1 (histórico)
 
 | Incidencia | Efecto | Mitigación |
 |---|---|---|
@@ -376,7 +638,7 @@ npm run db:seed:demo
 
 ---
 
-## 7. Lo que no se ejecutó
+## 11. Lo que no se ejecutó
 
 | Verificación | Estado |
 |---|---|
@@ -384,21 +646,33 @@ npm run db:seed:demo
 | CI en GitHub Actions | Workflow creado y validado localmente; **no ejecutado en remoto** |
 | Reconciliación de pagos `DESCONOCIDO` | No implementada |
 | Reembolsos y logística inversa | No implementados (fuera de alcance) |
-| Pruebas de carga o concurrencia | No ejecutadas |
-| Subida de imágenes y variantes | No implementadas |
+| Pruebas de carga o concurrencia masiva | No ejecutadas (sí se probó concurrencia e idempotencia funcional) |
+| Subida binaria de imágenes | `BLOQUEADO`; solo referencias URL persistentes |
+| Variantes comerciales | Fuera de V1 por decisión |
+| Ajustes negativos / movimientos logísticos del vendedor | `BLOQUEADO`; solo `INGRESO` |
+| Asignación automática de pedidos | `BLOQUEADO` (`L-23`) |
+| Transportistas externos, tracking integrado y evidencia del proveedor | `BLOQUEADO` (`L-23`); solo datos opcionales del operador |
+| Cierre `ENTREGADO → CERRADO` (`CloseOrder`) | `BLOQUEADO`; sin actor ni proceso definido |
+| Entrega digital (`PUB-06`) | No modelada; estructura no definida en el SDD |
+| Reportes administrativos del supervisor | `BLOQUEADO` (`L-19`); sin catálogo, fórmulas, filtros ni límites |
+| Reportes del administrador | Solo agregados reales directos; catálogo, fórmulas, filtros y exportaciones `BLOQUEADO` (`L-19`) |
+| Devoluciones, reembolsos y facturación | `BLOQUEADO`; sin tablas de persistencia ni reglas aprobadas |
+| Mutaciones admin de producto/inventario/pago | No definidas ni autorizadas; espacio admin de consulta salvo las dos altas |
+| Autoregistro público de comprador | Diferido a la siguiente fase |
+| Solicitud comprador → vendedor | Diferida a la siguiente fase |
 | Despliegue productivo | No realizado |
 
 Estas ausencias no se compensan con afirmaciones: el estado correcto es “no ejecutado” o `BLOCKED`.
 
 ---
 
-## 8. Reproducción mínima
+## 12. Reproducción mínima
 
-1. `docker compose up -d` en la raíz.
+1. `cd backend; docker compose up -d` (el `compose.yaml` vive en `backend/`).
 2. `cd backend; npm install; Copy-Item .env.example .env; npm run db:migrate; npm run db:seed:demo; npm run dev`.
 3. En otra terminal: `cd frontend; npm install; npm run dev -- -p 3001`.
 4. Abrir `http://127.0.0.1:3001`.
-5. Iniciar sesión con `comprador@nexusmarket.demo` o `admin@nexusmarket.demo`; contraseña `NexusMarketDemo2026!`.
+5. Iniciar sesión con `comprador@nexusmarket.demo`, `admin@nexusmarket.demo`, `logistica@nexusmarket.demo` o `supervisor@nexusmarket.demo`; contraseña `NexusMarketDemo2026!`. El administrador abre `/admin`; el alta de vendedores vive en `/admin/sellers/new`.
 6. Verificar `http://127.0.0.1:3000/health` y `/ready`.
 
 Si PostgreSQL no está disponible, el backend no arranca y el estado correcto es `BLOCKED`, no `PASS`.

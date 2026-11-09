@@ -4,7 +4,7 @@
 >
 > **Regla:** este archivo registra hechos comprobados. Todo estado debe poder contrastarse con archivos, commits, comandos o decisiones identificables.
 >
-> **Lectura vigente (2026-11-01):** las secciones 1–2, 3.1, 9–11, el registro de incidencias, las evidencias 13–14 y las plantillas S-007/S-008 describen el estado actual. Las secciones 4–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend”, el adaptador en memoria o la prueba PostgreSQL manual; no son el estado vigente.
+> **Lectura vigente (2026-11-08):** las secciones 1–3, 9–11, el registro de incidencias, las evidencias 13–14 y las plantillas S-007…S-014 describen el estado actual. Las secciones 4–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend”, el adaptador en memoria o la prueba PostgreSQL manual; no son el estado vigente.
 
 ---
 
@@ -26,17 +26,17 @@
 |---|---|
 | Proyecto | NexusMarket |
 | Área | Backend |
-| Versión del estado | 3.0 |
+| Versión del estado | 3.5 |
 | Prompt aplicable | `prompt-orquestador-backend.md` (v1.0) |
 | Stack objetivo | TypeScript, Node.js, PostgreSQL, Next.js, MongoDB, Docker |
-| Rama Git comprobada | `main` |
-| Commit HEAD comprobado | `10e65d8cb7f46898342323d223076255e7b95bb4` |
-| Fecha de actualización | 2026-11-01 |
+| Rama Git comprobada | `entrega-1-catalogo` |
+| Commit HEAD comprobado | `90e2c70` (`actualizacion 2026113`); árbol con trabajo de vendedor, imágenes, E2E, logística, supervisión y administración sin confirmar |
+| Fecha de actualización | 2026-11-08 |
 | Agente coordinador actual | Backend Orchestrator (OpenCode / DeepSeek V4.1 Flash Free) |
 | Revisor independiente | Sesiones `ses_e7b1c7ddaffepca7fRH5CGMyTx` (1.ª), `ses_e7b113275ffeeAZmlHtptxtOfT` (2.ª), `ses_e7b0b9ec9ffeC6278fXU0TKf9M` (3.ª: `PASS`) y `ses_e7a3f8c7fffehdXpxCqxD8gVkc` (4.ª: `PASS`) |
-| Estado global | `IN_PROGRESS` (primera entrega demostrable construida y verificada localmente; Gates A–E en `PASS` local; autenticación, carrito, checkout, pagos y CI pendientes) |
-| Ola actual | V1 demostrable: `PI-01` + catálogo público + frontend; siguiente ola bloqueada por autenticación/autorización |
-| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A = PASS`; `GATE-V1-B = PASS`; `GATE-V1-C = PASS`; `GATE-V1-D = PASS`; `GATE-V1-E = PASS` (local) |
+| Estado global | `IN_PROGRESS` (marketplace local con auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend, espacio del vendedor, operación logística, supervisión de solo lectura y espacio administrativo de consulta; gates A–H, N, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR` y `GATE-V2-ADMIN` en `PASS` local) |
+| Ola actual | V2: espacio del Vendedor, Operador Logístico, Supervisión y Administración — implementados y verificados localmente |
+| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A…H = PASS` (local); `GATE-V2-SELLER = PASS` (local); `GATE-V2-LOGISTICS = PASS` (local); `GATE-V2-SUPERVISOR = PASS` (local); `GATE-V2-ADMIN = PASS` (local) |
 | Fuente de estado | Repositorio real + `backend/` + `frontend/` + PostgreSQL + `docs/implementation/*` + artefactos históricos `docs/backend/*` |
 
 ---
@@ -49,25 +49,184 @@ Consolidar la primera entrega demostrable: persistencia PostgreSQL obligatoria, 
 
 ### 2.2 Último hito comprobado
 
-Corte del 2026-11-01: `backend/` usa Fastify 5, TypeScript 5.9, Zod 4, Vitest 5, `pg` y `@node-rs/argon2`; `frontend/` usa Next.js 16.4.3 y React 19.3.1. Se eliminó el adaptador en memoria y `PERSISTENCE`; PostgreSQL es obligatorio. Se añadieron catálogo público, migración `003`, seed demo y frontend. Ejecutados: `npm run typecheck` OK; `npm test` 8 archivos/51 pruebas OK; `npm run test:postgres` 3 archivos/11 pruebas OK contra PostgreSQL 17.11; `npm run build` OK en backend y frontend; smoke end-to-end con home `200`/8 tarjetas, catálogo `200`/6 tarjetas, página 2 `200`/2 tarjetas, búsqueda, filtros, orden, detalle `200` y producto inexistente/malformado `404`. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
+Corte del 2026-11-08: se completó el rol **Administrador** como espacio de consulta y operación acotada. El backend expone 17 rutas `GET /api/v1/admin/*` (dashboard, usuarios, vendedores, compradores, bodegas, catálogo, inventario, movimientos, pedidos, pagos y reportes) con un puerto y adaptador PostgreSQL que solo ejecutan `SELECT`. Se preservan intactas las dos altas existentes (`POST /admin/sellers` con transacción atómica vendedor + primera bodega, y `POST /admin/logistics-operators`). Una guarda de método permite solo `GET`/`HEAD`/`OPTIONS` salvo esas dos altas y responde `405 METODO_NO_PERMITIDO`; `requireAdmin()` exige rol `ADMINISTRADOR` y usuario `ACTIVO`. El frontend añade `/admin` con dashboard, listas y detalles, y mueve el alta de vendedores a `/admin/sellers/new`. Dashboard y reportes usan solo agregados reales directos (conteos por estado, montos capturados e inventario disponible); no hay KPIs, metas, SLA, rankings, proyecciones ni exportaciones. Ejecutados: backend `npm run verify` (20 archivos / 160 pruebas; OpenAPI 68 rutas / 76 operaciones / 904 referencias); `npm run test:postgres` 8 archivos / 40 pruebas; smoke del vendedor 33/33; frontend typecheck/build (49 rutas, 20 admin); E2E Playwright 7/7 contra build de producción. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
 
 ### 2.3 Trabajo en curso
 
-- ID: cierre documental de la primera entrega; verificación frontend repetida tras `isProductId`.
-- Próximo trabajo: decidir `ADR-004` (autenticación), `L-01` (direcciones) y contrato de `PI-02`; llevar PostgreSQL a CI.
-- Bloqueo actual: autenticación/autorización administrativa, carrito/checkout/pagos y CI. No hay bloqueo funcional para el catálogo.
+- ID: cierre de la entrega del rol Administrador (`S-014`, `GATE-V2-ADMIN`).
+- Último corte ejecutado: backend `npm run verify` OK (20 archivos / 160 pruebas; OpenAPI 68 rutas / 76 operaciones / 904 referencias); PostgreSQL 40 pruebas / 8 archivos; smoke del vendedor 33/33; frontend typecheck/build OK (49 rutas); E2E Playwright 7/7 (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión y administración).
+- Próximo trabajo: revisar el diff completo, ejecutar CI en GitHub y decidir los bloqueos documentados.
+- Bloqueo actual: reportes admin/supervisor sin catálogo/fórmulas/filtros/límites (`L-19`); devoluciones, reembolsos y facturación sin persistencia; autoregistro de comprador y solicitud comprador → vendedor diferidos; asignación automática de pedidos, transportistas externos, tracking integrado, evidencia del proveedor y `CloseOrder` (`ENTREGADO → CERRADO`) sin actor/proceso definido. Carga binaria de imágenes, ajustes negativos/logística del vendedor, entrega digital, lint y CI remoto siguen bloqueados o pendientes.
 - Riesgo operativo: espacio libre bajo en disco; ejecutar suites backend de forma secuencial.
 
 ### 2.4 Próxima acción exacta
 
-**NEXT_ACTION — decisión de autenticación y alcance administrativo; no ampliar el catálogo**
+**NEXT_ACTION — revisar el corte administrativo y llevar las suites a CI; no ampliar capacidades bloqueadas**
 
-1. Formular `ADR-004` (identidad, sesiones y autorización administrativa) y resolver `L-01` (campos de `DireccionFisica`).
-2. Definir el contrato de `PI-02 RegisterSeller`: ruta administrativa, permisos, tabla de vendedor y creación atómica con la primera bodega.
-3. Llevar `npm test` y `npm run test:postgres` a CI y añadir un validador semántico OpenAPI.
-4. No implementar carrito, checkout, pagos, devoluciones ni mutaciones de catálogo antes de esos contratos.
+1. Revisar el diff completo (vendedor, imágenes, E2E, logística, supervisión y administración) y ejecutar el workflow de CI en GitHub; registrar el resultado real.
+2. Decidir el actor y el proceso de `CloseOrder` (`ENTREGADO → CERRADO`) antes de implementar el cierre; no inventar un actor.
+3. Definir con negocio el catálogo de reportes (`L-19`): métricas, fórmulas, filtros, límites y exportaciones. No crear endpoints ni pantallas adicionales hasta entonces.
+4. Definir el autoregistro público de comprador y la solicitud comprador → vendedor antes de implementarlos; no inventar reglas de aprobación.
+5. Mantener fuera de alcance la asignación automática de pedidos, transportistas externos, tracking integrado y evidencia del proveedor (`L-23`).
+6. Decidir la reconciliación de pagos `DESCONOCIDO` y obtener decisión de arquitectura para imágenes binarias y entrega digital (`PUB-06`).
+7. Incorporar lint si el proyecto lo exige; mantener `BLOCKED` mientras no exista herramienta.
+8. No habilitar reembolsos, devoluciones, facturación ni mutaciones admin de producto/inventario/pago sin autorización explícita.
 
-**Condición de finalización de la entrega actual:** código compilado, 51 pruebas backend, 11 PostgreSQL, build de frontend y smoke end-to-end. Cumplida localmente; CI y revisión independiente de esta entrega quedan pendientes.
+**Condición de finalización de la entrega actual:** código compilado, 160 pruebas backend, 40 PostgreSQL, OpenAPI válido, build de frontend, smoke 33/33 y E2E 7/7. Cumplida localmente; CI y revisión independiente de esta entrega quedan pendientes.
+
+### 2.5 Reconciliación del rol Vendedor (corte 2026-11-03)
+
+**Fuentes aplicadas:** `BackendSDD/Domain/nexusmarket-domain-model.md` §6.4, §7.1, §8, §19, §21; `BackendSDD/Domain/services/politica-autorizacion-dominio.md`; `BackendSDD/Domain/services/politica-publicacion-catalogo.md`; `BackendSDD/Application/nexusmarket-output-ports.md`; código y migraciones reales.
+
+| Capacidad / artefacto | Estado real al iniciar el corte | Evidencia o vacío | Decisión de este corte |
+|---|---|---|---|
+| Autenticación de vendedor y rol `VENDEDOR` | `COMPLETADO_VERIFICADO` | Login real de `aurora@nexusmarket.demo`; `GET /api/v1/auth/session` devuelve rol `VENDEDOR`; `requireSeller()` existe | Reutilizar la sesión existente; no crear autenticación paralela |
+| Alta de vendedor solo por Administrador | `COMPLETADO_VERIFICADO` | `POST /api/v1/admin/sellers`; `PI-02`; prueba de rollback PostgreSQL | No reimplementar; el vendedor no se autorregistra |
+| Perfil de vendedor (consulta/edición) | `PENDIENTE` | No hay rutas `/api/v1/seller/*` | Implementar consulta y edición limitada a `nombreComercial` |
+| Crear/editar productos propios | `PENDIENTE` | Solo lectura pública en `catalog` | Implementar CRUD acotado al `sellerId` de la sesión |
+| Ciclo `BORRADOR → PUBLICADO → SUSPENDIDO → DESCONTINUADO` | `PENDIENTE` | `products.estado` solo admite `PUBLICADO`, `SUSPENDIDO`, `DESCONTINUADO` | Migración `007`; transiciones del SDD §7.1; sin retorno desde `DESCONTINUADO` |
+| SKU obligatorio y único para publicar | `PARCIAL` | `products_sku_unique` y `NOT NULL`; sin validación de publicación | Exigir SKU no vacío en la política de publicación |
+| Imágenes obligatorias para publicar | `PARCIAL` | Tabla `product_images` con URL; seed usa rutas locales | Exigir al menos una imagen; URLs persistentes; carga binaria `BLOQUEADO` |
+| Propiedad de imágenes y productos | `PENDIENTE` | Repositorio público no filtra por propietario | Filtro `vendedor_id = sellerId`; acceso cruzado responde `404` |
+| Bodegas propias (listar/crear/editar) | `PENDIENTE` | Solo alta atómica en `PI-02` | Implementar alcance por `vendedor_id`; sin cambios de estado (`L-09` pendiente) |
+| Inventario por producto + bodega | `PARCIAL` | Tabla `inventory` con `on_hand`, `reserved`, `unavailable`, `version` e invariantes | Implementar consulta e ingreso con transacción y bloqueo |
+| Movimientos auditables de inventario | `PENDIENTE` | No existe `inventory_movements` | Crear tabla con actor, referencia, motivo e idempotencia |
+| Idempotencia de mutaciones de stock | `PENDIENTE` | Solo `checkout_attempts` e `inventory_reservations` | Clave `(vendedor_id, idempotency_key)` + bloqueo asesor |
+| Ajustes negativos y movimientos logísticos | `BLOQUEADO` | Matriz §19 solo autoriza «operaciones autorizadas de su ámbito»; no hay política explícita | No exponerlos; documentar el bloqueo |
+| Consulta de pedidos con productos propios | `PENDIENTE` | `GET /api/v1/orders` es solo del comprador | Implementar lectura por `orders.vendedor_id`, sin datos de pago ajenos |
+| Confirmar/rechazar pago o reembolsar | `NO_APLICA` | Matriz §19 prohíbe al vendedor | No implementar |
+| Preparar/empacar/despachar | `NO_APLICA` | Matriz §19 reserva la operación a logística | Pedidos del vendedor en solo lectura |
+| Aislamiento entre vendedores (IDOR) | `PENDIENTE` | No hay endpoints de vendedor | Todas las consultas y mutaciones filtran por `sellerId`; `404` fuera de alcance |
+| Frontend `/seller` | `PENDIENTE` | No existe grupo de rutas ni navegación de vendedor | Implementar layout, páginas, formularios y estados |
+| OpenAPI y pruebas de contrato | `PENDIENTE` | `openapi.yaml` 0.3.0 con 19 rutas | Extender a 0.4.0 y actualizar aserciones |
+| Pruebas unitarias/HTTP/PostgreSQL del vendedor | `PENDIENTE` | No existen | Añadir unidad, integración HTTP y PostgreSQL |
+| Lint | `BLOQUEADO` | No hay herramienta configurada | Mantener `BLOQUEADO`, no declarar `PASS` |
+| CI en GitHub Actions | `PENDIENTE` | Workflow local validado, no ejecutado en GitHub | Mantener `READY_FOR_REVIEW` |
+
+**Discrepancias registradas, no resueltas por invención:**
+
+1. El SDD exige variantes (`CAT-02`); la decisión V1 y el código usan un producto por combinación vendible, sin variantes. Se aplica la decisión V1 y se registra la diferencia.
+2. `FileStorage` está rechazado por el SDD y no existe política aprobada de tamaño/formato/proveedor. Las imágenes se persisten como URL; la carga binaria queda `BLOQUEADO`.
+3. `PUB-06` exige un recurso de entrega digital, pero el SDD no define su estructura. No se inventa un campo; se documenta como pendiente.
+4. El vendedor no tiene autorización explícita para ajustes negativos ni operaciones logísticas; solo se implementa `INGRESO` en su ámbito.
+
+**Estado final del corte (2026-11-03), verificado con evidencia ejecutada:**
+
+| Capacidad | Estado final | Evidencia |
+|---|---|---|
+| Perfil del vendedor | `COMPLETADO_VERIFICADO` | `GET/PATCH /seller/profile`; solo `nombreComercial`; prueba unitaria y smoke |
+| Productos propios | `COMPLETADO_VERIFICADO` | CRUD acotado por `sellerId`; 18 rutas; pruebas HTTP y PostgreSQL |
+| Ciclo `BORRADOR → PUBLICADO → SUSPENDIDO → DESCONTINUADO` | `COMPLETADO_VERIFICADO` | Migración `007`; transiciones en dominio; smoke y E2E |
+| SKU e imágenes para publicar | `COMPLETADO_VERIFICADO` | Publicación `422` sin imagen y `200` con imagen; smoke |
+| Imágenes por URL y ownership | `COMPLETADO_VERIFICADO` | `product_images`; alta/baja con ownership; prueba HTTP |
+| Bodegas propias | `COMPLETADO_VERIFICADO` | Listar/crear/editar con alcance por vendedor; pruebas |
+| Inventario e idempotencia | `COMPLETADO_VERIFICADO` | `inventory` + `inventory_movements`; bloqueo asesor; smoke de reintento |
+| Aislamiento entre vendedores | `COMPLETADO_VERIFICADO` | `404` en acceso cruzado; prueba HTTP y E2E |
+| Pedidos con productos propios | `COMPLETADO_VERIFICADO` | Solo lectura; filtro por productos del vendedor; pruebas |
+| Frontend `/seller` | `COMPLETADO_VERIFICADO` | 18 rutas construidas; E2E 4/4 |
+| OpenAPI y contrato | `COMPLETADO_VERIFICADO` | `0.4.0`; 33 rutas / 40 operaciones / 419 referencias; contrato 6 pruebas |
+| Pruebas unitarias/HTTP/PostgreSQL | `COMPLETADO_VERIFICADO` | 11 unitarias, 7 HTTP, 7 PostgreSQL; suites completas |
+| Ajustes negativos / movimientos logísticos | `BLOQUEADO` | Sin autorización explícita; no se exponen |
+| Carga binaria de imágenes | `BLOQUEADO` | Sin mecanismo/proveedor/límites aprobados; solo URLs |
+| Preparación/despacho | `NO_APLICA` | Reservado a logística; pedidos de solo lectura |
+| Entrega digital (`PUB-06`) | `PENDIENTE` | Estructura no definida por el SDD |
+| Lint | `BLOQUEADO` | Sin herramienta configurada |
+| CI en GitHub | `READY_FOR_REVIEW` | Workflow local válido; no ejecutado en remoto |
+
+`COMPLETADO_VERIFICADO` se usa aquí solo para capacidades con comando y resultado observados en este corte; no implica revisión independiente ni ejecución remota de CI.
+
+### 2.6 Reconciliación del rol Operador Logístico (corte 2026-11-05)
+
+**Fuentes aplicadas:** `BackendSDD/Domain/nexusmarket-domain-model.md` §13.1–§13.2, §19, §22.5; `BackendSDD/Domain/services/politica-autorizacion-dominio.md`; `BackendSDD/Application/nexusmarket-output-ports.md`; código y migraciones reales.
+
+| Capacidad / artefacto | Estado final | Evidencia |
+|---|---|---|
+| Autenticación y rol `OPERADOR_LOGISTICO` | `COMPLETADO_VERIFICADO` | Login real de `logistica@nexusmarket.demo`; `requireLogistics()`; `GET /logistics/profile` |
+| Perfil y ámbito de bodegas | `COMPLETADO_VERIFICADO` | `logistics_operators` + `logistics_operator_warehouses`; migración `008`; pruebas de ámbito |
+| Bodegas e inventario autorizados | `COMPLETADO_VERIFICADO` | Consultas filtradas por bodegas asignadas; solo lectura de inventario |
+| Pedidos y detalle en ámbito | `COMPLETADO_VERIFICADO` | Reservas activas de bodegas asignadas; `404` en acceso cruzado |
+| Preparación de envío | `COMPLETADO_VERIFICADO` | Exige pedido pagado/en preparación y reservas activas; idempotente |
+| Despacho | `COMPLETADO_VERIFICADO` | Consume reservas `ACTIVA → CONSUMIDA`, descuenta `on_hand`/`reserved`, registra `SALIDA_VENTA` |
+| Entrega con evidencia | `COMPLETADO_VERIFICADO` | `ENTREGADO`/`FALLIDO`; evidencia obligatoria; pedido `ENTREGADO` solo si todo fue entregado |
+| Historial de estados | `COMPLETADO_VERIFICADO` | `order_status_history` registra actor, rol, instantes y referencia causal; checkout y logística escriben transiciones reales |
+| Frontend `/logistics` | `COMPLETADO_VERIFICADO` | Resumen, pedidos, detalle operable, bodegas e inventario; 22 rutas construidas |
+| OpenAPI y contrato | `COMPLETADO_VERIFICADO` | `0.5.0`; 43 rutas / 50 operaciones / 544 referencias; contrato 6/6 |
+| Pruebas unitarias/HTTP/PostgreSQL/E2E | `COMPLETADO_VERIFICADO` | 14 unitarias, 7 HTTP, 6 PostgreSQL, 1 E2E; suites completas |
+| Asignación automática de pedidos | `BLOQUEADO` | `L-23`; no hay política aprobada |
+| Transportistas externos, tracking integrado y evidencia del proveedor | `BLOQUEADO` | `L-23`; campos opcionales solo si el actor los aporta |
+| `CloseOrder` (`ENTREGADO → CERRADO`) | `BLOQUEADO` | Sin actor/proceso definido; no se implementa |
+| Lint / CI remoto | `BLOCKED` / `READY_FOR_REVIEW` | Sin herramienta de lint; workflow no ejecutado en GitHub |
+
+### 2.7 Reconciliación del rol Supervisor (corte 2026-11-06)
+
+**Fuentes aplicadas:** `BackendSDD/Domain/nexusmarket-domain-model.md` §6.4, §7.1, §8, §13.1–§13.2, §19, §22.5; `BackendSDD/Domain/services/politica-autorizacion-dominio.md`; `BackendSDD/Application/nexusmarket-output-ports.md`; `SUP-01`; código, migraciones y contrato reales.
+
+| Capacidad / artefacto | Estado final | Evidencia |
+|---|---|---|
+| Rol `SUPERVISOR` en autenticación | `COMPLETADO_VERIFICADO` | `users.rol` admite `SUPERVISOR`; `requireSupervisor()` exige rol y usuario `ACTIVO`; login demo real |
+| Perfil estrictamente de solo lectura (`SUP-01`) | `COMPLETADO_VERIFICADO` | Solo 9 rutas `GET`; guarda `405 METODO_NO_PERMITIDO` con `Allow: GET, HEAD` en todo el prefijo |
+| Sin herencia de `ADMINISTRADOR` | `COMPLETADO_VERIFICADO` | `requireSupervisor()` no tiene override; E2E deniega a admin, comprador, vendedor y logística |
+| Dashboard con datos reales | `COMPLETADO_VERIFICADO` | Conteos directos por estado y suma `on_hand - reserved - unavailable` (`INV-03`); sin porcentajes, metas, SLA, rankings ni proyecciones |
+| Pedidos y detalle globales | `COMPLETADO_VERIFICADO` | `GET /supervisor/orders`, `/orders/{orderId}`; ítems, pago, reservas, envíos e historial |
+| Productos y detalle globales | `COMPLETADO_VERIFICADO` | `GET /supervisor/products`, `/products/{productId}`; incluye `BORRADOR`, `SUSPENDIDO` y `DESCONTINUADO` |
+| Almacenes, inventario, envíos y vendedores | `COMPLETADO_VERIFICADO` | Consultas globales con filtros y paginación |
+| Minimización de datos personales | `COMPLETADO_VERIFICADO` | Se omiten comprador, correo/documento del vendedor, dirección, actores y referencia de pago; prueba PostgreSQL |
+| Frontend `/supervisor` | `COMPLETADO_VERIFICADO` | Resumen, pedidos, productos, almacenes, inventario, envíos y vendedores; 29 rutas construidas; sin formularios |
+| OpenAPI y contrato | `COMPLETADO_VERIFICADO` | `0.6.0`; 52 rutas / 59 operaciones / 647 referencias; contrato 6/6; sin escritura bajo el prefijo |
+| Pruebas unitarias/HTTP/PostgreSQL/E2E | `COMPLETADO_VERIFICADO` | 5 unitarias, 9 HTTP, 3 PostgreSQL, 1 E2E; suites completas |
+| Reportes administrativos | `BLOQUEADO` | `L-19`; sin catálogo, fórmulas, filtros ni límites aprobados |
+| Lint / CI remoto | `BLOCKED` / `READY_FOR_REVIEW` | Sin herramienta de lint; workflow no ejecutado en GitHub |
+
+---
+
+### 2.8 Reconciliación del rol Administrador (corte 2026-11-08)
+
+**Fuentes aplicadas:** `BackendSDD/Domain/nexusmarket-domain-model.md` §6, §19; `BackendSDD/Domain/services/politica-autorizacion-dominio.md`; código, migraciones y OpenAPI reales.
+
+| Capacidad / artefacto | Estado real al iniciar el corte | Evidencia o vacío | Decisión de este corte |
+|---|---|---|---|
+| Autenticación y rol `ADMINISTRADOR` | `COMPLETADO_VERIFICADO` | Login real de `admin@nexusmarket.demo`; `GET /auth/session` devuelve `ADMINISTRADOR` | Reutilizar la sesión existente; no crear autenticación paralela |
+| Alta atómica de vendedor + bodega | `COMPLETADO_VERIFICADO` | `POST /admin/sellers`; prueba de rollback PostgreSQL | Preservar sin cambios |
+| Alta de operador logístico | `COMPLETADO_VERIFICADO` | `POST /admin/logistics-operators` | Preservar sin cambios |
+| Consulta global de usuarios | `PENDIENTE` | No había rutas admin de lectura | Implementar `GET /admin/users` y detalle sin hashes ni tokens |
+| Consulta de vendedores y compradores | `PENDIENTE` | Solo altas | Implementar listas y detalles con minimización de datos |
+| Consulta de bodegas, catálogo e inventario | `PENDIENTE` | Solo rutas públicas, seller, logistics y supervisor | Implementar consultas admin de solo lectura |
+| Consulta de pedidos y pagos | `PENDIENTE` | Solo ownership de comprador y vistas de otros roles | Implementar listas y detalle con dirección minimizada |
+| Dashboard y reportes | `BLOQUEADO` (`L-19`) | Sin catálogo/fórmulas/filtros/límites | Dashboard y reportes solo con agregados reales directos; sin exportaciones |
+| Guarda de método admin | `PENDIENTE` | No existía | `GET`/`HEAD`/`OPTIONS` salvo `POST` en las dos altas; resto `405` |
+| Frontend `/admin` | `PARCIAL` | Solo formulario de alta en `/admin/sellers` | Layout protegido, dashboard, listas y detalles; alta en `/admin/sellers/new` |
+| Mutaciones admin de producto/inventario/pago | `BLOQUEADO` | No definidas ni autorizadas | No implementar; el espacio admin es de consulta |
+| Devoluciones, reembolsos y facturación | `BLOQUEADO` | Sin tablas de persistencia | Documentar ausencia; no crear pantallas vacías |
+| Autoregistro de comprador / solicitud comprador → vendedor | `DEFERRED` | Sin flujo ni reglas de aprobación | Documentar dependencia; no implementar en esta fase |
+| OpenAPI y pruebas de contrato | `PENDIENTE` | `openapi.yaml` 0.6.0 con 52 rutas | Extender a 0.7.0 (68 rutas / 76 operaciones / 904 referencias) |
+| Pruebas admin | `PENDIENTE` | No existían | Unidad (5), HTTP (10) y PostgreSQL (3) |
+| Lint | `BLOQUEADO` | Sin herramienta configurada | Mantener `BLOCKED` |
+| CI en GitHub Actions | `PENDIENTE` | Workflow local validado, no ejecutado en GitHub | Mantener `READY_FOR_REVIEW` |
+
+**Estado final del corte, verificado con evidencia ejecutada:**
+
+| Capacidad | Estado final | Evidencia |
+|---|---|---|
+| Dashboard admin | `COMPLETADO_VERIFICADO` | `GET /admin/dashboard`; conteos y recientes reales; prueba PostgreSQL |
+| Usuarios | `COMPLETADO_VERIFICADO` | `GET /admin/users` y detalle; sin hashes ni tokens; prueba HTTP/PostgreSQL |
+| Vendedores y compradores | `COMPLETADO_VERIFICADO` | Listas y detalles; prueba HTTP/PostgreSQL |
+| Bodegas y catálogo | `COMPLETADO_VERIFICADO` | Listas y detalles; prueba HTTP/PostgreSQL |
+| Inventario y movimientos | `COMPLETADO_VERIFICADO` | `GET /admin/inventory` y `/movements`; sin `actor_id` |
+| Pedidos y pagos | `COMPLETADO_VERIFICADO` | Listas y detalle; dirección minimizada; sin referencia del proveedor |
+| Reportes | `PARCIAL` | Solo agregados reales; catálogo y exportaciones `BLOQUEADO` (`L-19`) |
+| Guarda de método | `COMPLETADO_VERIFICADO` | `405` fuera de las altas; E2E y prueba HTTP |
+| Frontend `/admin` | `COMPLETADO_VERIFICADO` | 20 rutas; typecheck/build; E2E |
+| Altas existentes | `COMPLETADO_VERIFICADO` | Rutas y pruebas de rollback conservadas |
+| Devoluciones/reembolsos/facturación | `BLOQUEADO` | Sin persistencia; documentado |
+| Mutaciones admin | `BLOQUEADO` | No definidas ni autorizadas |
+| Autoregistro / solicitud comprador → vendedor | `DEFERRED` | Dependencia documentada |
+
+**Discrepancias y límites registrados, no resueltos por invención:**
+
+1. `L-19` sigue sin catálogo de reportes; solo se implementaron agregados reales directos.
+2. No existen tablas de devoluciones, reembolsos ni facturación; no se crean pantallas vacías.
+3. El administrador no tiene autorización para mutar producto, inventario, pedido, pago, rol, vendedor ni bodega.
+4. El autoregistro de comprador y la solicitud comprador → vendedor no tienen flujo ni reglas aprobadas; quedan diferidos.
 
 ---
 
@@ -98,6 +257,11 @@ Corte del 2026-11-01: `backend/` usa Fastify 5, TypeScript 5.9, Zod 4, Vitest 5,
 | W6 | Integración y pruebas críticas | `PARTIAL` (smoke end-to-end local; sin CI ni e2e de navegador) | `GATE-W6 = NOT_RUN`; `GATE-V1-D = PASS`; `GATE-V1-E = PASS` local |
 | W7 | Seguridad y robustez | `NOT_STARTED` | `GATE-W7 = NOT_RUN` |
 | W8 | Documentación y release candidate | `NOT_STARTED` (documentación de implementación completa; sin release candidate) | `GATE-W8 = NOT_RUN` |
+| V1 | Marketplace funcional (auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend) | `DONE` local | `GATE-V1-A…H = PASS` local |
+| V2 | Espacio de trabajo del vendedor | `DONE` local | `GATE-V2-SELLER = PASS` local |
+| V2-L | Operación logística (preparación, despacho, entrega, ámbito de bodegas) | `DONE` local | `GATE-V2-LOGISTICS = PASS` local |
+| V2-S | Supervisión de solo lectura (dashboard, pedidos, productos, almacenes, inventario, envíos y vendedores) | `DONE` local | `GATE-V2-SUPERVISOR = PASS` local |
+| V2-A | Espacio administrativo (dashboard, usuarios, vendedores, compradores, bodegas, catálogo, inventario, pedidos, pagos y reportes) | `DONE` local | `GATE-V2-ADMIN = PASS` local |
 
 ---
 
@@ -505,8 +669,24 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 | TEST-EVIDENCE-V1-002 | Catálogo backend | `npm run db:seed:demo`; consultas HTTP reales | `PASS`: 8 productos, 2 vendedores, 8 imágenes, 6 inventario; búsqueda/filtros/orden/paginación | `backend/migrations/003_catalog.sql`; `tests/integration/catalog-http.test.ts`; `tests/postgres/catalog-query-postgres.test.ts` |
 | TEST-EVIDENCE-V1-003 | Contrato OpenAPI | `npm test` (`tests/contract/openapi.test.ts`) | `PASS`: seis rutas, respuestas y `$ref` resueltos | `backend/openapi.yaml` 0.2.0 |
 | TEST-EVIDENCE-V1-004 | Frontend | `npm run typecheck`; `npm run build`; smoke con `curl.exe` | `PASS`: build OK; home `200`/8 tarjetas; catálogo `200`/6; página 2 `200`/2; detalle `200`; inexistente y malformado `404` | `frontend/**`; `docs/implementation/EXECUTION-LOG.md` |
+| TEST-EVIDENCE-V2-001 | Backend del vendedor | `npm run verify` | `PASS`: typecheck; 14 archivos / 110 pruebas; OpenAPI 33/40/419; build | `backend/tests/**`; `backend/openapi.yaml`; salida local 2026-11-03 |
+| TEST-EVIDENCE-V2-002 | PostgreSQL del vendedor | `$env:TEST_DATABASE_URL=...; npm run test:postgres` | `PASS`: 5 archivos / 28 pruebas; ownership, estados, ingreso e idempotencia | `backend/tests/postgres/seller-workspace-postgres.test.ts` |
+| TEST-EVIDENCE-V2-003 | Smoke HTTP del vendedor | `$env:API_URL=http://127.0.0.1:3000; npm run smoke:seller` | `PASS`: 33/33 comprobaciones | `backend/scripts/seller-smoke.ts`; salida local |
+| TEST-EVIDENCE-V2-004 | Frontend del vendedor | `npm run typecheck`; `npm run build` | `PASS`: build OK; 18 rutas | `frontend/src/app/seller/**` |
+| TEST-EVIDENCE-V2-005 | E2E del vendedor y recorrido cruzado | `npm run test:e2e` (Playwright + Edge) | `PASS`: 4/4 (protección, recorrido del vendedor, aislamiento y admin → vendedor → comprador → pedido) | `frontend/e2e/seller.spec.ts`; `frontend/e2e/cross-role.spec.ts`; `frontend/playwright.config.ts` |
+| TEST-EVIDENCE-V2-006 | Backend logístico | `npm run verify` | `PASS`: typecheck; 16 archivos / 131 pruebas; OpenAPI 43/50/544; build | `backend/tests/unit/logistics.test.ts`; `backend/tests/integration/logistics-http.test.ts`; `backend/openapi.yaml`; salida local 2026-11-05 |
+| TEST-EVIDENCE-V2-007 | PostgreSQL logístico | `$env:TEST_DATABASE_URL=...; npm run test:postgres` | `PASS`: 6 archivos / 34 pruebas; migración `008`, ámbito, flujo completo, inventario, reservas, historial, idempotencia y alta de operador | `backend/tests/postgres/logistics-postgres.test.ts` |
+| TEST-EVIDENCE-V2-008 | Login y perfil del operador demo | `POST /auth/login`; `GET /auth/session`; `GET /logistics/profile`; `GET /logistics/summary` | `PASS`: rol `OPERADOR_LOGISTICO`, estado `ACTIVO`, 2 bodegas asignadas | Salida local 2026-11-05 |
+| TEST-EVIDENCE-V2-009 | Frontend logístico | `npm run typecheck`; `npm run build` | `PASS`: build OK; 22 rutas, incluidas `/logistics`, pedidos, detalle, bodegas e inventario | `frontend/src/app/logistics/**` |
+| TEST-EVIDENCE-V2-010 | E2E logístico completo | `npm run test:e2e` (Playwright + Edge) | `PASS`: 5/5; el comprador paga, el operador prepara, despacha y entrega con evidencia; el pedido queda `ENTREGADO` | `frontend/e2e/logistics.spec.ts`; `frontend/e2e/cross-role.spec.ts`; `frontend/e2e/seller.spec.ts` |
+| TEST-EVIDENCE-V2-011 | Backend del supervisor | `npm run verify` | `PASS`: typecheck; 18 archivos / 145 pruebas; OpenAPI 52/59/647; build | `backend/tests/unit/supervisor.test.ts`; `backend/tests/integration/supervisor-http.test.ts`; `backend/openapi.yaml`; salida local 2026-11-06 |
+| TEST-EVIDENCE-V2-012 | PostgreSQL del supervisor | `$env:TEST_DATABASE_URL=...; npm run test:postgres` | `PASS`: 7 archivos / 37 pruebas; consultas globales, filtros, conteos y ausencia de datos personales | `backend/tests/postgres/supervisor-postgres.test.ts` |
+| TEST-EVIDENCE-V2-013 | E2E de supervisión | `npm run test:e2e` (Playwright + Edge) | `PASS`: 6/6; redirección anónima, denegación a admin/comprador/vendedor/logística, datos reales, sin formularios y `POST` → `405` | `frontend/e2e/supervisor.spec.ts` |
+| TEST-EVIDENCE-V2-014 | Backend administrativo | `npm run verify` | `PASS`: typecheck; 20 archivos / 160 pruebas; OpenAPI 68/76/904; build | `backend/tests/unit/admin.test.ts`; `backend/tests/integration/admin-http.test.ts`; `backend/openapi.yaml`; salida local 2026-11-08 |
+| TEST-EVIDENCE-V2-015 | PostgreSQL administrativo | `$env:TEST_DATABASE_URL=...; npm run test:postgres` | `PASS`: 8 archivos / 40 pruebas; consultas globales, agregados reales, minimización y guarda de método | `backend/tests/postgres/admin-postgres.test.ts` |
+| TEST-EVIDENCE-V2-016 | E2E administrativo | `npm run test:e2e` (Playwright + Edge, build de producción) | `PASS`: 7/7; redirección anónima, aislamiento de rol, dashboard, listas/detalles, alta en `/admin/sellers/new` y `405` de escritura | `frontend/e2e/admin.spec.ts`; `frontend/e2e/cross-role.spec.ts` |
 
-**No ejecutados:** lint, e2e de frontend, CI y validador semántico OpenAPI. La suite PostgreSQL se ejecutó localmente; en CI queda `PENDING`.
+**No ejecutados:** lint, CI en GitHub y pruebas de carga masiva. El validador OpenAPI y el E2E de navegador sí se ejecutaron localmente; el E2E del marketplace (13/13) corresponde a un corte anterior y no se repitió.
 
 ---
 
@@ -586,6 +766,70 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 
 `PASS` local no equivale a CI, revisión independiente de esta entrega ni cobertura de capacidades fuera de alcance.
 
+### GATE-V2-SELLER — espacio de trabajo del vendedor (2026-11-03)
+
+- **Ola:** V2.
+- **Estado:** `PASS` local.
+- **Alcance:** perfil, productos, imágenes por URL, bodegas, inventario por ingreso, consulta de pedidos y frontend `/seller`.
+- **Evidencia ejecutada:**
+  - `backend`: `npm run verify`: typecheck OK; 14 archivos / 110 pruebas; `OpenAPI válido: 33 rutas, 40 operaciones, 419 referencias`; build OK.
+  - `backend`: `npm run test:postgres`: 5 archivos / 28 pruebas OK.
+  - `backend`: `npm run smoke:seller`: 33/33 PASS.
+  - `frontend`: `npm run typecheck` y `npm run build`: OK; 18 rutas.
+  - `frontend`: `npm run test:e2e`: 4/4 PASS (incluye el recorrido cruzado admin → vendedor → comprador → pedido).
+- **Criterios cubiertos:** ownership por `sellerId` derivado de la sesión; `404` en acceso cruzado; transiciones de estado aprobadas; SKU e imagen obligatorios para publicar; ingreso atómico e idempotente; pedidos de solo lectura; sin pago ni logística.
+- **Límites:** carga binaria de imágenes, ajustes negativos/logística y entrega digital quedan bloqueados o pendientes según la matriz §2.5. Lint sigue `BLOCKED`; CI sigue `READY_FOR_REVIEW`.
+- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local, no `DONE`.
+
+### GATE-V2-LOGISTICS — operación logística (2026-11-05)
+
+- **Ola:** V2.
+- **Estado:** `PASS` local.
+- **Alcance:** perfil del operador, ámbito de bodegas, inventario autorizado, pedidos y detalle, preparación, despacho, entrega con evidencia, historial y frontend `/logistics`.
+- **Evidencia ejecutada:**
+  - `backend`: `npm run verify`: typecheck OK; 16 archivos / 131 pruebas; `OpenAPI válido: 43 rutas, 50 operaciones, 544 referencias`; build OK.
+  - `backend`: `npm run test:postgres`: 6 archivos / 34 pruebas OK.
+  - `backend`: `npm run smoke:seller`: 33/33 PASS (regresión del vendedor).
+  - `backend`: login real del operador demo: rol `OPERADOR_LOGISTICO`, estado `ACTIVO`, 2 bodegas.
+  - `frontend`: `npm run typecheck` y `npm run build`: OK; 22 rutas.
+  - `frontend`: `npm run test:e2e`: 5/5 PASS, incluido el recorrido logístico completo con evidencia.
+- **Criterios cubiertos:** autorización por rol y estado; ámbito por bodegas asignadas; `404` en acceso cruzado; preparación solo con pago y reservas; despacho con consumo de reservas, descuento de inventario y `SALIDA_VENTA`; entrega con evidencia; idempotencia por operador y tipo; historial de estados con actor y referencia causal.
+- **Límites:** asignación automática, transportistas externos, tracking integrado, evidencia del proveedor y `CloseOrder` siguen bloqueados o sin decisión. Lint sigue `BLOCKED`; CI sigue `READY_FOR_REVIEW`.
+- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local, no `DONE`.
+
+### GATE-V2-SUPERVISOR — supervisión de solo lectura (2026-11-06)
+
+- **Ola:** V2.
+- **Estado:** `PASS` local.
+- **Alcance:** dashboard global, pedidos y detalle, productos y detalle, almacenes, inventario, envíos, vendedores, autorización por rol y guarda de método.
+- **Evidencia ejecutada:**
+  - `backend`: `npm run verify`: typecheck OK; 18 archivos / 145 pruebas; `OpenAPI válido: 52 rutas, 59 operaciones, 647 referencias`; build OK.
+  - `backend`: `npm run test:postgres`: 7 archivos / 37 pruebas OK.
+  - `backend`: guarda de método: `GET` anónimo → `401`; `POST` → `405` con `Allow: GET, HEAD`.
+  - `backend`: login real del supervisor demo: rol `SUPERVISOR`, estado `ACTIVO`.
+  - `frontend`: `npm run typecheck` y `npm run build`: OK; 29 rutas.
+  - `frontend`: `npm run test:e2e`: 6/6 PASS, incluida la suite de supervisión.
+- **Criterios cubiertos:** solo lectura estructural; sin herencia de administrador; dashboard con conteos directos e `INV-03`; minimización de datos personales; sin formularios ni mutaciones; contrato sin operaciones de escritura.
+- **Límites:** reportes administrativos `BLOQUEADO` (`L-19`). Lint sigue `BLOCKED`; CI sigue `READY_FOR_REVIEW`.
+- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local, no `DONE`.
+
+### GATE-V2-ADMIN — espacio administrativo (2026-11-08)
+
+- **Ola:** V2.
+- **Estado:** `PASS` local.
+- **Alcance:** dashboard, usuarios, vendedores, compradores, bodegas, catálogo, inventario, movimientos, pedidos, pagos y reportes; guarda de método; preservación de las dos altas existentes.
+- **Evidencia ejecutada:**
+  - `backend`: `npm run verify`: typecheck OK; 20 archivos / 160 pruebas; `OpenAPI válido: 68 rutas, 76 operaciones, 904 referencias`; build OK.
+  - `backend`: `npm run test:postgres`: 8 archivos / 40 pruebas OK.
+  - `backend`: pruebas admin: `admin.test.ts` (5), `admin-http.test.ts` (10), `admin-postgres.test.ts` (3).
+  - `backend`: guarda de método: `GET` anónimo → `401`; `POST`/`PATCH`/`DELETE` fuera de las altas → `405`.
+  - `backend`: alta atómica de vendedor conservada; rollback por fallo de bodega sigue probado.
+  - `frontend`: `npm run typecheck` y `npm run build`: OK; 49 rutas (20 admin).
+  - `frontend`: `npm run test:e2e`: 7/7 PASS contra build de producción, incluida la suite administrativa.
+- **Criterios cubiertos:** autorización por rol y estado; guarda de método con allowlist de escritura; adaptador solo `SELECT`; minimización de datos; reportes solo con agregados reales; altas existentes intactas.
+- **Límites:** catálogo/fórmulas/filtros/exportaciones de reportes `BLOQUEADO` (`L-19`); devoluciones, reembolsos y facturación `BLOQUEADO`; mutaciones admin `BLOQUEADO`; autoregistro y solicitud comprador → vendedor `DEFERRED`. Lint sigue `BLOCKED`; CI sigue `READY_FOR_REVIEW`.
+- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local, no `DONE`.
+
 ### Gates previstos
 
 | Gate | Alcance | Estado |
@@ -600,6 +844,10 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 | GATE-W6 | Integración y pruebas críticas | `NOT_RUN` |
 | GATE-W7 | Seguridad y robustez | `NOT_RUN` |
 | GATE-W8 | Release candidate | `NOT_RUN` |
+| GATE-V2-SELLER | Espacio de trabajo del vendedor | `PASS` local (2026-11-03) |
+| GATE-V2-LOGISTICS | Operación logística | `PASS` local (2026-11-05) |
+| GATE-V2-SUPERVISOR | Supervisión de solo lectura | `PASS` local (2026-11-06) |
+| GATE-V2-ADMIN | Espacio administrativo | `PASS` local (2026-11-08) |
 
 ---
 
@@ -616,6 +864,12 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 | S-006 | 2026-10-28 | `badf0b1` | Implementación inicial de `PI-01`, migración y smoke PostgreSQL manual | `DEC-IMPL-001`…`009` | `typecheck`; 16 pruebas; build; smoke `201`/`409`; PostgreSQL manual | Automatizar PostgreSQL |
 | S-007 | 2026-10-28 | `badf0b1` | Suite PostgreSQL automatizada, contrato de tres rutas, revisión independiente `PASS`; `PI-02` evaluado y bloqueado | Sin decisiones de negocio nuevas | 29 pruebas; 2 PostgreSQL; guardas de base | Decidir auth, dirección y contrato de `PI-02` |
 | S-008 | 2026-11-01 | `10e65d8` | Eliminación del adaptador en memoria; catálogo público; migración `003`; seed demo; frontend Next.js; documentación de implementación | `DEC-V1-001`…`014` | 51 pruebas; 11 PostgreSQL; typecheck/build backend y frontend; smoke end-to-end | Decidir `ADR-004`/`L-01` y contrato de `PI-02`; CI |
+| S-009 | 2026-11-03 | `90e2c70` | Espacio de trabajo del vendedor: migración `007`, dominio, casos de uso, store PostgreSQL, 18 rutas, frontend `/seller`, OpenAPI `0.4.0`, pruebas y smoke | `DEC-V2-011`…`018` | 110 pruebas / 14 archivos; 28 PostgreSQL / 5 archivos; OpenAPI 33/40/419; smoke 33/33; frontend 18 rutas; E2E 3/3 | Revisar el corte, ejecutar CI y decidir imágenes/entrega digital |
+| S-010 | 2026-11-04 | `90e2c70` | Continuación del cierre: reconciliación documental y E2E cruzado admin → vendedor → comprador → pedido | Sin decisiones nuevas; aplica `DEC-V2-011`…`018` | 110 pruebas / 14 archivos; 28 PostgreSQL / 5 archivos; OpenAPI 33/40/419; smoke 33/33; frontend 18 rutas; E2E 4/4 | Revisar el diff, ejecutar CI y decidir imágenes/entrega digital |
+| S-011 | 2026-11-04 | `90e2c70` | Corrección de imágenes rotas del catálogo y alta del vendedor de verificación “Casa Luna” | Sin decisiones de negocio nuevas; se mantiene la política de imágenes por URL | Smoke 33/33; E2E 4/4; typecheck/build OK; 8 URLs de imagen verificadas contra `frontend/public/products` | Revisar el diff, ejecutar CI y decidir imágenes/entrega digital |
+| S-012 | 2026-11-05 | `90e2c70` | Rol Operador Logístico: migración `008`, dominio, casos de uso, store PostgreSQL, 9 rutas logísticas + alta administrativa, frontend `/logistics`, seed demo, OpenAPI `0.5.0`, historial de checkout y pruebas | `DEC-V2-019`…`DEC-V2-026` (ámbito por bodegas, preparación/despacho/entrega, idempotencia, historial, `CloseOrder` bloqueado) | 131 pruebas / 16 archivos; 34 PostgreSQL / 6 archivos; OpenAPI 43/50/544; smoke 33/33; frontend 22 rutas; E2E 5/5 | Revisar el diff, ejecutar CI y decidir `CloseOrder` e integraciones externas |
+| S-013 | 2026-11-06 | `90e2c70` | Rol Supervisor de solo lectura: módulo `supervisor`, 9 rutas `GET`, guarda `405`, store PostgreSQL solo `SELECT`, dashboard real, frontend `/supervisor`, seed demo, OpenAPI `0.6.0`, pruebas y E2E | `DEC-V2-027`…`DEC-V2-031` (módulo global, guarda de método, sin herencia admin, minimización de datos, dashboard sin KPIs inventados y reportes `L-19`) | 145 pruebas / 18 archivos; 37 PostgreSQL / 7 archivos; OpenAPI 52/59/647; smoke 33/33; frontend 29 rutas; E2E 6/6 | Revisar el diff, ejecutar CI y definir el catálogo de reportes (`L-19`) |
+| S-014 | 2026-11-08 | `90e2c70` | Rol Administrador: módulo `admin`, 17 rutas `GET`, guarda de método con allowlist de escritura, store PostgreSQL solo `SELECT`, dashboard y reportes con agregados reales, frontend `/admin` (20 rutas), alta de vendedores en `/admin/sellers/new`, OpenAPI `0.7.0`, pruebas y E2E | `DEC-V2-032`…`DEC-V2-036` (espacio admin de consulta, guarda de método, reportes solo agregados, minimización de datos, separación lista/alta) | 160 pruebas / 20 archivos; 40 PostgreSQL / 8 archivos; OpenAPI 68/76/904; smoke 33/33; frontend 49 rutas; E2E 7/7 | Revisar el diff, ejecutar CI y definir reportes/devoluciones/autoregistro antes de ampliar |
 
 ### Plantilla de reanudación — S-003
 
@@ -726,27 +980,58 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 - **Prerequisitos:** PostgreSQL disponible; `TEST_DATABASE_URL` de una base local terminada en `_test`; autorización del propietario para cualquier ampliación.
 - **Comprobaciones al reanudar:** `git status --short`, `git rev-parse HEAD`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:postgres` y `cd frontend; npm run typecheck; npm run build`.
 
+### Plantilla de reanudación — S-009
+
+- **Fecha:** 2026-11-03
+- **Rama/commit inspeccionados:** `entrega-1-catalogo` / `90e2c70`
+- **Estado del árbol:** trabajo del vendedor sin commit en `backend/`, `frontend/`, `docs/implementation/` y `orchestrator-state.md`; `node_modules` y `dist`/`.next` ignorados.
+- **Tarea activa al iniciar:** auditoría del rol Vendedor y construcción de su espacio de trabajo sobre el marketplace existente.
+- **Tarea terminada:** migración `007`; dominio, casos de uso, store PostgreSQL y 18 rutas `/api/v1/seller/*`; frontend `/seller`; OpenAPI `0.4.0`; pruebas unitarias/HTTP/PostgreSQL/contrato; smoke 33/33; E2E 4/4 (incluye recorrido cruzado).
+- **Decisiones nuevas:** `DEC-V2-011`…`018` (ownership, ciclo de producto, imágenes URL, ingreso idempotente, pedidos de solo lectura, perfil acotado, clave de idempotencia y logging 5xx).
+- **Bloqueos:** carga binaria de imágenes, ajustes negativos/logística y entrega digital. Lint `BLOCKED`; CI `READY_FOR_REVIEW`.
+- **Pruebas ejecutadas:** `npm run verify` (110/14, OpenAPI 33/40/419, build); `npm run test:postgres` (28/5); `npm run smoke:seller` (33/33); `npm run typecheck`/`build` frontend (18 rutas); `npm run test:e2e` (4/4, incluye `cross-role.spec.ts`).
+- **Pruebas pendientes:** CI en GitHub, lint y carga masiva.
+- **Discrepancias estado/repositorio:** variantes (`CAT-02`) siguen fuera de V1 por decisión; `FileStorage` y `PUB-06` sin definición aprobada. Registradas, no inventadas.
+- **Tarea que debe continuar:** revisión del diff, ejecución de CI y decisiones de imágenes/entrega digital.
+- **NEXT_ACTION:** ejecutar CI en GitHub y registrar el resultado; no habilitar capacidades bloqueadas sin decisión.
+- **Prerequisitos:** PostgreSQL disponible; `TEST_DATABASE_URL` de una base terminada en `_test`; backend en `:3000` y frontend en `:3001` para smoke/E2E; autorización del propietario para cualquier ampliación.
+- **Comprobaciones al reanudar:** `git status --short`, `git rev-parse HEAD`, `npm run verify`, `npm run test:postgres`, `npm run smoke:seller` (con API arriba) y `cd frontend; npm run typecheck; npm run build; npm run test:e2e`.
+
+### Plantilla de reanudación — S-010
+
+- **Fecha:** 2026-11-04
+- **Rama/commit inspeccionados:** `entrega-1-catalogo` / `90e2c70`
+- **Estado del árbol:** trabajo del vendedor y E2E cruzado sin commit; documentación de cierre actualizada.
+- **Tarea terminada:** reconciliación documental del corte y nuevo `frontend/e2e/cross-role.spec.ts` (admin registra vendedor → vendedor publica con stock → comprador compra con pago simulado → vendedor consulta el pedido).
+- **Evidencia:** backend 110/14; PostgreSQL 28/5; OpenAPI 33/40/419; smoke 33/33; frontend 18 rutas; E2E 4/4.
+- **Bloqueos vigentes:** imágenes binarias, ajustes negativos/logística, entrega digital, lint y CI. Sin cambios.
+- **Tarea que debe continuar:** revisar el diff completo, ejecutar CI y obtener decisión para los bloqueos.
+- **NEXT_ACTION:** ejecutar CI en GitHub y registrar el resultado real; no habilitar capacidades bloqueadas sin decisión.
+- **Comprobaciones al reanudar:** las mismas de S-009, añadiendo `npx playwright test e2e/cross-role.spec.ts` para el recorrido cruzado.
+
 ---
 
 ## 16. Estado de entrega
 
 | Capacidad | Estado | Evidencia requerida |
 |---|---|---|
-| Dominio y reglas | `IMPLEMENTED` para `PI-01` y catálogo público; resto `DOCUMENTED` / `NOT_IMPLEMENTED` | `backend/src/shared/domain/*`, `backend/src/modules/*/domain/*`; pruebas unitarias |
-| Arquitectura hexagonal | `PARTIAL` (módulos/adaptadores) | `backend/src`; separación dominio/aplicación/infraestructura/HTTP |
-| PostgreSQL | `IMPLEMENTED` y verificado con suite automatizada | `backend/migrations/001_initial.sql`, `003_catalog.sql`; `postgres-*-repository.ts`; `tests/postgres/**`; CI pendiente |
-| Catálogo público | `IMPLEMENTED` (lectura) | `modules/catalog/**`; 8 productos demo; pruebas HTTP/PostgreSQL |
-| Frontend | `IMPLEMENTED` (home, catálogo, detalle) | `frontend/**`; typecheck/build; smoke end-to-end |
+| Dominio y reglas | `IMPLEMENTED` para auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, espacio del vendedor, operación logística y supervisión de solo lectura; resto `DOCUMENTED` / `NOT_IMPLEMENTED` | `backend/src/modules/*/domain/*`; pruebas unitarias y PostgreSQL |
+| Arquitectura hexagonal | `IMPLEMENTED` en los módulos (dominio/aplicación/infraestructura/HTTP) | `backend/src`; separación de capas; sin imports de HTTP/SQL en dominio |
+| PostgreSQL | `IMPLEMENTED` y verificado con suite automatizada | Migraciones `001`…`008`; `tests/postgres/**` (37 pruebas); CI pendiente |
+| Catálogo público | `IMPLEMENTED` (lectura) + mutaciones del vendedor + lectura global del supervisor | `modules/catalog/**`, `modules/seller-workspace/**`, `modules/supervisor/**`; pruebas HTTP/PostgreSQL |
+| Frontend | `IMPLEMENTED` (marketplace + `/seller` + `/logistics` + `/supervisor`, 29 rutas) | `frontend/**`; typecheck/build; E2E 6/6 |
 | MongoDB | `NOT_STARTED` | Sin colecciones; fuera de este corte |
-| OpenAPI | `PARTIAL` (seis rutas) | `backend/openapi.yaml` 0.2.0; `tests/contract/openapi.test.ts`; sin validador semántico |
-| Autenticación | `NOT_STARTED` / `DEFERRED` | `L-27` acotada; `ADR-004` pendiente |
-| Autorización y ownership | `N/A` en registro y catálogo público | Matriz administrativa pendiente |
-| Inventario y concurrencia | `PARTIAL` (lectura de disponibilidad; sin reserva) | Consulta SQL; reglas `INV-*` sin mutaciones |
-| Pago | `DOCUMENTED` / `NOT_IMPLEMENTED` | `PAY-*`; `CON-004` resuelto: sin pagos en V1 |
+| OpenAPI | `IMPLEMENTED` (`0.6.0`: 52 rutas, 59 operaciones) | `backend/openapi.yaml`; validador offline; contrato 6 pruebas |
+| Autenticación | `IMPLEMENTED` (sesiones opacas, cookie HttpOnly, bearer) | `modules/identity/**`; pruebas y smoke |
+| Autorización y ownership | `IMPLEMENTED` (admin, comprador, vendedor, operador logístico y supervisor; `404` en acceso cruzado; supervisor sin herencia admin) | Matriz §19; pruebas HTTP/PostgreSQL/E2E |
+| Inventario y concurrencia | `IMPLEMENTED` para reservas de checkout, ingreso del vendedor y consumo por despacho; ajustes negativos `BLOQUEADO` | `inventory`, `inventory_movements`, bloqueo asesor; pruebas |
+| Logística | `IMPLEMENTED` (ámbito por bodegas, preparación, despacho, entrega con evidencia e historial); asignación/tracking/cierre `BLOQUEADO` | `modules/logistics/**`; migración `008`; pruebas y E2E |
+| Supervisión | `IMPLEMENTED` (solo lectura global, guarda `405`, dashboard real y minimización de datos); reportes `BLOQUEADO` (`L-19`) | `modules/supervisor/**`; pruebas y E2E |
+| Pago | `IMPLEMENTED` simulado con `DESCONOCIDO` explícito; reconciliación pendiente | `modules/orders/**`; pruebas PostgreSQL; smoke |
 | Docker | `IMPLEMENTED` y verificado | Docker 29.8.0; `compose.yaml`; PostgreSQL 17.11 healthy |
-| Integración | `DONE` local (HTTP/PostgreSQL + frontend) | `tests/integration/**`; `tests/postgres/**`; smoke; CI pendiente |
-| Seguridad | `PARTIAL` (Argon2id, sin secretos en auditoría) | Pruebas de hash y ausencia de contraseña |
-| Documentación | `W0 DONE`; `W1-01 DONE`; V1 documentada | `docs/backend/*`; `docs/implementation/*`; revisión independiente de V1 pendiente |
+| Integración | `DONE` local (HTTP/PostgreSQL/frontend/E2E) | 145 pruebas; 37 PostgreSQL; smoke 33/33; E2E 6/6 (incluye logística y supervisión); CI pendiente |
+| Seguridad | `PARTIAL` (Argon2id, HttpOnly, ownership, sin secretos en auditoría); revisión independiente pendiente | Pruebas de hash, sesión y ownership |
+| Documentación | `UPDATED` para este corte; revisión independiente pendiente | `docs/implementation/*`; `orchestrator-state.md` |
 | Release candidate | `NOT_STARTED` | `GATE-W8` no ejecutado |
 
 ---
@@ -755,8 +1040,8 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 
 1. Leer `prompt-orquestador-backend.md`, este archivo, `docs/implementation/IMPLEMENTATION-STATUS.md` y `docs/implementation/DECISIONS-LOG.md`.
 2. Verificar `git status`, rama, commit y artefactos de `backend/`, `frontend/` y `docs/implementation/`.
-3. Confirmar que `GATE-W0`, `GATE-W1-01`, `GATE-PI01-*` y `GATE-V1-A`…`E` siguen en `PASS` local. `GATE-W1` y `GATE-W2`…`W8` siguen `NOT_RUN` como gates amplios.
-4. No iniciar `PI-02`, carrito, checkout, pagos ni mutaciones de catálogo sin sus decisiones y contratos.
+3. Confirmar que `GATE-W0`, `GATE-W1-01`, `GATE-PI01-*`, `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS` y `GATE-V2-SUPERVISOR` siguen en `PASS` local. `GATE-W1` y `GATE-W2`…`W8` siguen `NOT_RUN` como gates amplios.
+4. No habilitar carga binaria de imágenes, ajustes negativos, operaciones logísticas del vendedor, reembolsos, escritura del supervisor ni el cierre `ENTREGADO → CERRADO` sin decisión explícita. El operador logístico ya opera preparación, despacho y entrega dentro de su ámbito; el supervisor solo consulta; el vendedor no se autorregistra.
 5. Ejecutar las suites backend de forma secuencial y el build del frontend por separado para evitar OOM/ENOSPC.
 6. Actualizar este archivo en el mismo cambio de trabajo.
 
@@ -766,4 +1051,4 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 
 El proyecto no puede declararse completo porque el servidor arranque. La entrega final requiere requisitos trazables, dominio e invariantes respetados, contratos coherentes, persistencia justificada, transacciones/concurrencia verificadas, seguridad comprobada, pruebas críticas ejecutadas, Docker reproducible, documentación actualizada y `GATE-W8` aprobado.
 
-**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer` y catálogo público implementados con Fastify/TypeScript, 51 pruebas aprobadas, contrato de seis rutas probado y PostgreSQL 17.11 automatizado con concurrencia, `409`, rollback y limpieza. El frontend Next.js compila y consume la API real. `GATE-V1-A`…`E = PASS` local. Autenticación, autorización administrativa, carrito, checkout, pagos y CI siguen pendientes; `L-22`, `L-10` y el resto de `L-27` siguen abiertos. Los requisitos excluidos o pendientes están identificados en `docs/implementation/IMPLEMENTATION-STATUS.md`, `docs/implementation/DECISIONS-LOG.md` y `docs/backend/*`, y no se presentan como funcionalidades completas.
+**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer`, catálogo público, autenticación, direcciones, alta administrativa de vendedor, carrito, checkout con pago simulado, espacio del vendedor, operación logística, supervisión de solo lectura y espacio administrativo de consulta implementados con Fastify/TypeScript y PostgreSQL. Evidencia local: 160 pruebas backend / 20 archivos, 40 pruebas PostgreSQL / 8 archivos, OpenAPI `0.7.0` (68 rutas / 76 operaciones / 904 referencias), frontend de 49 rutas, smoke del vendedor 33/33 y E2E 7/7 (incluye logística, supervisión y administración). `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR` y `GATE-V2-ADMIN = PASS` local. Siguen pendientes: ejecución de CI, lint, reconciliación de pagos `DESCONOCIDO`, catálogo de reportes (`L-19`), devoluciones/reembolsos/facturación, autoregistro de comprador y solicitud comprador → vendedor, almacenamiento binario de imágenes, ajustes negativos del vendedor, asignación automática/tracking externo, cierre `ENTREGADO → CERRADO`, entrega digital y release candidate. Los requisitos excluidos o pendientes están identificados en `docs/implementation/IMPLEMENTATION-STATUS.md`, `docs/implementation/DECISIONS-LOG.md` y `docs/backend/*`, y no se presentan como funcionalidades completas.

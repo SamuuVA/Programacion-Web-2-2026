@@ -34,6 +34,13 @@
 | `DEC-V2-008` | Frontend con Server Actions y cookie `HttpOnly` propia | Vigente | `features/auth/session.ts`, acciones |
 | `DEC-V2-009` | `ApiError` en módulo neutral | Vigente | `lib/api/errors.ts` |
 | `DEC-V2-010` | CI con validador OpenAPI offline y 4 jobs | Vigente (local) | `validate-openapi.ts`, `.github/workflows/ci.yml` |
+| `DEC-V2-032` | Espacio administrativo separado de supervisión, solo lectura salvo las altas existentes | Vigente | `modules/admin/`, `admin-routes.ts` |
+| `DEC-V2-033` | Guarda de método admin con allowlist de escritura | Vigente | `admin-routes.ts`, `admin-http.test.ts` |
+| `DEC-V2-034` | Dashboard y reportes admin solo con agregados reales derivables | Vigente | `postgres-admin-store.ts`, `admin-postgres.test.ts` |
+| `DEC-V2-035` | Minimización de datos en las vistas administrativas | Vigente | `ports.ts`, `postgres-admin-store.ts` |
+| `DEC-V2-036` | `/admin/sellers` como lista y alta en `/admin/sellers/new` | Vigente | `frontend/src/app/admin/sellers/` |
+
+> Las decisiones `DEC-V2-011` a `DEC-V2-031` están documentadas en las secciones siguientes; esta tabla se actualizó de forma incremental.
 
 ---
 
@@ -231,6 +238,214 @@
 - **Consecuencias:** la validación corre localmente y en CI; el lint sigue sin herramienta y se declara `BLOCKED`.
 - **Evidencia:** `backend/scripts/validate-openapi.ts`, `.github/workflows/ci.yml`, `npm run validate:openapi`.
 
+## DEC-V2-011 — Espacio del vendedor reutiliza la sesión y aplica ownership en el backend
+
+- **Contexto:** el vendedor ya existe y puede iniciar sesión, pero no tenía portal ni rutas propias; no se debía crear una autenticación paralela.
+- **Decisión:** reutilizar `SessionAuthenticator` y la cookie existente. El `sellerId` se deriva siempre de la sesión autenticada; el cuerpo y la URL nunca lo declaran. Toda consulta y mutación filtra por `vendedor_id`. Un recurso de otro vendedor responde `404`, no `403`, para no revelar su existencia.
+- **Alternativas descartadas:** autenticación separada para vendedores (duplica seguridad); confiar en el `sellerId` del cliente (IDOR); responder `403` (filtra existencia).
+- **Consecuencias:** el vendedor no puede operar fuera de su ámbito cambiando identificadores; el frontend no decide permisos.
+- **Evidencia:** `backend/src/modules/seller-workspace/interfaces/http/seller-workspace-routes.ts`, `tests/integration/seller-workspace-http.test.ts`, `tests/postgres/seller-workspace-postgres.test.ts`, E2E de aislamiento.
+
+## DEC-V2-012 — Ciclo de vida del producto con `BORRADOR` y transiciones aprobadas
+
+- **Contexto:** el esquema solo admitía estados comerciales y no permitía crear un producto antes de publicarlo.
+- **Decisión:** añadir `BORRADOR` como fase de creación reconocida por el SDD §7.1. Transiciones permitidas: `BORRADOR → PUBLICADO`, `PUBLICADO → SUSPENDIDO`, `SUSPENDIDO → PUBLICADO` (revalidando SKU e imagen) y `PUBLICADO/SUSPENDIDO → DESCONTINUADO`. `DESCONTINUADO` es terminal. Publicar exige SKU no vacío, al menos una imagen y vendedor `ACTIVO`.
+- **Alternativas descartadas:** publicar al crear (viola la revisión); reactivar `DESCONTINUADO` (no aprobado); suspender sin transición explícita (estado ambiguo).
+- **Consecuencias:** el catálogo público solo muestra `PUBLICADO`; suspender no publica automáticamente y descontinuar no reactiva.
+- **Evidencia:** `backend/migrations/007_seller_workspace.sql`, `src/modules/seller-workspace/domain/producto-vendedor.ts`, `tests/unit/seller-workspace.test.ts`, smoke del vendedor.
+
+## DEC-V2-013 — Imágenes como referencias URL persistentes; carga binaria bloqueada
+
+- **Contexto:** publicar exige imágenes, pero el SDD rechaza `FileStorage` y no existe proveedor ni límites de tamaño/formato aprobados.
+- **Decisión:** persistir referencias URL en `product_images` con ownership por producto y `alt` opcional. No se implementa carga binaria ni almacenamiento temporal en memoria.
+- **Alternativas descartadas:** guardar archivos en el sistema de archivos local (no persistente ni aprobado); inventar límites o un proveedor (no autorizado); publicar sin imagen (viola la regla).
+- **Consecuencias:** el vendedor puede publicar con URLs válidas; la carga binaria queda `BLOQUEADO` hasta que exista decisión de arquitectura.
+- **Evidencia:** `backend/migrations/003_catalog.sql`, `007_seller_workspace.sql`, `src/modules/seller-workspace/**`, `seller-image-manager.tsx`.
+
+## DEC-V2-014 — Inventario del vendedor: solo ingreso atómico e idempotente
+
+- **Contexto:** la matriz §19 autoriza «operaciones autorizadas de su ámbito», pero no detalla ajustes negativos ni movimientos logísticos.
+- **Decisión:** exponer únicamente `INGRESO` sobre producto físico propio y bodega activa propia. La mutación es transaccional: actualiza `inventory` y registra `inventory_movements` con actor, referencia y motivo. La idempotencia usa `(vendedor_id, idempotency_key)` y un bloqueo asesor por clave. El stock nunca queda negativo.
+- **Alternativas descartadas:** permitir ajustes negativos sin política (riesgo de descuadre); mutar stock sin movimiento (pierde trazabilidad); idempotencia solo en memoria (no sobrevive reinicios).
+- **Consecuencias:** el vendedor no puede alterar movimientos logísticos ni reservas; los ajustes negativos quedan pendientes de autorización explícita.
+- **Evidencia:** `007_seller_workspace.sql`, `postgres-seller-workspace-store.ts`, `tests/postgres/seller-workspace-postgres.test.ts`, smoke 33/33.
+
+## DEC-V2-015 — Pedidos del vendedor en solo lectura
+
+- **Contexto:** el vendedor necesita ver pedidos con sus productos, pero la matriz §19 reserva preparación/despacho a logística y prohíbe confirmar pagos.
+- **Decisión:** `GET /seller/orders` y `GET /seller/orders/{orderId}` filtran por productos del vendedor y devuelven solo la información necesaria. No se exponen mutaciones de estado, pago, reembolso ni logística.
+- **Alternativas descartadas:** permitir cambiar el estado del pedido (invade logística); mostrar pedidos de otros vendedores (IDOR); ocultar el pedido completo (impide operar).
+- **Consecuencias:** el vendedor consulta su operación sin asumir funciones ajenas.
+- **Evidencia:** `seller-workspace-routes.ts`, `seller-workspace.test.ts`, `seller/orders/*`.
+
+## DEC-V2-016 — Perfil del vendedor limitado a `nombreComercial`
+
+- **Contexto:** el SDD no define todos los atributos comerciales editables ni sus políticas.
+- **Decisión:** permitir consultar el perfil y actualizar solo `nombreComercial`. `razonSocial`, documentos y demás atributos no se inventan ni se exponen como editables.
+- **Alternativas descartadas:** habilitar todos los campos (sin política); impedir toda edición (no cubre la necesidad mínima).
+- **Consecuencias:** la edición es segura y acotada; los atributos faltantes quedan documentados como pendientes.
+- **Evidencia:** `seller-profile-form.tsx`, `seller-workspace-routes.ts`, `seller-workspace.test.ts`.
+
+## DEC-V2-017 — Clave de idempotencia de ingreso generada en el cliente tras montar
+
+- **Contexto:** una clave derivada de `useId` se repetía entre cargas de página y el backend deduplicaba ingresos nuevos como si fueran reintentos.
+- **Decisión:** generar `crypto.randomUUID()` en un `useEffect` al montar el formulario y deshabilitar el envío hasta tener la clave.
+- **Alternativas descartadas:** `useId` (no es única por intención); clave generada en el servidor (no distingue reintentos de envíos nuevos); clave fija (deduplica todo).
+- **Consecuencias:** cada intención de ingreso tiene su propia clave; un reintento real conserva la misma clave y no duplica stock.
+- **Evidencia:** `seller-ingress-form.tsx`, smoke de idempotencia, E2E del recorrido del vendedor.
+
+## DEC-V2-018 — Registro servidor de errores de aplicación 5xx
+
+- **Contexto:** un `503` intermitente no dejaba rastro suficiente para diagnosticarlo y el cliente no debe recibir detalles internos.
+- **Decisión:** en `app.ts`, registrar con `request.log.error` todo `ApplicationError` con estado 5xx, manteniendo la respuesta pública sin `detalles` para `DEPENDENCIA_NO_DISPONIBLE`.
+- **Alternativas descartadas:** exponer la causa al cliente (filtra información); no registrar (dificulta el diagnóstico); registrar todos los 4xx (ruido).
+- **Consecuencias:** los fallos de dependencia son diagnosticables en el servidor sin ampliar la superficie de información.
+- **Evidencia:** `backend/src/app.ts`; ejecución del smoke y E2E posteriores.
+
+## DEC-V2-019 — Ámbito del operador logístico por bodegas asignadas
+
+- **Contexto:** el modelo §13.1 asigna `bodega_origen_id` al envío y la matriz §19 limita al operador a «su ámbito»; no define un `operador_id` dentro de `shipments`.
+- **Decisión:** el ámbito se representa con `logistics_operators` y la tabla puente `logistics_operator_warehouses`. El operador solo consulta y opera pedidos, reservas y envíos cuya bodega de origen esté asignada. No se añade `operador_id` a `shipments`: el vínculo se deriva de la bodega. Un recurso fuera del ámbito responde `404`, no `403`.
+- **Alternativas descartadas:** añadir `operador_id` al envío (duplica la fuente de verdad y contradice el modelo); confiar en un identificador enviado por el cliente (IDOR); responder `403` (filtra existencia).
+- **Consecuencias:** un operador puede tener varias bodegas y compartirlas con otro; el backend valida el ámbito en cada lectura y mutación. El seed demo asigna al operador las bodegas de Aurora y Nido.
+- **Evidencia:** `backend/migrations/008_logistics.sql`, `src/modules/logistics/infrastructure/postgres-logistics-store.ts`, `tests/postgres/logistics-postgres.test.ts`, `backend/scripts/seed-demo.ts`.
+
+## DEC-V2-020 — Preparación solo con pago confirmado y reservas activas
+
+- **Contexto:** el flujo aprobado exige que la preparación ocurra después del pago y con inventario reservado; el checkout deja el pedido en `EN_PREPARACION` y las reservas en `ACTIVA`.
+- **Decisión:** `POST /logistics/orders/{orderId}/prepare` exige pedido en `PAGADO` o `EN_PREPARACION`, bodega asignada y reservas `ACTIVA` de esa bodega. Crea el envío en `PREPARACION` con las líneas reservadas, registra el evento y deja el pedido en `EN_PREPARACION`. No se inventan reservas, transportistas ni envíos.
+- **Alternativas descartadas:** preparar sin reservas (descuadra inventario); permitir preparar pedidos no pagados (salta el flujo); crear un envío vacío (oculta la falta de stock).
+- **Consecuencias:** sin reservas activas la operación falla con `SIN_RESERVAS`; un segundo envío para la misma bodega y pedido falla con `ENVIO_YA_PREPARADO`.
+- **Evidencia:** `src/modules/logistics/application/use-cases.ts`, `src/modules/logistics/domain/envio.ts`, `postgres-logistics-store.ts`, `tests/unit/logistics.test.ts`, E2E logístico.
+
+## DEC-V2-021 — Despacho con consumo de reservas y salida de inventario
+
+- **Contexto:** despachar sin mover inventario dejaría stock y reservas inconsistentes; el modelo exige una salida de venta trazable.
+- **Decisión:** el despacho exige un envío en `PREPARACION`/`EMPACADO` y un pedido `PAGADO`/`EN_PREPARACION`. Por cada línea valida que las reservas activas cubran la cantidad, descuenta `on_hand` y `reserved`, marca las reservas como `CONSUMIDA` con `consumida_en` y registra un movimiento `SALIDA_VENTA` con actor, envío y clave de idempotencia. El pedido pasa a `DESPACHADO` solo cuando no quedan envíos en `PREPARACION`/`EMPACADO` ni reservas activas.
+- **Alternativas descartadas:** descontar solo `on_hand` (deja reservas colgadas); marcar el pedido como despachado con otros envíos pendientes (estado falso); mover inventario sin movimiento (pierde trazabilidad).
+- **Consecuencias:** el stock nunca queda negativo; un despacho parcial mantiene el pedido en preparación hasta completar el resto.
+- **Evidencia:** `postgres-logistics-store.ts`, `src/modules/logistics/domain/envio.ts`, `tests/postgres/logistics-postgres.test.ts`, E2E logístico.
+
+## DEC-V2-022 — Entrega con evidencia obligatoria y pedido `ENTREGADO` solo al completar todo
+
+- **Contexto:** el modelo exige evidencia de entrega y no define el cierre del pedido; marcar `ENTREGADO` con envíos pendientes sería incorrecto.
+- **Decisión:** `POST /logistics/shipments/{shipmentId}/delivery` acepta `ENTREGADO` o `FALLIDO`. Para `ENTREGADO` exige tipo y referencia de evidencia; para `FALLIDO` exige motivo y lo conserva como referencia. La evidencia se persiste en `delivery_evidence`. El pedido pasa a `ENTREGADO` solo si todos sus envíos están `ENTREGADO` y no quedan reservas activas. `ENTREGADO → CERRADO` no se implementa.
+- **Alternativas descartadas:** permitir entrega sin evidencia (incumple PI-18); cerrar el pedido automáticamente (sin actor/proceso aprobado); marcar `ENTREGADO` con envíos fallidos o pendientes (estado falso).
+- **Consecuencias:** un fallo deja el envío en `FALLIDO` y el pedido no avanza; el cierre queda bloqueado hasta que se defina su actor y proceso.
+- **Evidencia:** `src/modules/logistics/domain/envio.ts`, `postgres-logistics-store.ts`, `tests/unit/logistics.test.ts`, `frontend/e2e/logistics.spec.ts`.
+
+## DEC-V2-023 — Idempotencia logística por operador y tipo de operación
+
+- **Contexto:** reintentos de red no deben duplicar envíos, salidas de inventario ni evidencias; la idempotencia solo en memoria no sobrevive reinicios.
+- **Decisión:** `logistics_operations` guarda `(operador_id, tipo, idempotency_key)` con unicidad y referencia al envío. Cada mutación toma un bloqueo asesor por operador, tipo y clave. Un reintento con los mismos datos devuelve `200` y el resultado previo; una clave reutilizada con otros datos falla con `IDEMPOTENCIA_CONFLICTO`.
+- **Alternativas descartadas:** deduplicar en memoria (no persiste); usar solo la clave del cliente sin operador (colisiones entre operadores); ignorar reintentos (duplica stock y evidencia).
+- **Consecuencias:** las tres operaciones son seguras ante reintentos; el frontend genera la clave al montar el formulario y la conserva durante el envío.
+- **Evidencia:** `008_logistics.sql`, `postgres-logistics-store.ts`, `tests/postgres/logistics-postgres.test.ts`, `frontend/src/features/logistics/components/*.tsx`.
+
+## DEC-V2-024 — Historial de estados del pedido con actor y referencia causal
+
+- **Contexto:** el pedido cambiaba de estado sin dejar rastro de quién, cuándo ni por qué; el modelo §13.2 exige trazabilidad.
+- **Decisión:** `order_status_history` registra `estado_previo`, `estado_nuevo`, `actor_id`, `actor_rol`, `ocurrido_en`, `referencia_tipo`, `referencia_id` y `correlation_id`. La logística escribe preparación, despacho y entrega. El checkout escribe `PENDIENTE_DE_PAGO → EN_PREPARACION` con referencia al pago cuando el resultado es `CONFIRMADO`, y `PENDIENTE_DE_PAGO → CANCELADO` cuando es `RECHAZADO`, resolviendo el actor desde `buyers.usuario_id`.
+- **Alternativas descartadas:** inferir el historial de los eventos del envío (no cubre el checkout); registrar solo el estado nuevo (pierde la transición); dejar el actor nulo (impide auditar).
+- **Consecuencias:** el detalle logístico muestra el historial real; los estados no se modifican sin dejar evidencia.
+- **Evidencia:** `008_logistics.sql`, `src/modules/logistics/infrastructure/postgres-logistics-store.ts`, `src/modules/orders/infrastructure/postgres-checkout-store.ts`, `tests/postgres/logistics-postgres.test.ts`.
+
+## DEC-V2-025 — Frontend logístico con guardas de servidor y Server Actions
+
+- **Contexto:** el operador necesita un portal, pero el navegador no debe decidir permisos ni manejar el token de la API.
+- **Decisión:** las páginas `/logistics` usan Server Components con `requireLogistics()` y el token de la cookie `HttpOnly`; las mutaciones usan Server Actions que reenvían el bearer y muestran el error de la API. El frontend no filtra por ámbito por su cuenta: el backend sigue siendo la autoridad.
+- **Alternativas descartadas:** llamar a la API desde el navegador (expone el token y duplica CORS); decidir permisos en el cliente (eludible); crear una autenticación paralela (duplica seguridad).
+- **Consecuencias:** un comprador o anónimo es redirigido; un operador inactivo recibe el error de la API; la UI solo muestra las operaciones que el backend autoriza.
+- **Evidencia:** `frontend/src/app/logistics/**`, `frontend/src/features/logistics/**`, `frontend/src/features/auth/session.ts`, E2E logístico.
+
+## DEC-V2-026 — Límites explícitos del rol logístico
+
+- **Contexto:** el modelo no define asignación automática de pedidos, integración con transportistas externos, tracking del proveedor ni el actor del cierre del pedido.
+- **Decisión:** no se implementan esas capacidades. `transportista` y `tracking_number` son datos opcionales que solo registra el operador cuando los aporta; no se consulta ningún proveedor externo. `CloseOrder` (`ENTREGADO → CERRADO`) queda bloqueado hasta que exista una decisión de negocio sobre su actor y proceso. El alta de operadores es administrativa (`POST /api/v1/admin/logistics-operators`), sin autorregistro.
+- **Alternativas descartadas:** inventar asignación o tracking (sin contrato); cerrar pedidos automáticamente (sin responsable); permitir autorregistro (fuera de `PI-02`).
+- **Consecuencias:** el flujo termina en `ENTREGADO`; las capacidades pendientes se documentan como bloqueadas y no se declaran completas.
+- **Evidencia:** `docs/implementation/IMPLEMENTATION-STATUS.md`, `orchestrator-state.md` (`L-23`), `src/modules/logistics/**`.
+
+## DEC-V2-027 — Supervisor como módulo global de solo lectura, separado de vendedor y logística
+
+- **Contexto:** los almacenes de vendedor y logística derivan su ámbito de la sesión (`sellerId`, `operadorId`) y filtran por bodegas propias. El supervisor necesita una vista global y no encaja en esos puertos.
+- **Decisión:** crear `backend/src/modules/supervisor/` con un puerto `SupervisorStore` que solo expone lecturas globales y un adaptador PostgreSQL con únicamente `SELECT`. No se crea un repositorio universal ni se reescriben los módulos existentes; se reutilizan tablas, estados y reglas ya definidas.
+- **Alternativas descartadas:** reutilizar el store del vendedor o del operador (su ámbito impediría la vista global); añadir un flag `esSupervisor` a los stores existentes (mezcla responsabilidades y multiplica condiciones); crear un repositorio genérico (abstracción prematura).
+- **Consecuencias:** el módulo es independiente, auditable y sin métodos de escritura; cualquier intento de mutación no tiene código al que llegar.
+- **Evidencia:** `backend/src/modules/supervisor/application/ports.ts`, `infrastructure/postgres-supervisor-store.ts`, `tests/unit/persistence-architecture.test.ts`.
+
+## DEC-V2-028 — Guarda de método `405` en todo el prefijo `/api/v1/supervisor`
+
+- **Contexto:** `SUP-01` exige que el supervisor no modifique nada; confiar solo en registrar rutas `GET` deja la puerta abierta a que una ruta futura añada escritura por descuido.
+- **Decisión:** un hook `onRequest` sobre `/api/v1/supervisor` y `/api/v1/supervisor/*` rechaza cualquier método distinto de `GET`, `HEAD` u `OPTIONS` con `405 METODO_NO_PERMITIDO` y `Allow: GET, HEAD`, antes de resolver la sesión.
+- **Alternativas descartadas:** depender solo de las rutas registradas (frágil ante cambios); ocultar botones en el frontend (no es una garantía de backend).
+- **Consecuencias:** la restricción es estructural y verificable incluso para rutas inexistentes; un `POST` anónimo recibe `405`, no `401`.
+- **Evidencia:** `backend/src/modules/supervisor/interfaces/http/supervisor-routes.ts`, `tests/integration/supervisor-http.test.ts`, `frontend/e2e/supervisor.spec.ts`.
+
+## DEC-V2-029 — `ADMINISTRADOR` no hereda el rol de supervisor
+
+- **Contexto:** el prompt menciona un perfil de supervisión y el sistema ya tiene administración; asumir que el administrador “ya puede ver todo” ampliaría permisos sin decisión explícita.
+- **Decisión:** `requireSupervisor()` exige rol `SUPERVISOR` y usuario `ACTIVO`. No hay `override` para `ADMINISTRADOR` ni para ningún otro rol.
+- **Alternativas descartadas:** permitir administrador (mezcla responsabilidades y amplía la superficie sin aprobación); permitir cualquier rol activo (anula la autorización).
+- **Consecuencias:** el administrador es redirigido igual que un comprador; el aislamiento se prueba en E2E.
+- **Evidencia:** `backend/src/modules/identity/interfaces/http/session.ts`, `frontend/src/features/auth/session.ts`, `tests/integration/supervisor-http.test.ts`, `frontend/e2e/supervisor.spec.ts`.
+
+## DEC-V2-030 — Minimización de datos personales en las vistas de supervisión
+
+- **Contexto:** la supervisión necesita contexto operativo, no datos personales de compradores, vendedores ni actores.
+- **Decisión:** las vistas omiten nombre, teléfono y dirección del comprador; correo y documento del vendedor; dirección de entrega; identificadores y nombres de actores; y la referencia del proveedor de pago. Se publican identificadores operativos, roles, estados, nombre comercial del vendedor y datos de inventario.
+- **Alternativas descartadas:** reutilizar los DTO de comprador o vendedor (exponen datos que el supervisor no necesita); anonimizar en el frontend (el dato ya viajó).
+- **Consecuencias:** el backend no envía esos campos y las pruebas verifican su ausencia.
+- **Evidencia:** `backend/src/modules/supervisor/application/ports.ts`, `infrastructure/postgres-supervisor-store.ts`, `tests/postgres/supervisor-postgres.test.ts`.
+
+## DEC-V2-031 — Dashboard con conteos directos y reportes bloqueados (`L-19`)
+
+- **Contexto:** el prompt pide indicadores y reportes, pero el SDD no define catálogo, fórmulas, filtros ni límites (`L-19`). Inventar porcentajes, metas, SLA, rankings o proyecciones produciría datos falsos.
+- **Decisión:** el dashboard solo muestra conteos directos de estados definidos y la suma de inventario `disponible = on_hand - reserved - unavailable` (`INV-03`). No se implementan endpoints ni pantallas de reportes; la interfaz muestra “No disponibles” y registra el bloqueo.
+- **Alternativas descartadas:** inventar KPIs o fórmulas (datos sin respaldo); mostrar datos de ejemplo (confunde con datos reales); omitir el bloqueo en la UI (el usuario supondría que no existe).
+- **Consecuencias:** todo número mostrado es verificable con SQL; los reportes quedan pendientes de definición de negocio.
+- **Evidencia:** `backend/src/modules/supervisor/application/ports.ts`, `frontend/src/app/supervisor/page.tsx`, `docs/implementation/IMPLEMENTATION-STATUS.md`.
+
+## DEC-V2-032 — Espacio administrativo separado de supervisión, solo lectura salvo las altas existentes
+
+- **Contexto:** el administrador ya existía para las altas de vendedor y operador logístico; se pidió ampliar su espacio sin duplicar servicios ni ampliar permisos por conveniencia.
+- **Decisión:** se crea el módulo `admin` con 17 consultas `GET` bajo `/api/v1/admin/*`. Las únicas escrituras siguen siendo `POST /admin/sellers` y `POST /admin/logistics-operators`. El espacio admin no reutiliza el módulo de supervisión ni concede acceso a otros roles.
+- **Alternativas descartadas:** dar al administrador acceso global implícito (amplía la superficie sin decisión); duplicar los casos de uso del supervisor (doble mantenimiento y divergencia).
+- **Consecuencias:** el administrador consulta usuarios, vendedores, compradores, bodegas, catálogo, inventario, pedidos, pagos y reportes; no modifica entidades.
+- **Evidencia:** `backend/src/modules/admin/application/use-cases.ts`, `interfaces/http/admin-routes.ts`, `tests/integration/admin-http.test.ts`.
+
+## DEC-V2-033 — Guarda de método admin con allowlist de escritura
+
+- **Contexto:** un espacio de consulta debe rechazar escrituras aunque la ruta no exista, para no depender de la navegación del cliente.
+- **Decisión:** bajo `/api/v1/admin/*` solo se permiten `GET`, `HEAD` y `OPTIONS`; `POST` se permite exclusivamente en `/admin/sellers` y `/admin/logistics-operators`. Cualquier otro método responde `405 METODO_NO_PERMITIDO` con `Allow`.
+- **Alternativas descartadas:** confiar en que las rutas no declaren otros métodos (una ruta futura podría exponer escritura por error); devolver `404` (oculta que el método está prohibido).
+- **Consecuencias:** la restricción se prueba en HTTP y E2E, y no afecta las altas atómicas existentes.
+- **Evidencia:** `backend/src/modules/admin/interfaces/http/admin-routes.ts`, `tests/integration/admin-http.test.ts`, `frontend/e2e/admin.spec.ts`.
+
+## DEC-V2-034 — Dashboard y reportes admin solo con agregados reales derivables
+
+- **Contexto:** `L-19` sigue sin catálogo de reportes, fórmulas, filtros ni límites. Inventar KPIs produciría datos falsos.
+- **Decisión:** el dashboard y `GET /admin/reports` solo devuelven conteos por estado, montos de pagos capturados y suma de inventario disponible (`on_hand - reserved - unavailable`). No hay porcentajes, metas, SLA, rankings, proyecciones, comisiones ni comparaciones temporales. No hay exportaciones PDF/Excel/CSV.
+- **Alternativas descartadas:** inventar fórmulas (datos sin respaldo); generar archivos sin contrato (formato y columnas no aprobados).
+- **Consecuencias:** todo número es verificable con SQL; el catálogo de reportes queda pendiente de negocio.
+- **Evidencia:** `backend/src/modules/admin/infrastructure/postgres-admin-store.ts`, `tests/postgres/admin-postgres.test.ts`, `frontend/src/app/admin/reports/page.tsx`.
+
+## DEC-V2-035 — Minimización de datos en las vistas administrativas
+
+- **Contexto:** el administrador necesita contexto operativo, no secretos ni datos personales innecesarios.
+- **Decisión:** el adaptador omite `hash_credencial`, documentos, tokens de sesión, referencia del proveedor de pago, dirección completa y `actor_id` de movimientos. El detalle de pedido solo expone `ciudad`, `region`, `pais` y `capturadoEn`.
+- **Alternativas descartadas:** reutilizar DTO con todos los campos (el dato ya viajó); filtrar en el frontend (no reduce la exposición de la API).
+- **Consecuencias:** las pruebas verifican la ausencia de esos campos.
+- **Evidencia:** `backend/src/modules/admin/application/ports.ts`, `infrastructure/postgres-admin-store.ts`, `tests/postgres/admin-postgres.test.ts`.
+
+## DEC-V2-036 — `/admin/sellers` como lista y alta en `/admin/sellers/new`
+
+- **Contexto:** el espacio admin necesita una lista de vendedores y el formulario de alta ya existía en `/admin/sellers`; mantener ambos en la misma ruta impedía listar.
+- **Decisión:** el formulario se mueve a `/admin/sellers/new` y `/admin/sellers` pasa a ser la lista. Las Server Actions revalidan `/admin/sellers`, `/admin/sellers/new` y `/admin`.
+- **Alternativas descartadas:** poner la lista en `/admin/sellers/list` (URL menos natural); dejar el formulario en la lista (página mixta y difícil de probar).
+- **Consecuencias:** el enlace de la cabecera apunta a `/admin`; el E2E de recorrido cruzado usa `/admin/sellers/new`.
+- **Evidencia:** `frontend/src/app/admin/sellers/`, `frontend/src/features/sellers/actions.ts`, `frontend/e2e/cross-role.spec.ts`.
+
 ---
 
 ## Decisiones pendientes
@@ -241,7 +456,20 @@
 | Reembolsos y logística inversa | Fuera de alcance | Requieren decisión de negocio y contrato propio |
 | Lint (ESLint/Biome) | `BLOCKED` | No hay herramienta configurada |
 | Ejecución de CI en GitHub | `READY_FOR_REVIEW` | El workflow existe y es válido, pero no se ejecutó en remoto |
-| Subida de imágenes y variantes | Pendiente | Fuera de V1 por decisión |
+| Subida binaria de imágenes | `BLOQUEADO` | Sin proveedor, mecanismo ni límites aprobados; se usan URLs |
+| Ajustes negativos / movimientos logísticos del vendedor | `BLOQUEADO` | La matriz §19 no autoriza explícitamente; solo se implementó `INGRESO` |
+| Preparación/despacho del vendedor | `NO_APLICA` | Reservado al operador logístico; pedidos de solo lectura |
+| Asignación automática de pedidos | `BLOQUEADO` | `L-23`; no hay política aprobada |
+| Transportistas externos, tracking integrado y evidencia del proveedor | `BLOQUEADO` | `L-23`; solo se registran datos opcionales aportados por el operador |
+| Cierre de pedido `ENTREGADO → CERRADO` (`CloseOrder`) | `BLOQUEADO` | No hay actor ni proceso definido; el flujo termina en `ENTREGADO` |
+| Entrega digital (`PUB-06`) | Pendiente | El SDD no define la estructura del recurso |
+| Reportes administrativos del supervisor | `BLOQUEADO` (`L-19`) | Sin catálogo, fórmulas, filtros ni límites aprobados |
+| Reportes del administrador | `PARCIAL` / `BLOQUEADO` (`L-19`) | Solo agregados reales directos; catálogo, fórmulas, filtros y exportaciones sin aprobar |
+| Devoluciones, reembolsos y facturación | `BLOQUEADO` | Sin tablas de persistencia ni reglas de negocio aprobadas |
+| Mutaciones admin de producto/inventario/pago | `BLOQUEADO` | No definidas ni autorizadas; el espacio admin es de consulta salvo las dos altas |
+| Autoregistro público de comprador | Diferido | Sin reglas de aprobación ni contrato; se documenta la dependencia |
+| Solicitud comprador → vendedor | Diferido | Sin flujo, estados ni aprobación definidos; se documenta la dependencia |
+| Variantes comerciales | Fuera de V1 por decisión | Discrepancia con `CAT-02` registrada, no resuelta por invención |
 
 Estas decisiones no se resuelven por conveniencia en este corte.
 

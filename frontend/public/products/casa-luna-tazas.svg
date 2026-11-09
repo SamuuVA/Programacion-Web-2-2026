@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 660" role="img" aria-labelledby="title">
+  <title id="title">Set de dos tazas de cerámica color arena</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f1e6" />
+      <stop offset="1" stop-color="#e7e2f0" />
+    </linearGradient>
+    <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4e7d2" />
+      <stop offset="1" stop-color="#d8c3a4" />
+    </linearGradient>
+    <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a6b4d" />
+      <stop offset="1" stop-color="#b08a63" />
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-30%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#5d4a6b" flood-opacity="0.2" />
+    </filter>
+  </defs>
+  <rect width="800" height="660" fill="url(#bg)" />
+  <ellipse cx="400" cy="552" rx="270" ry="42" fill="#5d4a6b" opacity="0.12" />
+
+  <g filter="url(#shadow)">
+    <path d="M232 236h232v168a96 96 0 0 1-96 96h-40a96 96 0 0 1-96-96z" fill="url(#cup)" />
+    <ellipse cx="348" cy="236" rx="116" ry="34" fill="url(#inside)" />
+    <ellipse cx="348" cy="236" rx="92" ry="24" fill="#4d3826" opacity="0.55" />
+    <path d="M464 292h34a56 56 0 0 1 0 112h-34" fill="none" stroke="#d8c3a4" stroke-width="26" stroke-linecap="round" />
+    <path d="M262 310c34 20 78 30 120 30s86-10 120-30" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="8" stroke-linecap="round" />
+  </g>
+
+  <g filter="url(#shadow)" transform="translate(148 58) scale(0.82)">
+    <path d="M232 236h232v168a96 96 0 0 1-96 96h-40a96 96 0 0 1-96-96z" fill="url(#cup)" />
+    <ellipse cx="348" cy="236" rx="116" ry="34" fill="url(#inside)" />
+    <ellipse cx="348" cy="236" rx="92" ry="24" fill="#4d3826" opacity="0.55" />
+    <path d="M464 292h34a56 56 0 0 1 0 112h-34" fill="none" stroke="#d8c3a4" stroke-width="26" stroke-linecap="round" />
+    <path d="M262 310c34 20 78 30 120 30s86-10 120-30" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="8" stroke-linecap="round" />
+  </g>
+
+  <circle cx="592" cy="168" r="10" fill="#b08a63" opacity="0.55" />
+  <circle cx="622" cy="196" r="6" fill="#8a6b4d" opacity="0.45" />
+</svg>

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {
+  BoxesIcon,
   CartIcon,
   MapPinIcon,
   MenuIcon,
   PackageIcon,
   SearchIcon,
+  ShieldCheckIcon,
   StoreIcon,
   UserIcon
 } from "@/components/icons";
@@ -22,6 +24,9 @@ export async function SiteHeader() {
   const session = await getSession();
   const isBuyer = session?.rol === "COMPRADOR" && session.compradorId !== null;
   const isAdmin = session?.rol === "ADMINISTRADOR";
+  const isSeller = session?.rol === "VENDEDOR" && session.sellerId !== null;
+  const isLogistics = session?.rol === "OPERADOR_LOGISTICO";
+  const isSupervisor = session?.rol === "SUPERVISOR";
 
   const accountLinks = [
     ...(isBuyer
@@ -35,12 +40,39 @@ export async function SiteHeader() {
           }
         ]
       : []),
+    ...(isSeller
+      ? [
+          {
+            href: "/seller",
+            label: "Mi tienda",
+            icon: <StoreIcon width={18} height={18} />
+          }
+        ]
+      : []),
     ...(isAdmin
       ? [
           {
-            href: "/admin/sellers",
-            label: "Vendedores",
+            href: "/admin",
+            label: "Administración",
             icon: <StoreIcon width={18} height={18} />
+          }
+        ]
+      : []),
+    ...(isLogistics
+      ? [
+          {
+            href: "/logistics",
+            label: "Logística",
+            icon: <BoxesIcon width={18} height={18} />
+          }
+        ]
+      : []),
+    ...(isSupervisor
+      ? [
+          {
+            href: "/supervisor",
+            label: "Supervisión",
+            icon: <ShieldCheckIcon width={18} height={18} />
           }
         ]
       : [])

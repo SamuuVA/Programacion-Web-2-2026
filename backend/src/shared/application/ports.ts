@@ -5,12 +5,23 @@ import type {
   CheckoutId,
   CompradorId,
   EventId,
+  InventarioId,
+  MovimientoInventarioId,
   OrderId,
   OrderItemId,
+  OrderStatusHistoryId,
   PaymentId,
+  ProductImageId,
+  ProductoId,
   ReservationId,
   SellerId,
   SessionId,
+  ShipmentEventId,
+  ShipmentId,
+  ShipmentItemId,
+  DeliveryEvidenceId,
+  LogisticsOperationId,
+  LogisticsOperatorId,
   UsuarioId,
   WarehouseId
 } from "../domain/ids.js";
@@ -35,6 +46,17 @@ export interface IdGenerator {
   orderItemId(): OrderItemId;
   paymentId(): PaymentId;
   reservationId(): ReservationId;
+  productoId(): ProductoId;
+  productImageId(): ProductImageId;
+  inventarioId(): InventarioId;
+  movimientoInventarioId(): MovimientoInventarioId;
+  logisticsOperatorId(): LogisticsOperatorId;
+  shipmentId(): ShipmentId;
+  shipmentItemId(): ShipmentItemId;
+  shipmentEventId(): ShipmentEventId;
+  deliveryEvidenceId(): DeliveryEvidenceId;
+  orderStatusHistoryId(): OrderStatusHistoryId;
+  logisticsOperationId(): LogisticsOperationId;
 }
 
 export interface PasswordHasher {

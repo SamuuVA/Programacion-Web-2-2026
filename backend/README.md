@@ -93,11 +93,13 @@ Errores:
 - `503 DEPENDENCIA_NO_DISPONIBLE`: persistencia o hashing no disponible.
 - `500 ERROR_INTERNO`: error no controlado.
 
-El contrato implementado está en [`openapi.yaml`](openapi.yaml) y cubre
-`POST /api/v1/buyers`, `GET /api/v1/products`, `GET /api/v1/products/{productId}`,
-`GET /api/v1/categories`, `/health` y `/ready`; no declara autenticación ni rutas de
-módulos que todavía no existen. `tests/contract/openapi.test.ts` verifica rutas,
-métodos, respuestas, `additionalProperties` y referencias locales del documento.
+El contrato implementado está en [`openapi.yaml`](openapi.yaml) y cubre las rutas de
+registro, catálogo, autenticación, direcciones, administración, carrito, checkout,
+pedidos, vendedor, logística y supervisión de solo lectura, además de `/health` y
+`/ready`. Las rutas `/api/v1/supervisor/*` solo declaran `GET`; cualquier escritura
+responde `405`. Los reportes administrativos no se declaran (`L-19`).
+`tests/contract/openapi.test.ts` verifica rutas, métodos, respuestas,
+`additionalProperties` y referencias locales del documento.
 
 ## Consultar el catálogo público
 
@@ -140,9 +142,14 @@ npm run db:seed:demo
 ```
 
 Crea 2 vendedores, 2 bodegas, 8 productos publicados, 8 imágenes y 6 filas de
-inventario. Es idempotente (`ON CONFLICT ... DO UPDATE`) y se ejecuta en una
-transacción. Los IDs de producto van de `40000000-0000-4000-8000-000000000001`
+inventario, además de las cuentas demo de administrador, comprador, operador
+logístico y supervisor. Es idempotente (`ON CONFLICT ... DO UPDATE`) y se ejecuta en
+una transacción. Los IDs de producto van de `40000000-0000-4000-8000-000000000001`
 a `...-0008`. La contraseña demo se puede cambiar con `DEMO_SEED_PASSWORD`.
+
+Cuentas demo (contraseña `NexusMarketDemo2026!`): `admin@nexusmarket.demo`,
+`comprador@nexusmarket.demo`, `aurora@nexusmarket.demo`, `nido@nexusmarket.demo`,
+`logistica@nexusmarket.demo` y `supervisor@nexusmarket.demo`.
 
 
 ## Pruebas y compilación
@@ -156,10 +163,10 @@ npm run build
 Resultado registrado de esta entrega:
 
 - `typecheck`: OK.
-- `test`: 8 archivos, 51 pruebas aprobadas (unitarias, HTTP, catálogo y contrato OpenAPI).
+- `test`: 18 archivos, 145 pruebas aprobadas (unitarias, HTTP, catálogo, vendedor, logística, supervisión y contrato OpenAPI).
 - `build`: OK.
-- smoke HTTP real: `201`, `409`, catálogo, detalle, `404`, `/health` y `/ready` verificados con el servidor compilado.
-- PostgreSQL real: `npm run test:postgres` aprobó 3 archivos / 11 pruebas, incluidos concurrencia con un `201` y un `409`, rollback tras un fallo posterior a las primeras escrituras, ausencia de registros parciales y consultas de catálogo.
+- smoke HTTP real: registro, catálogo, detalle, `404`, `/health` y `/ready` verificados con el servidor compilado; smoke del vendedor 33/33.
+- PostgreSQL real: `npm run test:postgres` aprobó 7 archivos / 37 pruebas, incluidos concurrencia con un `201` y un `409`, rollback, catálogo, vendedor, logística y supervisión.
 - La prueba PostgreSQL deja la base de prueba sin filas de la ejecución y conserva un registro centinela ajeno hasta comprobar la limpieza dirigida.
 
 ## PostgreSQL
