@@ -643,7 +643,7 @@ npm run db:seed:demo
 | Verificación | Estado |
 |---|---|
 | Lint (ESLint/Biome) | Resuelto en S-015: ESLint configurado en backend y frontend; Prettier en backend (ver §13) |
-| CI en GitHub Actions | Workflow de 5 jobs creado y validado localmente; **no ejecutado en remoto** |
+| CI en GitHub Actions | `PASS`: run `42749289978`, 5/5 jobs correctos (backend estático, pruebas backend, PostgreSQL, frontend y E2E) |
 | Reconciliación de pagos `DESCONOCIDO` | No implementada |
 | Reembolsos y logística inversa | No implementados (fuera de alcance) |
 | Pruebas de carga o concurrencia masiva | No ejecutadas (sí se probó concurrencia e idempotencia funcional) |
@@ -720,7 +720,7 @@ Desde `frontend/`:
 | `npm run lint` | 0 errores, 2 avisos `@next/next/no-img-element` |
 | `npm run typecheck` | OK |
 | `npm run build` | OK; 56 rutas |
-| `npm run test:e2e` | 10/10 PASS en 5.6 min |
+| `npm run test:e2e` | 10/10 PASS en 5.3 min; la suite administrativa crea un pedido real por checkout y usa encabezados exactos y búsquedas por filtro para ser determinista en una base recién sembrada |
 
 Escenarios E2E nuevos (`identity-onboarding.spec.ts`, 3/3):
 
@@ -736,12 +736,16 @@ Escenarios E2E nuevos (`identity-onboarding.spec.ts`, 3/3):
 | Base `nexusmarket_test` con checksums antiguos | La suite PostgreSQL no arrancaba | Se recreó el esquema de prueba y se aplicaron las migraciones normalizadas |
 | Puerto `3001` ocupado por un `next start` previo | El nuevo servidor no arrancaba | Se detuvo el proceso y se reutilizó el servidor de producción ya compilado para el E2E |
 | Prettier marcaba 119 archivos del backend | El formato no era verificable | Se adoptó `trailingComma: none` y `endOfLine: auto`, y se normalizó el backend con `npm run format` |
+| E2E fallaba en CI por encabezados ambiguos (`Movimientos de inventario`, `Pedidos`) | Playwright resolvía dos elementos cuando el estado vacío repetía la palabra | Se usaron encabezados `exact: true` |
+| La base demo recién sembrada no tiene pedidos y la suite administrativa asumía filas | El detalle de pedido no se podía verificar en CI | La suite administrativa crea un pedido real con el comprador demo usando el mismo checkout de la aplicación; además busca por filtro en lugar de depender de la primera página |
 
-### 13.5 Lo que no se ejecutó
+### 13.5 Pendientes y verificación remota
 
 | Verificación | Estado |
 |---|---|
-| GitHub Actions en remoto | Workflow de 5 jobs válido y parseado; **no ejecutado en GitHub** |
+| GitHub Actions en remoto | `PASS`: run `42749289978`, 5/5 jobs correctos (backend estático 25 s, pruebas backend 16 s, PostgreSQL 45 s, frontend 37 s, E2E 3 min 26 s) |
 | Reenvío/edición de solicitudes rechazadas | No implementado; decisión pendiente |
 | Notificaciones externas de decisión | No implementadas; no hay infraestructura aprobada |
 | Reconciliación de pagos `DESCONOCIDO`, reportes `L-19`, devoluciones/reembolsos/facturación y `CloseOrder` | Fuera de alcance; sin reglas inventadas |
+
+El CI remoto ejecutó los cinco jobs del workflow sobre el commit `73db5d6`. Los avisos de GitHub sobre Node.js 20 y la migración de `ubuntu-latest` son advertencias de la plataforma, no fallos del proyecto; no se cambiaron versiones de acciones en esta fase.

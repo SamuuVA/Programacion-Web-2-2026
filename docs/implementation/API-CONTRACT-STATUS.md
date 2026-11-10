@@ -328,7 +328,7 @@ Conteo total del backend: **23 archivos / 187 pruebas** en `npm test`; **9 archi
 | Sin reembolsos ni logística inversa | No se puede revertir un pago confirmado | Fuera de alcance |
 | Validador OpenAPI propio, no Spectral | Cobertura semántica menor que un validador estándar | Aceptada; corre offline |
 | Lint y formato | Verificados localmente | `PASS` local: ESLint en ambos proyectos y Prettier en backend |
-| Sin CI ejecutado en GitHub | La verificación continua no está probada en remoto | `READY_FOR_REVIEW` |
+| CI en GitHub | La verificación continua se ejecutó en remoto | `PASS`: run `42749289978`, 5/5 jobs correctos |
 | Sin pruebas de contrato generadas desde OpenAPI | Las pruebas HTTP son manuales respecto al documento | Abierta |
 | Sin `ETag`/`Cache-Control` explícitos | El frontend usa `cache: "no-store"` | Aceptado |
 | Sin paginación por cursor | Solo paginación por página | Decisión V1 |

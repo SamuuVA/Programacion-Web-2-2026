@@ -21,15 +21,15 @@
 | I | Carrito persistente | `PASS` | `GET/POST/PATCH/DELETE`; validación de producto y cantidades |
 | J | Checkout, pedidos y pago simulado | `PASS` | Confirmado/rechazado/desconocido; idempotencia; reservas |
 | K | Integración frontend del marketplace | `PASS` | Login, carrito, checkout, pedidos, direcciones, admin; E2E navegador 13/13 |
-| L | CI y validación OpenAPI | `READY_FOR_REVIEW` | Workflow de 5 jobs válido (lint, formato, tipos, pruebas, PostgreSQL y E2E); **no ejecutado en GitHub** |
-| M | Lint y formato | `PASS` local | ESLint en backend y frontend; Prettier `format:check` en backend; ambos ejecutados sin errores |
+| L | CI y validación OpenAPI | `PASS` | Workflow de 5 jobs (lint, formato, tipos, pruebas, PostgreSQL y E2E) ejecutado en GitHub Actions: run [`42749289978`](https://github.com/SamuuVA/Programa-Web-2-2026/actions/runs/42749289978), 5/5 jobs correctos |
+| M | Lint y formato | `PASS` | ESLint en backend y frontend; Prettier `format:check` en backend; ejecutados localmente y en CI sin errores |
 | N | Espacio de trabajo del vendedor (`GATE-V2-SELLER`) | `PASS` local | 18 rutas `/api/v1/seller/*`; 110 pruebas backend; 28 PostgreSQL; smoke 33/33; E2E 4/4 |
 | O | Operación logística (`GATE-V2-LOGISTICS`) | `PASS` local | 9 rutas `/api/v1/logistics/*` + alta administrativa; 145 pruebas backend; 37 PostgreSQL; smoke 33/33; E2E 6/6 |
 | P | Supervisión de solo lectura (`GATE-V2-SUPERVISOR`) | `PASS` local | 9 rutas `GET /api/v1/supervisor/*` + guarda `405`; dashboard real; E2E 6/6; reportes `BLOQUEADO` (`L-19`) |
 | Q | Espacio administrativo (`GATE-V2-ADMIN`) | `PASS` local | 17 rutas `GET /api/v1/admin/*` + guarda de método; alta atómica de vendedor/logística intacta; 160 pruebas backend; 40 PostgreSQL; E2E 7/7; reportes solo agregados reales |
-| R | Identidad y onboarding (`GATE-V2-IDENTITY`) | `PASS` local | Registro público, solicitud comprador → vendedor, aprobación atómica, rechazo sin efectos y estados de acceso con revocación de sesión; 187 pruebas backend; 46 PostgreSQL; E2E 10/10; lint y formato ejecutados |
+| R | Identidad y onboarding (`GATE-V2-IDENTITY`) | `PASS` | Registro público, solicitud comprador → vendedor, aprobación atómica, rechazo sin efectos y estados de acceso con revocación de sesión; 187 pruebas backend; 46 PostgreSQL; E2E 10/10 local y 5/5 jobs en CI; lint y formato ejecutados |
 
-`PASS` significa “verificado con la evidencia listada”. No implica ejecución remota de CI ni revisión independiente. `READY_FOR_REVIEW` indica que el artefacto existe y fue validado localmente, pero su ejecución real en GitHub Actions está pendiente.
+`PASS` significa “verificado con la evidencia listada”. El CI remoto se registra en el gate L; la revisión independiente de esta entrega sigue pendiente.
 
 ---
 
@@ -314,7 +314,7 @@ Desglose de `npm run test:postgres`:
 - Asignación automática de pedidos, transportistas externos, tracking integrado y evidencia del proveedor: `BLOQUEADO` (`L-23`). Solo se registran `transportista` y `tracking_number` cuando el operador los aporta.
 - `CloseOrder` (`ENTREGADO → CERRADO`): `BLOQUEADO`; no hay actor ni proceso definido. El flujo termina en `ENTREGADO`.
 - El operador no modifica precios, pagos, reembolsos ni devoluciones; el inventario es de solo lectura salvo el efecto del despacho.
-- Lint sigue `BLOCKED` y CI sigue `READY_FOR_REVIEW`.
+- Lint y CI: en este corte seguían pendientes; se resolvieron en el Gate R (ver §13 y §14).
 
 ---
 
@@ -357,7 +357,7 @@ Desglose de `npm run test:postgres`:
 - Reportes administrativos: `BLOQUEADO` (`L-19`). No hay catálogo, fórmulas, filtros ni límites aprobados; no se crean endpoints ni pantallas, y la interfaz muestra “No disponibles”.
 - El supervisor no modifica precios, inventario, pedidos, pagos, vendedores, bodegas, roles ni logística.
 - Sin acceso a datos personales ni a la referencia del proveedor de pago.
-- Lint sigue `BLOCKED` y CI sigue `READY_FOR_REVIEW`.
+- Lint y CI: en este corte seguían pendientes; se resolvieron en el Gate R (ver §13 y §14).
 
 ---
 
@@ -405,7 +405,7 @@ Desglose de `npm run test:postgres`:
 - Devoluciones, reembolsos y facturación: `BLOQUEADO`; no existen tablas de persistencia. No se crean pantallas vacías; la ausencia se documenta.
 - El administrador no modifica productos, inventario, pedidos, pagos, roles, vendedores ni bodegas desde este espacio. Las únicas escrituras admin son las dos altas existentes.
 - Autoregistro público de comprador y solicitud comprador → vendedor: diferidos a la siguiente fase; solo se documenta la dependencia.
-- Lint sigue `BLOCKED` y CI sigue `READY_FOR_REVIEW`.
+- Lint y CI: en este corte seguían pendientes; se resolvieron en el Gate R (ver §13 y §14).
 
 ---
 
@@ -427,7 +427,7 @@ Desglose de `npm run test:postgres`:
 - `npm run validate:openapi` → `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias.` (versión `0.8.0`)
 - YAML del workflow parseado correctamente: 5 jobs (`backend-static`, `backend-tests`, `backend-postgres`, `frontend`, `frontend-e2e`).
 - `npm run db:migrate` es idempotente y aplicó `009` sobre la base demo.
-- **No hay evidencia de ejecución en GitHub Actions** en este corte. El gate queda `READY_FOR_REVIEW`, no `PASS`. Los comandos equivalentes sí se ejecutaron localmente: lint, formato, typecheck, 187 pruebas backend, 46 PostgreSQL, build y E2E 10/10.
+- **CI ejecutado en GitHub Actions:** run [`42749289978`](https://github.com/SamuuVA/Programa-Web-2-2026/actions/runs/42749289978), 5/5 jobs correctos: backend estático (25 s), pruebas backend (16 s), PostgreSQL (45 s), frontend lint/typecheck/build (37 s) y E2E Playwright (3 min 26 s). El gate L queda `PASS`. Los comandos equivalentes también se ejecutaron localmente: lint, formato, typecheck, 187 pruebas backend, 46 PostgreSQL, build y E2E 10/10.
 
 ---
 
@@ -448,7 +448,7 @@ Desglose de `npm run test:postgres`:
 | `backend`: `npm run format:check` | Todos los archivos cumplen Prettier |
 | `frontend`: `npm run lint` | 0 errores, 2 avisos `no-img-element` |
 
-No se declara el CI remoto como `PASS`; el gate L sigue `READY_FOR_REVIEW`.
+El CI remoto quedó en `PASS` con el run `42749289978`; el gate L ya no está pendiente.
 
 ---
 
@@ -474,8 +474,8 @@ No se declara el CI remoto como `PASS`; el gate L sigue `READY_FOR_REVIEW`.
 | Mutaciones admin de producto/inventario/pago/reembolso | No definidas ni autorizadas; el espacio admin es de consulta salvo las dos altas |
 | Variantes comerciales | Fuera de V1 por decisión (discrepancia con `CAT-02` registrada) |
 | Recuperación de contraseña / MFA | No implementado |
-| CI ejecutado en GitHub | `READY_FOR_REVIEW`; workflow de 5 jobs válido, no ejecutado en remoto |
-| Lint y formato | `PASS` local: ESLint en ambos proyectos y Prettier en backend |
+| CI ejecutado en GitHub | `PASS`: run `42749289978`, 5/5 jobs correctos |
+| Lint y formato | `PASS`: ESLint en ambos proyectos y Prettier en backend; CI sin errores |
 | Despliegue / producción | No realizado |
 
 ---
@@ -507,7 +507,7 @@ No se declara el CI remoto como `PASS`; el gate L sigue `READY_FOR_REVIEW`.
 | `backend`: pruebas nuevas | `seller-applications.test.ts` (9), `update-user-access-status.test.ts` (7), `seller-applications-http.test.ts` (11), `seller-applications-postgres.test.ts` (6) |
 | `backend`: migración `009` | Aplicada sobre la base demo; índice único parcial de solicitud pendiente verificado |
 | `frontend`: `npm run lint` / `npm run typecheck` / `npm run build` | OK; 0 errores de lint; 56 rutas |
-| `frontend`: `npm run test:e2e` | 10/10 PASS; los 3 escenarios nuevos cubren registro → solicitud → aprobación → acceso vendedor, rechazo sin efectos y cambio de estado con revocación de sesión |
+| `frontend`: `npm run test:e2e` | 10/10 PASS; los 3 escenarios nuevos cubren registro → solicitud → aprobación → acceso vendedor, rechazo sin efectos y cambio de estado con revocación de sesión. La suite administrativa crea un pedido real por checkout para no depender de datos previos y usa encabezados exactos y búsquedas por filtro |
 
 ### Decisiones y límites
 
@@ -521,7 +521,7 @@ No se declara el CI remoto como `PASS`; el gate L sigue `READY_FOR_REVIEW`.
 
 ## 17. Próxima acción
 
-1. Ejecutar el workflow de CI en GitHub y registrar el resultado real; los cinco jobs están definidos y sus comandos equivalentes ya pasaron localmente.
+1. Revisión independiente de esta entrega. El workflow de CI ya se ejecutó en GitHub con resultado `PASS` (run `42749289978`, 5/5 jobs).
 2. Decidir la política de reenvío/edición de solicitudes rechazadas antes de habilitarla; no inventar el comportamiento.
 3. Decidir el actor y el proceso de `CloseOrder` (`ENTREGADO → CERRADO`) antes de implementar el cierre; no inventar un actor.
 4. Decidir e implementar la resolución de pagos `DESCONOCIDO` (consulta/reconciliación) antes de considerar completo el flujo de pagos.

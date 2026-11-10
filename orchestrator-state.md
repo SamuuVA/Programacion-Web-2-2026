@@ -34,9 +34,9 @@
 | Fecha de actualización | 2026-11-09 |
 | Agente coordinador actual | Backend Orchestrator (OpenCode / DeepSeek V4.1 Flash Free) |
 | Revisor independiente | Sesiones `ses_e7b1c7ddaffepca7fRH5CGMyTx` (1.ª), `ses_e7b113275ffeeAZmlHtptxtOfT` (2.ª), `ses_e7b0b9ec9ffeC6278fXU0TKf9M` (3.ª: `PASS`) y `ses_e7a3f8c7fffehdXpxCqxD8gVkc` (4.ª: `PASS`) |
-| Estado global | `IN_PROGRESS` (marketplace local con auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor y estados de acceso; gates A–H, N, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY` en `PASS` local) |
-| Ola actual | V2: espacio del Vendedor, Operador Logístico, Supervisión, Administración e Identidad/onboarding — implementados y verificados localmente |
-| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A…H = PASS` (local); `GATE-V2-SELLER = PASS` (local); `GATE-V2-LOGISTICS = PASS` (local); `GATE-V2-SUPERVISOR = PASS` (local); `GATE-V2-ADMIN = PASS` (local); `GATE-V2-IDENTITY = PASS` (local) |
+| Estado global | `IN_PROGRESS` (marketplace local con auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor y estados de acceso; gates A–H, N, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY` en `PASS`; CI remoto `PASS` en el run `42749289978`) |
+| Ola actual | V2: espacio del Vendedor, Operador Logístico, Supervisión, Administración e Identidad/onboarding — implementados, verificados localmente y cubiertos por CI remoto |
+| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A…H = PASS` (local); `GATE-V2-SELLER = PASS` (local); `GATE-V2-LOGISTICS = PASS` (local); `GATE-V2-SUPERVISOR = PASS` (local); `GATE-V2-ADMIN = PASS` (local); `GATE-V2-IDENTITY = PASS` (local + CI run `42749289978`) |
 | Fuente de estado | Repositorio real + `backend/` + `frontend/` + PostgreSQL + `docs/implementation/*` + artefactos históricos `docs/backend/*` |
 
 ---
@@ -49,21 +49,21 @@ Consolidar el marketplace con identidad completa: registro público de comprador
 
 ### 2.2 Último hito comprobado
 
-Corte del 2026-11-09: se completó la fase de **identidad y onboarding** (`GATE-V2-IDENTITY`). El backend reutiliza `RegisterBuyer` y `POST /api/v1/buyers` para el registro público (rol `COMPRADOR` fijado por el servidor) y añade el agregado `seller_applications` (migración `009`) con estados `PENDIENTE`/`APROBADA`/`RECHAZADA`, independiente del estado de acceso. La aprobación crea vendedor + primera bodega, cambia el rol principal a `VENDEDOR` y registra auditoría/outbox en una única transacción idempotente; el rechazo exige motivo y no crea vendedor ni bodega. `UpdateUserAccessStatus` implementa `ACTIVO`/`INACTIVO`/`BLOQUEADO` con transiciones explícitas, motivo obligatorio para desactivar/bloquear y revocación de sesiones en la misma transacción. El frontend añade `/register`, `/seller-application`, `/admin/seller-applications` (lista y detalle) y el formulario de estado en `/admin/users/[userId]`. Se incorporaron ESLint en ambos proyectos, Prettier en backend y un workflow de CI de 5 jobs con E2E. Ejecutados: backend `npm run verify` (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); `npm run test:postgres` 9 archivos / 46 pruebas; frontend lint/typecheck/build (56 rutas); E2E Playwright 10/10. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
+Corte del 2026-11-09: se completó la fase de **identidad y onboarding** (`GATE-V2-IDENTITY`). El backend reutiliza `RegisterBuyer` y `POST /api/v1/buyers` para el registro público (rol `COMPRADOR` fijado por el servidor) y añade el agregado `seller_applications` (migración `009`) con estados `PENDIENTE`/`APROBADA`/`RECHAZADA`, independiente del estado de acceso. La aprobación crea vendedor + primera bodega, cambia el rol principal a `VENDEDOR` y registra auditoría/outbox en una única transacción idempotente; el rechazo exige motivo y no crea vendedor ni bodega. `UpdateUserAccessStatus` implementa `ACTIVO`/`INACTIVO`/`BLOQUEADO` con transiciones explícitas, motivo obligatorio para desactivar/bloquear y revocación de sesiones en la misma transacción. El frontend añade `/register`, `/seller-application`, `/admin/seller-applications` (lista y detalle) y el formulario de estado en `/admin/users/[userId]`. Se incorporaron ESLint en ambos proyectos, Prettier en backend y un workflow de CI de 5 jobs con E2E. Ejecutados: backend `npm run verify` (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); `npm run test:postgres` 9 archivos / 46 pruebas; frontend lint/typecheck/build (56 rutas); E2E Playwright 10/10; CI remoto 5/5 jobs en el run `42749289978`. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
 
 ### 2.3 Trabajo en curso
 
 - ID: cierre de la entrega de identidad y onboarding (`S-015`, `GATE-V2-IDENTITY`).
 - Último corte ejecutado: backend `npm run verify` OK (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); PostgreSQL 46 pruebas / 9 archivos; frontend lint/typecheck/build OK (56 rutas); E2E Playwright 10/10 (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión, administración y onboarding de identidad).
-- Próximo trabajo: revisar el diff completo, commit/push y ejecutar CI en GitHub; decidir los bloqueos documentados.
-- Bloqueo actual: reenvío/edición de solicitudes rechazadas sin política definida; reportes admin/supervisor sin catálogo/fórmulas/filtros/límites (`L-19`); devoluciones, reembolsos y facturación sin persistencia; asignación automática de pedidos, transportistas externos, tracking integrado, evidencia del proveedor y `CloseOrder` (`ENTREGADO → CERRADO`) sin actor/proceso definido. Carga binaria de imágenes, ajustes negativos/logística del vendedor, entrega digital y notificaciones externas siguen bloqueados o pendientes; CI remoto no ejecutado.
+- Próximo trabajo: revisión independiente del corte y decisión de los bloqueos documentados.
+- Bloqueo actual: reenvío/edición de solicitudes rechazadas sin política definida; reportes admin/supervisor sin catálogo/fórmulas/filtros/límites (`L-19`); devoluciones, reembolsos y facturación sin persistencia; asignación automática de pedidos, transportistas externos, tracking integrado, evidencia del proveedor y `CloseOrder` (`ENTREGADO → CERRADO`) sin actor/proceso definido. Carga binaria de imágenes, ajustes negativos/logística del vendedor, entrega digital y notificaciones externas siguen bloqueados o pendientes. CI remoto en `PASS` (run `42749289978`, 5/5 jobs).
 - Riesgo operativo: espacio libre bajo en disco; ejecutar suites backend de forma secuencial.
 
 ### 2.4 Próxima acción exacta
 
-**NEXT_ACTION — revisar el corte de identidad y llevar las suites a CI; no ampliar capacidades bloqueadas**
+**NEXT_ACTION — revisión independiente del corte de identidad; no ampliar capacidades bloqueadas**
 
-1. Revisar el diff completo (identidad, onboarding, lint y CI) y ejecutar el workflow de CI en GitHub; registrar el resultado real.
+1. Revisar el diff completo (identidad, onboarding, lint y CI). El workflow de CI ya se ejecutó en GitHub con resultado `PASS` (run `42749289978`, 5/5 jobs).
 2. Decidir la política de reenvío/edición de solicitudes rechazadas antes de habilitarla; no inventar el comportamiento.
 3. Decidir el actor y el proceso de `CloseOrder` (`ENTREGADO → CERRADO`) antes de implementar el cierre; no inventar un actor.
 4. Definir con negocio el catálogo de reportes (`L-19`): métricas, fórmulas, filtros, límites y exportaciones. No crear endpoints ni pantallas adicionales hasta entonces.
@@ -264,7 +264,7 @@ Corte del 2026-11-09: se completó la fase de **identidad y onboarding** (`GATE-
 | Frontend de identidad | `COMPLETADO_VERIFICADO` | `/register`, `/seller-application`, `/admin/seller-applications`; 56 rutas |
 | OpenAPI `0.8.0` | `COMPLETADO_VERIFICADO` | 74 rutas / 83 operaciones / 984 referencias |
 | Lint y formato | `COMPLETADO_VERIFICADO` local | ESLint 0 errores; Prettier limpio en backend |
-| CI remoto | `READY_FOR_REVIEW` | Workflow de 5 jobs válido; no ejecutado en GitHub |
+| CI remoto | `COMPLETADO_VERIFICADO` | Run `42749289978`: 5/5 jobs correctos |
 | Reenvío/edición tras rechazo | `PENDIENTE_DECISIÓN` | Backend solo impide `PENDIENTE` duplicadas; UI sin reenvío |
 | Notificaciones externas | `NOT_IMPLEMENTED` | Sin infraestructura aprobada; resultado consultable en la app |
 
@@ -309,7 +309,7 @@ Corte del 2026-11-09: se completó la fase de **identidad y onboarding** (`GATE-
 | V2-L | Operación logística (preparación, despacho, entrega, ámbito de bodegas) | `DONE` local | `GATE-V2-LOGISTICS = PASS` local |
 | V2-S | Supervisión de solo lectura (dashboard, pedidos, productos, almacenes, inventario, envíos y vendedores) | `DONE` local | `GATE-V2-SUPERVISOR = PASS` local |
 | V2-A | Espacio administrativo (dashboard, usuarios, vendedores, compradores, bodegas, catálogo, inventario, pedidos, pagos y reportes) | `DONE` local | `GATE-V2-ADMIN = PASS` local |
-| V2-I | Identidad y onboarding (registro público, solicitud comprador → vendedor, revisión admin y estados de acceso) | `DONE` local | `GATE-V2-IDENTITY = PASS` local |
+| V2-I | Identidad y onboarding (registro público, solicitud comprador → vendedor, revisión admin y estados de acceso) | `DONE` | `GATE-V2-IDENTITY = PASS` local + CI run `42749289978` |
 
 ---
 
@@ -881,7 +881,7 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 ### GATE-V2-IDENTITY — identidad y onboarding (2026-11-09)
 
 - **Ola:** V2.
-- **Estado:** `PASS` local.
+- **Estado:** `PASS` (local + CI remoto).
 - **Alcance:** registro público de comprador, solicitud comprador → vendedor, revisión administrativa (aprobación/rechazo), estados de acceso y revocación de sesiones; lint y CI ampliado.
 - **Evidencia ejecutada:**
   - `backend`: `npm run verify`: lint OK, Prettier OK, typecheck OK; 23 archivos / 187 pruebas; `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias`; build OK.
@@ -889,10 +889,11 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
   - `backend`: pruebas de identidad: `seller-applications.test.ts` (9), `update-user-access-status.test.ts` (7), `seller-applications-http.test.ts` (11), `seller-applications-postgres.test.ts` (6).
   - `backend`: migración `009_seller_applications.sql` aplicada sobre la base demo; índice único parcial de solicitud pendiente verificado.
   - `frontend`: `npm run lint` 0 errores (2 avisos `no-img-element`); `npm run typecheck` y `npm run build` OK; 56 rutas.
-  - `frontend`: `npm run test:e2e`: 10/10 PASS, incluidos registro → solicitud → aprobación, rechazo sin efectos y cambio de estado con revocación de sesión.
+  - `frontend`: `npm run test:e2e`: 10/10 PASS, incluidos registro → solicitud → aprobación, rechazo sin efectos y cambio de estado con revocación de sesión. La suite administrativa crea un pedido real por checkout y usa encabezados exactos y búsquedas por filtro.
+  - CI remoto: run `42749289978`, 5/5 jobs correctos (backend estático, pruebas backend, PostgreSQL, frontend y E2E).
 - **Criterios cubiertos:** el backend fija el rol; no hay autoregistro de vendedor; la identidad y el historial de comprador se conservan; aprobación atómica e idempotente; rechazo sin efectos; transiciones de acceso explícitas; revocación de sesiones; autogestión prohibida.
-- **Límites:** reenvío/edición tras rechazo `PENDIENTE_DECISIÓN`; notificaciones externas `NOT_IMPLEMENTED`; CI remoto `READY_FOR_REVIEW`.
-- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local, no `DONE`.
+- **Límites:** reenvío/edición tras rechazo `PENDIENTE_DECISIÓN`; notificaciones externas `NOT_IMPLEMENTED`; CI remoto `PASS`.
+- **Revisión independiente:** no ejecutada para este gate; el estado es `PASS` local y de CI, no `DONE`.
 
 ### Gates previstos
 
@@ -912,7 +913,7 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 | GATE-V2-LOGISTICS | Operación logística | `PASS` local (2026-11-05) |
 | GATE-V2-SUPERVISOR | Supervisión de solo lectura | `PASS` local (2026-11-06) |
 | GATE-V2-ADMIN | Espacio administrativo | `PASS` local (2026-11-08) |
-| GATE-V2-IDENTITY | Identidad y onboarding | `PASS` local (2026-11-09) |
+| GATE-V2-IDENTITY | Identidad y onboarding | `PASS` local + CI (2026-11-09; run `42749289978` el 2026-11-10) |
 
 ---
 
@@ -1105,7 +1106,7 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 
 1. Leer `prompt-orquestador-backend.md`, este archivo, `docs/implementation/IMPLEMENTATION-STATUS.md` y `docs/implementation/DECISIONS-LOG.md`.
 2. Verificar `git status`, rama, commit y artefactos de `backend/`, `frontend/` y `docs/implementation/`.
-3. Confirmar que `GATE-W0`, `GATE-W1-01`, `GATE-PI01-*`, `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY` siguen en `PASS` local. `GATE-W1` y `GATE-W2`…`W8` siguen `NOT_RUN` como gates amplios.
+3. Confirmar que `GATE-W0`, `GATE-W1-01`, `GATE-PI01-*`, `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY` siguen en `PASS` local; el CI remoto está en `PASS` (run `42749289978`). `GATE-W1` y `GATE-W2`…`W8` siguen `NOT_RUN` como gates amplios.
 4. No habilitar carga binaria de imágenes, ajustes negativos, operaciones logísticas del vendedor, reembolsos, escritura del supervisor, reenvío de solicitudes rechazadas, notificaciones externas ni el cierre `ENTREGADO → CERRADO` sin decisión explícita. El operador logístico ya opera preparación, despacho y entrega dentro de su ámbito; el supervisor solo consulta; el comprador se registra públicamente y solicita ser vendedor; el vendedor no se autorregistra.
 5. Ejecutar las suites backend de forma secuencial y el build del frontend por separado para evitar OOM/ENOSPC.
 6. Actualizar este archivo en el mismo cambio de trabajo.
@@ -1116,4 +1117,4 @@ Se adoptó provisionalmente `/api/v1` y un contrato mínimo para `PI-01` y el ca
 
 El proyecto no puede declararse completo porque el servidor arranque. La entrega final requiere requisitos trazables, dominio e invariantes respetados, contratos coherentes, persistencia justificada, transacciones/concurrencia verificadas, seguridad comprobada, pruebas críticas ejecutadas, Docker reproducible, documentación actualizada y `GATE-W8` aprobado.
 
-**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer`, catálogo público, autenticación, direcciones, alta administrativa de vendedor, carrito, checkout con pago simulado, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor y estados de acceso implementados con Fastify/TypeScript y PostgreSQL. Evidencia local: 187 pruebas backend / 23 archivos, 46 pruebas PostgreSQL / 9 archivos, OpenAPI `0.8.0` (74 rutas / 83 operaciones / 984 referencias), frontend de 56 rutas, lint en ambos proyectos, Prettier en backend, smoke del vendedor 33/33 y E2E 10/10 (incluye logística, supervisión, administración y onboarding de identidad). `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY = PASS` local. Siguen pendientes: ejecución de CI en remoto, política de reenvío/edición tras rechazo, reconciliación de pagos `DESCONOCIDO`, catálogo de reportes (`L-19`), devoluciones/reembolsos/facturación, notificaciones externas, almacenamiento binario de imágenes, ajustes negativos del vendedor, asignación automática/tracking externo, cierre `ENTREGADO → CERRADO`, entrega digital y release candidate. Los requisitos excluidos o pendientes están identificados en `docs/implementation/IMPLEMENTATION-STATUS.md`, `docs/implementation/DECISIONS-LOG.md` y `docs/backend/*`, y no se presentan como funcionalidades completas.
+**Estado actual:** W0 documentado y aprobado; W1-01 `DONE`; `PI-01 RegisterBuyer`, catálogo público, autenticación, direcciones, alta administrativa de vendedor, carrito, checkout con pago simulado, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor y estados de acceso implementados con Fastify/TypeScript y PostgreSQL. Evidencia local: 187 pruebas backend / 23 archivos, 46 pruebas PostgreSQL / 9 archivos, OpenAPI `0.8.0` (74 rutas / 83 operaciones / 984 referencias), frontend de 56 rutas, lint en ambos proyectos, Prettier en backend, smoke del vendedor 33/33 y E2E 10/10 (incluye logística, supervisión, administración y onboarding de identidad). `GATE-V1-A`…`H`, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY = PASS` local; CI remoto `PASS` (run `42749289978`, 5/5 jobs). Siguen pendientes: política de reenvío/edición tras rechazo, reconciliación de pagos `DESCONOCIDO`, catálogo de reportes (`L-19`), devoluciones/reembolsos/facturación, notificaciones externas, almacenamiento binario de imágenes, ajustes negativos del vendedor, asignación automática/tracking externo, cierre `ENTREGADO → CERRADO`, entrega digital y release candidate. Los requisitos excluidos o pendientes están identificados en `docs/implementation/IMPLEMENTATION-STATUS.md`, `docs/implementation/DECISIONS-LOG.md` y `docs/backend/*`, y no se presentan como funcionalidades completas.

@@ -217,7 +217,7 @@
 - El YAML del workflow es válido y las migraciones son idempotentes.
 - La ejecución en GitHub Actions queda registrada con evidencia real.
 
-**Estado:** `READY_FOR_REVIEW`. La validación local está hecha; la ejecución remota en GitHub no se ha realizado en este corte.
+**Estado:** `PASS`. Validación local y ejecución remota en GitHub Actions completadas: run `42749289978`, 5/5 jobs correctos.
 
 ---
 
@@ -375,9 +375,9 @@ Estas capacidades no se muestran como funcionales en la interfaz ni se declaran 
 
 ## 10. Próximos pasos sugeridos
 
-1. Ejecutar CI en GitHub y registrar evidencia; corregir fallos si aparecen.
+1. ~~Ejecutar CI en GitHub y registrar evidencia~~ (completado: run `42749289978`, 5/5 jobs).
 2. Decidir la reconciliación de pagos `DESCONOCIDO`.
 3. Definir con negocio el catálogo de reportes del supervisor (`L-19`); no implementar reportes hasta entonces.
-4. Incorporar lint si el proyecto lo adopta.
+4. ~~Incorporar lint~~ (completado: ESLint en ambos proyectos y Prettier en backend).
 5. Obtener decisión de arquitectura para almacenamiento de imágenes y entrega digital.
 6. Evaluar reembolsos, logística inversa, ajustes negativos y variantes solo con contrato y decisiones explícitas.

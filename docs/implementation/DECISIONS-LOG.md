@@ -524,8 +524,16 @@
 - **Contexto:** el proyecto tenía TypeScript estricto pero ningún lint ni formato, y el CI no cubría E2E.
 - **Decisión:** añadir ESLint 10 con `typescript-eslint` en ambos proyectos, reglas de Next/React Hooks en frontend y Prettier en backend. Ampliar `verify` del backend con `lint` y `format:check`. El workflow pasa a 5 jobs e incluye un E2E con PostgreSQL, backend, frontend y Chromium.
 - **Alternativas descartadas:** Biome (herramienta nueva sin necesidad); solo TypeScript (no cubre hooks ni reglas de Next); E2E fuera del CI (menor cobertura).
-- **Consecuencias:** el CI tarda más; los comandos equivalentes se ejecutaron localmente, pero la ejecución remota sigue pendiente.
+- **Consecuencias:** el CI tarda más; la ejecución remota quedó verificada en el run `42749289978` (5/5 jobs).
 - **Evidencia:** `backend/eslint.config.mjs`, `frontend/eslint.config.mjs`, `backend/.prettierrc.json`, `.github/workflows/ci.yml`.
+
+## DEC-V2-046 — E2E determinista sobre una base recién sembrada
+
+- **Contexto:** la base demo no incluye pedidos y los estados vacíos repiten palabras de los encabezados; el E2E no debe depender de datos locales acumulados.
+- **Decisión:** la suite administrativa crea un pedido real con el comprador demo usando el mismo checkout de la aplicación, usa `exact: true` en encabezados ambiguos y busca por filtro en lugar de asumir la primera página.
+- **Alternativas descartadas:** sembrar pedidos artificiales en el seed (datos inventados); ordenar suites por dependencia (frágil); omitir las aserciones de detalle (menor cobertura).
+- **Consecuencias:** el detalle administrativo se verifica también en CI y la suite es independiente del estado previo de la base.
+- **Evidencia:** `frontend/e2e/admin.spec.ts`, run `42749289978`.
 
 ---
 
@@ -537,7 +545,7 @@
 | Reembolsos y logística inversa | Fuera de alcance | Requieren decisión de negocio y contrato propio |
 | Reenvío o edición tras rechazo | Pendiente | El backend solo impide solicitudes `PENDIENTE` duplicadas; la UI no ofrece reenvío |
 | Notificaciones externas de decisión | Pendiente | No hay infraestructura de correo/mensajería aprobada; el resultado se consulta en la app |
-| Ejecución de CI en GitHub | `READY_FOR_REVIEW` | El workflow existe y es válido, pero no se ejecutó en remoto |
+| Ejecución de CI en GitHub | `PASS` | Run `42749289978`, 5/5 jobs correctos; los avisos de Node.js 20 y `ubuntu-latest` son de la plataforma |
 | Subida binaria de imágenes | `BLOQUEADO` | Sin proveedor, mecanismo ni límites aprobados; se usan URLs |
 | Ajustes negativos / movimientos logísticos del vendedor | `BLOQUEADO` | La matriz §19 no autoriza explícitamente; solo se implementó `INGRESO` |
 | Preparación/despacho del vendedor | `NO_APLICA` | Reservado al operador logístico; pedidos de solo lectura |
