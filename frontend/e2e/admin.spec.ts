@@ -151,7 +151,10 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
   ).toBeVisible();
   await admin.goto("/admin/inventory/movements");
   await expect(
-    admin.getByRole("heading", { name: "Movimientos de inventario" })
+    admin.getByRole("heading", {
+      name: "Movimientos de inventario",
+      exact: true
+    })
   ).toBeVisible();
 
   // 8. Pedidos: listado y detalle de solo lectura.
