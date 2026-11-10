@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const PASSWORD = process.env.NEXUS_DEMO_PASSWORD ?? "NexusMarketDemo2026!";
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:3000";
@@ -11,6 +11,7 @@ const SUPERVISOR_EMAIL = "supervisor@nexusmarket.demo";
 
 const ADMIN_USER_ID = "70000000-0000-4000-8000-000000000001";
 const BUYER_ID = "71000000-0000-4000-8000-000000000002";
+const BUYER_ADDRESS_ID = "73000000-0000-4000-8000-000000000002";
 const SELLER_ID = "20000000-0000-4000-8000-000000000001";
 const WAREHOUSE_ID = "30000000-0000-4000-8000-000000000001";
 const PRODUCT_ID = "40000000-0000-4000-8000-000000000001";
@@ -29,10 +30,61 @@ async function login(page: Page, email: string, redirectTo?: string): Promise<vo
   await expect(page).not.toHaveURL(/\/login(\?|$)/);
 }
 
+/**
+ * Crea un pedido real con el comprador demo para que el listado y el detalle
+ * administrativos tengan datos en una base recién sembrada. El seed de
+ * demostración no incluye pedidos, así que no se inventan datos: se usa el
+ * mismo checkout que usa la aplicación.
+ */
+async function createOrderForAdminRead(browser: Browser): Promise<void> {
+  const context = await browser.newContext();
+  const request = context.request;
+
+  const loginResponse = await request.post(`${API_URL}/api/v1/auth/login`, {
+    data: { correoElectronico: BUYER_EMAIL, credencial: PASSWORD }
+  });
+  expect(loginResponse.status()).toBe(200);
+
+  // Vaciar el carrito persistente para que el pedido sea determinista.
+  const cartResponse = await request.get(`${API_URL}/api/v1/cart`);
+  expect(cartResponse.status()).toBe(200);
+  const cart = (await cartResponse.json()) as {
+    data: { items: ReadonlyArray<{ productoId: string }> };
+  };
+  for (const item of cart.data.items) {
+    const removed = await request.delete(
+      `${API_URL}/api/v1/cart/items/${encodeURIComponent(item.productoId)}`
+    );
+    expect(removed.status()).toBe(200);
+  }
+
+  const addResponse = await request.post(`${API_URL}/api/v1/cart/items`, {
+    data: { productoId: PRODUCT_ID, cantidad: 1 }
+  });
+  expect(addResponse.status()).toBe(200);
+
+  const checkoutResponse = await request.post(`${API_URL}/api/v1/checkout`, {
+    data: {
+      idempotencyKey: `e2e-admin-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      direccionEntregaId: BUYER_ADDRESS_ID,
+      resultadoPagoSimulado: "CONFIRMADO"
+    }
+  });
+  expect(checkoutResponse.status()).toBe(201);
+
+  await context.close();
+}
+
 test("el administrador consulta el sistema y conserva el alta de vendedores", async ({
   browser
 }) => {
   test.setTimeout(240_000);
+
+  // 0. Pedido real para que el listado administrativo tenga datos también en
+  // una base recién sembrada.
+  await createOrderForAdminRead(browser);
 
   // 1. Sin sesión, el espacio administrativo redirige al login.
   const anonymousContext = await browser.newContext();
@@ -80,7 +132,10 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
 
   // 4. Usuarios: listado y detalle de una cuenta real.
   await admin.goto("/admin/users");
-  await expect(admin.getByRole("heading", { name: "Usuarios" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Usuarios", exact: true })
+  ).toBeVisible();
+  await admin.goto(`/admin/users?search=${encodeURIComponent(ADMIN_EMAIL)}`);
   await expect(
     admin.getByRole("row", { name: new RegExp(ADMIN_EMAIL) })
   ).toBeVisible();
@@ -94,7 +149,10 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
 
   // 5. Vendedores: listado, detalle y acceso al alta administrativa.
   await admin.goto("/admin/sellers");
-  await expect(admin.getByRole("heading", { name: "Vendedores" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Vendedores", exact: true })
+  ).toBeVisible();
+  await admin.goto(`/admin/sellers?search=${encodeURIComponent(SELLER_NAME)}`);
   await expect(
     admin.getByRole("row", { name: new RegExp(SELLER_NAME) })
   ).toBeVisible();
@@ -112,12 +170,16 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
 
   // 6. Compradores y almacenes.
   await admin.goto("/admin/buyers");
-  await expect(admin.getByRole("heading", { name: "Compradores" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Compradores", exact: true })
+  ).toBeVisible();
   await admin.goto(`/admin/buyers/${BUYER_ID}`);
   await expect(admin.getByRole("heading", { name: BUYER_NAME })).toBeVisible();
 
   await admin.goto("/admin/warehouses");
-  await expect(admin.getByRole("heading", { name: "Almacenes" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Almacenes", exact: true })
+  ).toBeVisible();
   await admin.goto(`/admin/warehouses/${WAREHOUSE_ID}`);
   await expect(
     admin.getByRole("heading", { name: /Bodega Aurora/ })
@@ -144,7 +206,9 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
   ).toBeVisible();
 
   await admin.goto("/admin/inventory");
-  await expect(admin.getByRole("heading", { name: "Inventario" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Inventario", exact: true })
+  ).toBeVisible();
   await admin.goto(`/admin/inventory?search=${encodeURIComponent(PRODUCT_NAME)}`);
   await expect(
     admin.getByRole("row", { name: new RegExp(PRODUCT_NAME) }).first()
@@ -159,7 +223,9 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
 
   // 8. Pedidos: listado y detalle de solo lectura.
   await admin.goto("/admin/orders");
-  await expect(admin.getByRole("heading", { name: "Pedidos" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Pedidos", exact: true })
+  ).toBeVisible();
   const orderRow = admin.locator("tbody tr").first();
   await expect(orderRow).toBeVisible();
   await orderRow.getByRole("link", { name: "Ver detalle" }).click();
@@ -181,9 +247,13 @@ test("el administrador consulta el sistema y conserva el alta de vendedores", as
 
   // 9. Pagos y reportes.
   await admin.goto("/admin/payments");
-  await expect(admin.getByRole("heading", { name: "Pagos" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Pagos", exact: true })
+  ).toBeVisible();
   await admin.goto("/admin/reports");
-  await expect(admin.getByRole("heading", { name: "Reportes" })).toBeVisible();
+  await expect(
+    admin.getByRole("heading", { name: "Reportes", exact: true })
+  ).toBeVisible();
   await expect(
     admin.getByRole("heading", { name: "Secciones no disponibles" })
   ).toBeVisible();
