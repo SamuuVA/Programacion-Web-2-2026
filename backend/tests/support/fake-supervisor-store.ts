@@ -70,9 +70,12 @@ export class FakeSupervisorStore implements SupervisorStore {
     return {
       pedidosTotal: orders.length,
       pedidosPorEstado: {
-        PENDIENTE_DE_PAGO: orders.filter((o) => o.estado === "PENDIENTE_DE_PAGO").length,
+        PENDIENTE_DE_PAGO: orders.filter(
+          (o) => o.estado === "PENDIENTE_DE_PAGO"
+        ).length,
         PAGADO: orders.filter((o) => o.estado === "PAGADO").length,
-        EN_PREPARACION: orders.filter((o) => o.estado === "EN_PREPARACION").length,
+        EN_PREPARACION: orders.filter((o) => o.estado === "EN_PREPARACION")
+          .length,
         DESPACHADO: orders.filter((o) => o.estado === "DESPACHADO").length,
         ENTREGADO: orders.filter((o) => o.estado === "ENTREGADO").length,
         CANCELADO: orders.filter((o) => o.estado === "CANCELADO").length,
@@ -80,20 +83,24 @@ export class FakeSupervisorStore implements SupervisorStore {
       },
       pagosPorEstado: {
         PENDIENTE: orders.filter((o) => o.pago?.estado === "PENDIENTE").length,
-        AUTORIZADO: orders.filter((o) => o.pago?.estado === "AUTORIZADO").length,
+        AUTORIZADO: orders.filter((o) => o.pago?.estado === "AUTORIZADO")
+          .length,
         CAPTURADO: orders.filter((o) => o.pago?.estado === "CAPTURADO").length,
         RECHAZADO: orders.filter((o) => o.pago?.estado === "RECHAZADO").length,
         CANCELADO: orders.filter((o) => o.pago?.estado === "CANCELADO").length,
-        REEMBOLSO_PARCIAL: orders.filter((o) => o.pago?.estado === "REEMBOLSO_PARCIAL")
-          .length,
-        REEMBOLSADO: orders.filter((o) => o.pago?.estado === "REEMBOLSADO").length
+        REEMBOLSO_PARCIAL: orders.filter(
+          (o) => o.pago?.estado === "REEMBOLSO_PARCIAL"
+        ).length,
+        REEMBOLSADO: orders.filter((o) => o.pago?.estado === "REEMBOLSADO")
+          .length
       },
       productosTotal: products.length,
       productosPorEstado: {
         BORRADOR: products.filter((p) => p.estado === "BORRADOR").length,
         PUBLICADO: products.filter((p) => p.estado === "PUBLICADO").length,
         SUSPENDIDO: products.filter((p) => p.estado === "SUSPENDIDO").length,
-        DESCONTINUADO: products.filter((p) => p.estado === "DESCONTINUADO").length
+        DESCONTINUADO: products.filter((p) => p.estado === "DESCONTINUADO")
+          .length
       },
       inventario: {
         posiciones: this.inventory.length,
@@ -104,28 +111,38 @@ export class FakeSupervisorStore implements SupervisorStore {
       },
       almacenesTotal: this.warehouses.size,
       almacenesPorEstado: {
-        ACTIVA: [...this.warehouses.values()].filter((w) => w.estado === "ACTIVA").length,
-        INACTIVA: [...this.warehouses.values()].filter((w) => w.estado === "INACTIVA")
-          .length
+        ACTIVA: [...this.warehouses.values()].filter(
+          (w) => w.estado === "ACTIVA"
+        ).length,
+        INACTIVA: [...this.warehouses.values()].filter(
+          (w) => w.estado === "INACTIVA"
+        ).length
       },
       enviosTotal: this.shipments.length,
       enviosPorEstado: {
-        PREPARACION: this.shipments.filter((s) => s.estado === "PREPARACION").length,
+        PREPARACION: this.shipments.filter((s) => s.estado === "PREPARACION")
+          .length,
         EMPACADO: this.shipments.filter((s) => s.estado === "EMPACADO").length,
-        DESPACHADO: this.shipments.filter((s) => s.estado === "DESPACHADO").length,
-        EN_TRANSITO: this.shipments.filter((s) => s.estado === "EN_TRANSITO").length,
-        ENTREGADO: this.shipments.filter((s) => s.estado === "ENTREGADO").length,
+        DESPACHADO: this.shipments.filter((s) => s.estado === "DESPACHADO")
+          .length,
+        EN_TRANSITO: this.shipments.filter((s) => s.estado === "EN_TRANSITO")
+          .length,
+        ENTREGADO: this.shipments.filter((s) => s.estado === "ENTREGADO")
+          .length,
         FALLIDO: this.shipments.filter((s) => s.estado === "FALLIDO").length,
         DEVUELTO: this.shipments.filter((s) => s.estado === "DEVUELTO").length
       },
       vendedoresTotal: this.sellers.length,
       vendedoresPorEstado: {
-        EN_REVISION: this.sellers.filter((s) => s.estado === "EN_REVISION").length,
+        EN_REVISION: this.sellers.filter((s) => s.estado === "EN_REVISION")
+          .length,
         ACTIVO: this.sellers.filter((s) => s.estado === "ACTIVO").length,
-        SUSPENDIDO: this.sellers.filter((s) => s.estado === "SUSPENDIDO").length,
+        SUSPENDIDO: this.sellers.filter((s) => s.estado === "SUSPENDIDO")
+          .length,
         INACTIVO: this.sellers.filter((s) => s.estado === "INACTIVO").length
       },
-      operadoresLogisticosTotal: this.operators.activo + this.operators.inactivo,
+      operadoresLogisticosTotal:
+        this.operators.activo + this.operators.inactivo,
       operadoresLogisticosPorEstado: {
         ACTIVO: this.operators.activo,
         INACTIVO: this.operators.inactivo
@@ -142,7 +159,9 @@ export class FakeSupervisorStore implements SupervisorStore {
     filter: SupervisorOrderFilter
   ): Promise<SupervisorPage<SupervisorOrderSummary>> {
     const items = [...this.orders.values()]
-      .filter((order) => (filter.estado === null ? true : order.estado === filter.estado))
+      .filter((order) =>
+        filter.estado === null ? true : order.estado === filter.estado
+      )
       .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
     return paginate(items, filter);
   }
@@ -155,22 +174,32 @@ export class FakeSupervisorStore implements SupervisorStore {
     filter: SupervisorProductFilter
   ): Promise<SupervisorPage<SupervisorProductSummary>> {
     const items = [...this.products.values()]
-      .filter((product) => (filter.estado === null ? true : product.estado === filter.estado))
       .filter((product) =>
-        filter.categoria === null ? true : product.categoria === filter.categoria
+        filter.estado === null ? true : product.estado === filter.estado
       )
       .filter((product) =>
-        filter.vendedorId === null ? true : product.vendedorId === filter.vendedorId
+        filter.categoria === null
+          ? true
+          : product.categoria === filter.categoria
+      )
+      .filter((product) =>
+        filter.vendedorId === null
+          ? true
+          : product.vendedorId === filter.vendedorId
       );
     return paginate(items, filter);
   }
 
-  async findProduct(productId: string): Promise<SupervisorProductDetail | null> {
+  async findProduct(
+    productId: string
+  ): Promise<SupervisorProductDetail | null> {
     return this.products.get(productId) ?? null;
   }
 
   async listWarehouses(): Promise<SupervisorWarehouseView[]> {
-    return [...this.warehouses.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return [...this.warehouses.values()].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre)
+    );
   }
 
   async listInventory(
@@ -181,7 +210,9 @@ export class FakeSupervisorStore implements SupervisorStore {
         filter.bodegaId === null ? true : position.bodegaId === filter.bodegaId
       )
       .filter((position) =>
-        filter.productoId === null ? true : position.productoId === filter.productoId
+        filter.productoId === null
+          ? true
+          : position.productoId === filter.productoId
       );
     return paginate(items, filter);
   }

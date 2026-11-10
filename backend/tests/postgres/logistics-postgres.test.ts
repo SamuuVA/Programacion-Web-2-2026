@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it
+} from "vitest";
 import {
   AuthorizationError,
   BusinessRuleError,
@@ -255,7 +263,13 @@ async function createPaidOrder(input: {
        ocurrido_en, referencia_tipo, referencia_id, correlation_id
      ) VALUES ($1, $2, 'PENDIENTE_DE_PAGO', 'PAGADO', NULL, 'COMPRADOR',
                $3, 'PAGO', $4, $5)`,
-    [randomUUID(), orderId, at(0), `pago-${input.label}-${runId}`, `corr-${input.label}`]
+    [
+      randomUUID(),
+      orderId,
+      at(0),
+      `pago-${input.label}-${runId}`,
+      `corr-${input.label}`
+    ]
   );
 
   return { orderId, checkoutId };
@@ -288,7 +302,11 @@ async function seedScenario(): Promise<Scenario> {
   const buyerId = await createBuyer("demo");
   const warehouseA = await createWarehouse(sellerId, "A");
   const warehouseB = await createWarehouse(sellerId, "B");
-  const warehouseInactive = await createWarehouse(sellerId, "inactiva", "INACTIVA");
+  const warehouseInactive = await createWarehouse(
+    sellerId,
+    "inactiva",
+    "INACTIVA"
+  );
   const productA = await createProduct(sellerId, "A");
   const productB = await createProduct(sellerId, "B");
 
@@ -329,16 +347,19 @@ async function seedScenario(): Promise<Scenario> {
 
 async function cleanup(): Promise<void> {
   if (orderIds.length > 0) {
-    await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [orderIds]);
+    await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [
+      orderIds
+    ]);
   }
   if (productIds.length > 0) {
     await pool.query(
       "DELETE FROM inventory_movements WHERE producto_id = ANY($1::uuid[])",
       [productIds]
     );
-    await pool.query("DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])", [
-      productIds
-    ]);
+    await pool.query(
+      "DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])",
+      [productIds]
+    );
   }
   if (operatorIds.length > 0 || warehouseIds.length > 0) {
     await pool.query(
@@ -352,7 +373,9 @@ async function cleanup(): Promise<void> {
     );
   }
   if (productIds.length > 0) {
-    await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [productIds]);
+    await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [
+      productIds
+    ]);
   }
   if (warehouseIds.length > 0) {
     await pool.query("DELETE FROM warehouses WHERE id = ANY($1::uuid[])", [
@@ -366,13 +389,19 @@ async function cleanup(): Promise<void> {
     );
   }
   if (sellerIds.length > 0) {
-    await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [sellerIds]);
+    await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [
+      sellerIds
+    ]);
   }
   if (buyerIds.length > 0) {
-    await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [buyerIds]);
+    await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [
+      buyerIds
+    ]);
   }
   if (usuarioIds.length > 0) {
-    await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [usuarioIds]);
+    await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [
+      usuarioIds
+    ]);
   }
 }
 
@@ -430,7 +459,10 @@ describe("Operación logística contra PostgreSQL real", () => {
     );
     expect(column.rows).toHaveLength(1);
 
-    const updated = await pool.query<{ estado: string; consumida_en: Date | null }>(
+    const updated = await pool.query<{
+      estado: string;
+      consumida_en: Date | null;
+    }>(
       `UPDATE inventory_reservations
           SET estado = 'CONSUMIDA', consumida_en = $2
         WHERE pedido_id = $1
@@ -451,7 +483,9 @@ describe("Operación logística contra PostgreSQL real", () => {
       usuarioId: scenario.operatorAUser,
       estado: "ACTIVO"
     });
-    expect(profile.bodegas.map((item) => item.id)).toEqual([scenario.warehouseA]);
+    expect(profile.bodegas.map((item) => item.id)).toEqual([
+      scenario.warehouseA
+    ]);
 
     const warehouses = await new ListLogisticsWarehouses(store).execute(
       scenario.operatorAUser
@@ -462,9 +496,9 @@ describe("Operación logística contra PostgreSQL real", () => {
       scenario.operatorAUser
     );
     expect(inventory).toHaveLength(2);
-    expect(inventory.every((item) => item.bodegaId === scenario.warehouseA)).toBe(
-      true
-    );
+    expect(
+      inventory.every((item) => item.bodegaId === scenario.warehouseA)
+    ).toBe(true);
     expect(inventory.map((item) => item.onHand)).toEqual([10, 10]);
     expect(inventory.map((item) => item.reserved)).toEqual([2, 2]);
     expect(inventory.map((item) => item.disponible)).toEqual([8, 8]);
@@ -491,7 +525,9 @@ describe("Operación logística contra PostgreSQL real", () => {
     expect(detail.items).toHaveLength(2);
     expect(detail.reservas).toHaveLength(2);
     expect(detail.envios).toEqual([]);
-    expect(detail.historial.map((entry) => entry.estadoNuevo)).toEqual(["PAGADO"]);
+    expect(detail.historial.map((entry) => entry.estadoNuevo)).toEqual([
+      "PAGADO"
+    ]);
     expect(detail.direccionEntrega?.ciudad).toBe("Bogotá");
 
     const summary = await new GetLogisticsSummary(store).execute(
@@ -541,7 +577,9 @@ describe("Operación logística contra PostgreSQL real", () => {
       "SELECT cantidad FROM shipment_items WHERE envio_id = $1",
       [prepared.envio.id]
     );
-    expect(shipmentItems.rows.map((row) => row.cantidad).sort()).toEqual([2, 2]);
+    expect(shipmentItems.rows.map((row) => row.cantidad).sort()).toEqual([
+      2, 2
+    ]);
 
     const operation = await pool.query<{ tipo: string }>(
       "SELECT tipo FROM logistics_operations WHERE envio_id = $1",
@@ -594,7 +632,9 @@ describe("Operación logística contra PostgreSQL real", () => {
       "CONSUMIDA",
       "CONSUMIDA"
     ]);
-    expect(reservations.rows.every((row) => row.consumida_en !== null)).toBe(true);
+    expect(reservations.rows.every((row) => row.consumida_en !== null)).toBe(
+      true
+    );
 
     const movements = await pool.query<{
       tipo: string;
@@ -672,14 +712,14 @@ describe("Operación logística contra PostgreSQL real", () => {
       "SELECT tipo, referencia FROM delivery_evidence WHERE envio_id = $1",
       [prepared.envio.id]
     );
-    expect(evidence.rows).toEqual([
-      { tipo: "RECIBO", referencia: "REC-PG-1" }
-    ]);
+    expect(evidence.rows).toEqual([{ tipo: "RECIBO", referencia: "REC-PG-1" }]);
 
     const orderAfterDelivery = await pool.query<{
       estado: string;
       entregado_en: Date | null;
-    }>("SELECT estado, entregado_en FROM orders WHERE id = $1", [scenario.orderA]);
+    }>("SELECT estado, entregado_en FROM orders WHERE id = $1", [
+      scenario.orderA
+    ]);
     expect(orderAfterDelivery.rows[0]?.estado).toBe("ENTREGADO");
     expect(orderAfterDelivery.rows[0]?.entregado_en).not.toBeNull();
 
@@ -788,7 +828,9 @@ describe("Operación logística contra PostgreSQL real", () => {
     const profileB = await new GetLogisticsProfile(store).execute(
       scenario.operatorBUser
     );
-    expect(profileB.bodegas.map((item) => item.id)).toEqual([scenario.warehouseB]);
+    expect(profileB.bodegas.map((item) => item.id)).toEqual([
+      scenario.warehouseB
+    ]);
 
     const inventoryB = await new ListLogisticsInventory(store).execute(
       scenario.operatorBUser
@@ -801,7 +843,10 @@ describe("Operación logística contra PostgreSQL real", () => {
     ).toEqual([]);
 
     await expect(
-      new GetLogisticsOrder(store).execute(scenario.operatorBUser, scenario.orderA)
+      new GetLogisticsOrder(store).execute(
+        scenario.operatorBUser,
+        scenario.orderA
+      )
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
 
     await expect(
@@ -898,7 +943,9 @@ describe("Operación logística contra PostgreSQL real", () => {
       nombreOperador: "Centro Logístico Nuevo",
       estado: "ACTIVO"
     });
-    expect(profile?.bodegas.map((item) => item.id)).toEqual([scenario.warehouseB]);
+    expect(profile?.bodegas.map((item) => item.id)).toEqual([
+      scenario.warehouseB
+    ]);
 
     await expect(
       register.execute(ADMIN, {

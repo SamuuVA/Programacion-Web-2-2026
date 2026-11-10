@@ -59,7 +59,9 @@ export async function discoverMigrations(
 ): Promise<Migration[]> {
   const entries = await readdir(migrationsDir, { withFileTypes: true });
   const files = entries
-    .filter((entry) => entry.isFile() && MIGRATION_FILE_PATTERN.test(entry.name))
+    .filter(
+      (entry) => entry.isFile() && MIGRATION_FILE_PATTERN.test(entry.name)
+    )
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right));
 
@@ -83,7 +85,9 @@ export async function discoverMigrations(
   const versions = new Set<string>();
   for (const migration of migrations) {
     if (versions.has(migration.version)) {
-      throw new Error(`Hay más de una migración con la versión ${migration.version}.`);
+      throw new Error(
+        `Hay más de una migración con la versión ${migration.version}.`
+      );
     }
     versions.add(migration.version);
   }
@@ -107,7 +111,8 @@ export async function getMigrationStatus(
       return {
         applied,
         pending: migrations.filter(
-          (migration) => !applied.some((row) => row.version === migration.version)
+          (migration) =>
+            !applied.some((row) => row.version === migration.version)
         )
       };
     } finally {
@@ -122,7 +127,9 @@ export async function runMigrations(
   return withClient(options, async (client) => {
     await setSearchPath(client, options.schema);
     const migrations = await discoverMigrations(options.migrationsDir);
-    await client.query("SELECT pg_advisory_lock(hashtext($1)::bigint)", [LOCK_KEY]);
+    await client.query("SELECT pg_advisory_lock(hashtext($1)::bigint)", [
+      LOCK_KEY
+    ]);
 
     const baselined: string[] = [];
     const applied: string[] = [];
@@ -169,12 +176,15 @@ export async function runMigrations(
         } catch (error) {
           await rollback(client);
           throw new Error(
-            `La migración ${migration.filename} falló y fue revertida: ${messageOf(error)}`
+            `La migración ${migration.filename} falló y fue revertida: ${messageOf(error)}`,
+            { cause: error }
           );
         }
       }
     } finally {
-      await client.query("SELECT pg_advisory_unlock(hashtext($1)::bigint)", [LOCK_KEY]);
+      await client.query("SELECT pg_advisory_unlock(hashtext($1)::bigint)", [
+        LOCK_KEY
+      ]);
       await resetSearchPath(client, options.schema);
     }
 
@@ -196,7 +206,9 @@ async function withClient<T>(
   }
 
   if (!options.connectionString) {
-    throw new Error("Se requiere connectionString o pool para ejecutar migraciones.");
+    throw new Error(
+      "Se requiere connectionString o pool para ejecutar migraciones."
+    );
   }
 
   const pool = new Pool({ connectionString: options.connectionString });
@@ -212,7 +224,10 @@ async function withClient<T>(
   }
 }
 
-async function ensureHistoryTable(client: PoolClient, schema?: string): Promise<void> {
+async function ensureHistoryTable(
+  client: PoolClient,
+  schema?: string
+): Promise<void> {
   const qualified = qualify(schema, HISTORY_TABLE);
   await client.query(
     `CREATE TABLE IF NOT EXISTS ${qualified} (
@@ -224,7 +239,10 @@ async function ensureHistoryTable(client: PoolClient, schema?: string): Promise<
   );
 }
 
-async function historyTableExists(client: PoolClient, schema?: string): Promise<boolean> {
+async function historyTableExists(
+  client: PoolClient,
+  schema?: string
+): Promise<boolean> {
   const qualified = qualify(schema, HISTORY_TABLE);
   const result = await client.query<{ exists: boolean }>(
     `SELECT to_regclass($1) IS NOT NULL AS exists`,
@@ -239,7 +257,9 @@ async function readApplied(client: PoolClient): Promise<AppliedMigration[]> {
     name: string;
     checksum: string;
     applied_at: Date;
-  }>(`SELECT version, name, checksum, applied_at FROM ${HISTORY_TABLE} ORDER BY version`);
+  }>(
+    `SELECT version, name, checksum, applied_at FROM ${HISTORY_TABLE} ORDER BY version`
+  );
 
   return result.rows.map((row) => ({
     version: row.version,
@@ -249,7 +269,10 @@ async function readApplied(client: PoolClient): Promise<AppliedMigration[]> {
   }));
 }
 
-async function insertHistory(client: PoolClient, migration: Migration): Promise<void> {
+async function insertHistory(
+  client: PoolClient,
+  migration: Migration
+): Promise<void> {
   await client.query(
     `INSERT INTO ${HISTORY_TABLE} (version, name, checksum) VALUES ($1, $2, $3)`,
     [migration.version, migration.name, migration.checksum]
@@ -261,7 +284,9 @@ function validateAppliedHistory(
   migrations: readonly Migration[]
 ): void {
   for (const row of applied) {
-    const migration = migrations.find((candidate) => candidate.version === row.version);
+    const migration = migrations.find(
+      (candidate) => candidate.version === row.version
+    );
     if (!migration) {
       throw new Error(
         `El historial contiene la versión ${row.version}, pero no existe su archivo de migración.`
@@ -297,17 +322,25 @@ async function initialTablesExist(client: PoolClient): Promise<boolean> {
   );
 }
 
-async function setSearchPath(client: PoolClient, schema?: string): Promise<void> {
+async function setSearchPath(
+  client: PoolClient,
+  schema?: string
+): Promise<void> {
   if (!schema) {
     return;
   }
   if (!/^[a-z_][a-z0-9_]*$/.test(schema)) {
     throw new Error(`Esquema inválido: ${schema}`);
   }
-  await client.query(`SET search_path TO ${quoteIdentifier(schema)}, pg_catalog`);
+  await client.query(
+    `SET search_path TO ${quoteIdentifier(schema)}, pg_catalog`
+  );
 }
 
-async function resetSearchPath(client: PoolClient, schema?: string): Promise<void> {
+async function resetSearchPath(
+  client: PoolClient,
+  schema?: string
+): Promise<void> {
   if (!schema) {
     return;
   }
@@ -315,7 +348,9 @@ async function resetSearchPath(client: PoolClient, schema?: string): Promise<voi
 }
 
 function qualify(schema: string | undefined, table: string): string {
-  return schema ? `${quoteIdentifier(schema)}.${quoteIdentifier(table)}` : quoteIdentifier(table);
+  return schema
+    ? `${quoteIdentifier(schema)}.${quoteIdentifier(table)}`
+    : quoteIdentifier(table);
 }
 
 function quoteIdentifier(value: string): string {
@@ -330,8 +365,14 @@ async function rollback(client: PoolClient): Promise<void> {
   }
 }
 
+/**
+ * El checksum se calcula sobre el contenido con saltos de línea normalizados a
+ * `\n`. Sin esto, un checkout de Git con `core.autocrlf` en Windows cambia el
+ * hash de migraciones ya aplicadas sin que el SQL haya cambiado.
+ */
 function checksum(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
+  const normalized = value.replace(/\r\n?/g, "\n");
+  return createHash("sha256").update(normalized, "utf8").digest("hex");
 }
 
 function messageOf(error: unknown): string {

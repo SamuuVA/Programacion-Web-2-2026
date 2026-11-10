@@ -44,10 +44,7 @@ class DeterministicTokens implements SessionTokenGenerator {
   }
 }
 
-function product(
-  productoId: string,
-  overrides: Record<string, unknown> = {}
-) {
+function product(productoId: string, overrides: Record<string, unknown> = {}) {
   return {
     productoId,
     nombre: "Audífonos Aurora",
@@ -237,7 +234,10 @@ describe("HTTP del marketplace: autenticación y autorización", () => {
 
   it("rechaza credenciales incorrectas y cuentas inactivas sin distinguirlas", async () => {
     for (const payload of [
-      { correoElectronico: "compradora.a@nexusmarket.demo", credencial: "mala" },
+      {
+        correoElectronico: "compradora.a@nexusmarket.demo",
+        credencial: "mala"
+      },
       { correoElectronico: "nadie@nexusmarket.demo", credencial: PASSWORD },
       { correoElectronico: "inactiva@nexusmarket.demo", credencial: PASSWORD }
     ]) {
@@ -589,7 +589,9 @@ describe("HTTP del marketplace: carrito", () => {
       payload: { productoId: SUSPENDED_ID, cantidad: 1 }
     });
     expect(suspended.statusCode).toBe(422);
-    expect(suspended.json().error.detalles.motivo).toBe("PRODUCTO_NO_PUBLICADO");
+    expect(suspended.json().error.detalles.motivo).toBe(
+      "PRODUCTO_NO_PUBLICADO"
+    );
 
     const overStock = await harness.app.inject({
       method: "POST",

@@ -37,6 +37,11 @@ export async function SiteHeader() {
             href: "/addresses",
             label: "Direcciones",
             icon: <MapPinIcon width={18} height={18} />
+          },
+          {
+            href: "/seller-application",
+            label: "Vender",
+            icon: <StoreIcon width={18} height={18} />
           }
         ]
       : []),
@@ -142,9 +147,14 @@ export async function SiteHeader() {
               <LogoutButton />
             </div>
           ) : (
-            <Link className="btn btn-primary btn-sm" href="/login">
-              Ingresar
-            </Link>
+            <>
+              <Link className="btn btn-secondary btn-sm" href="/register">
+                Crear cuenta
+              </Link>
+              <Link className="btn btn-primary btn-sm" href="/login">
+                Ingresar
+              </Link>
+            </>
           )}
         </div>
 
@@ -172,7 +182,10 @@ export async function SiteHeader() {
                   <LogoutButton />
                 </>
               ) : (
-                <Link href="/login">Ingresar</Link>
+                <>
+                  <Link href="/register">Crear cuenta</Link>
+                  <Link href="/login">Ingresar</Link>
+                </>
               )}
             </nav>
             <form action="/products" method="get" role="search">

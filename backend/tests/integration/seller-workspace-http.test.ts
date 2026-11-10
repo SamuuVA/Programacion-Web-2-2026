@@ -186,7 +186,9 @@ async function createHarness(): Promise<Harness> {
   const store = new FakeSellerWorkspaceStore();
   store.seedProfile(profile(SELLER_A, SELLER_A_USER));
   store.seedProfile(profile(SELLER_B, SELLER_B_USER));
-  store.seedProfile(profile(SELLER_SUSPENDED, SELLER_SUSPENDED_USER, "SUSPENDIDO"));
+  store.seedProfile(
+    profile(SELLER_SUSPENDED, SELLER_SUSPENDED_USER, "SUSPENDIDO")
+  );
   store.seedWarehouse(warehouse(WAREHOUSE_A, SELLER_A));
   store.seedWarehouse(warehouse(WAREHOUSE_B, SELLER_B));
   store.seedProduct(product(PRODUCT_A, SELLER_A));
@@ -334,7 +336,9 @@ describe("HTTP del espacio del vendedor", () => {
       headers
     });
     expect(withoutImage.statusCode).toBe(422);
-    expect(withoutImage.json().error.detalles.motivo).toBe("PRODUCTO_NO_PUBLICABLE");
+    expect(withoutImage.json().error.detalles.motivo).toBe(
+      "PRODUCTO_NO_PUBLICABLE"
+    );
 
     const withImage = await harness.app.inject({
       method: "POST",
@@ -383,7 +387,9 @@ describe("HTTP del espacio del vendedor", () => {
       headers
     });
     expect(reactivate.statusCode).toBe(422);
-    expect(reactivate.json().error.detalles.motivo).toBe("PRODUCTO_DESCONTINUADO");
+    expect(reactivate.json().error.detalles.motivo).toBe(
+      "PRODUCTO_DESCONTINUADO"
+    );
   });
 
   it("aísla productos, bodegas y pedidos de otros vendedores con 404", async () => {
@@ -447,9 +453,9 @@ describe("HTTP del espacio del vendedor", () => {
       headers
     });
     expect(ownOrders.statusCode).toBe(200);
-    expect(ownOrders.json().data.map((item: { id: string }) => item.id)).toEqual([
-      ORDER_A
-    ]);
+    expect(
+      ownOrders.json().data.map((item: { id: string }) => item.id)
+    ).toEqual([ORDER_A]);
   });
 
   it("registra ingresos de inventario idempotentes y consulta el saldo", async () => {

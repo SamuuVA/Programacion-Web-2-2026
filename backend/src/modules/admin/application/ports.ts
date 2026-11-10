@@ -1,12 +1,18 @@
 import type { CategoriaProducto } from "../../catalog/domain/producto.js";
 import type { EstadoEnvio } from "../../logistics/domain/envio.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import type {
   EstadoProductoVendedor,
   TipoEntregaVendedor
 } from "../../seller-workspace/domain/producto-vendedor.js";
 import type { EstadoVendedor } from "../../seller-workspace/application/ports.js";
-import type { EstadoUsuario, RolSistema } from "../../identity/domain/usuario.js";
+import type {
+  EstadoUsuario,
+  RolSistema
+} from "../../identity/domain/usuario.js";
 
 /**
  * Puertos de consulta del Administrador.
@@ -32,10 +38,9 @@ export const ESTADOS_USUARIO_ADMIN: readonly EstadoUsuario[] = [
   "BLOQUEADO"
 ];
 
-export const ESTADOS_COMPRADOR_ADMIN: readonly ("HABILITADO" | "RESTRINGIDO")[] = [
-  "HABILITADO",
-  "RESTRINGIDO"
-];
+export const ESTADOS_COMPRADOR_ADMIN: readonly (
+  "HABILITADO" | "RESTRINGIDO"
+)[] = ["HABILITADO", "RESTRINGIDO"];
 
 export const ESTADOS_VENDEDOR_ADMIN: readonly EstadoVendedor[] = [
   "EN_REVISION",
@@ -569,22 +574,34 @@ export interface AdminStore {
   listBuyers(filter: AdminBuyerFilter): Promise<AdminPage<AdminBuyerSummary>>;
   findBuyer(buyerId: string): Promise<AdminBuyerDetail | null>;
 
-  listSellers(filter: AdminSellerFilter): Promise<AdminPage<AdminSellerSummary>>;
+  listSellers(
+    filter: AdminSellerFilter
+  ): Promise<AdminPage<AdminSellerSummary>>;
   findSeller(sellerId: string): Promise<AdminSellerDetail | null>;
 
-  listWarehouses(filter: AdminWarehouseFilter): Promise<AdminPage<AdminWarehouseView>>;
+  listWarehouses(
+    filter: AdminWarehouseFilter
+  ): Promise<AdminPage<AdminWarehouseView>>;
   findWarehouse(warehouseId: string): Promise<AdminWarehouseDetail | null>;
 
-  listProducts(filter: AdminProductFilter): Promise<AdminPage<AdminProductSummary>>;
+  listProducts(
+    filter: AdminProductFilter
+  ): Promise<AdminPage<AdminProductSummary>>;
   findProduct(productId: string): Promise<AdminProductDetail | null>;
 
-  listInventory(filter: AdminInventoryFilter): Promise<AdminPage<AdminInventoryView>>;
-  listMovements(filter: AdminMovementFilter): Promise<AdminPage<AdminMovementView>>;
+  listInventory(
+    filter: AdminInventoryFilter
+  ): Promise<AdminPage<AdminInventoryView>>;
+  listMovements(
+    filter: AdminMovementFilter
+  ): Promise<AdminPage<AdminMovementView>>;
 
   listOrders(filter: AdminOrderFilter): Promise<AdminPage<AdminOrderSummary>>;
   findOrder(orderId: string): Promise<AdminOrderDetail | null>;
 
-  listPayments(filter: AdminPaymentFilter): Promise<AdminPage<AdminPaymentSummary>>;
+  listPayments(
+    filter: AdminPaymentFilter
+  ): Promise<AdminPage<AdminPaymentSummary>>;
 
   healthCheck(): Promise<void>;
   close(): Promise<void>;

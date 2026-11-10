@@ -46,7 +46,9 @@ function store(): FakeSupervisorStore {
 describe("Casos de uso de supervisión", () => {
   it("rechaza roles distintos de SUPERVISOR y supervisores inactivos", async () => {
     const dashboard = new GetSupervisorDashboard(store());
-    await expect(dashboard.execute(ADMIN)).rejects.toBeInstanceOf(AuthorizationError);
+    await expect(dashboard.execute(ADMIN)).rejects.toBeInstanceOf(
+      AuthorizationError
+    );
     await expect(dashboard.execute(INACTIVE_SUPERVISOR)).rejects.toBeInstanceOf(
       AuthorizationError
     );

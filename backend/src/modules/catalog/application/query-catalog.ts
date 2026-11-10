@@ -1,4 +1,7 @@
-import { ResourceNotFoundError, ValidationError } from "../../../shared/domain/errors.js";
+import {
+  ResourceNotFoundError,
+  ValidationError
+} from "../../../shared/domain/errors.js";
 import {
   PAGE_SIZE_DEFAULT,
   PAGE_SIZE_MAX,
@@ -36,7 +39,9 @@ export class QueryCatalog {
     const page = input.page;
     const pageSize = input.pageSize;
     if (!Number.isInteger(page) || page < 1) {
-      throw new ValidationError("La página debe ser un entero mayor o igual a 1.");
+      throw new ValidationError(
+        "La página debe ser un entero mayor o igual a 1."
+      );
     }
     if (
       !Number.isInteger(pageSize) ||

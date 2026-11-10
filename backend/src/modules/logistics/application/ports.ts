@@ -1,5 +1,8 @@
 import type { DireccionSnapshot } from "../../buyers/domain/direccion-entrega.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import type {
   EstadoEnvio,
   EvidenciaEntrega,
@@ -248,8 +251,12 @@ export interface LogisticsStore {
   deliver(command: DeliverCommand): Promise<DeliverResult>;
 
   existsByEmail(correoNormalizado: string): Promise<boolean>;
-  existsByDocument(documento: RegisterOperatorCommand["documento"]): Promise<boolean>;
-  registerOperator(command: RegisterOperatorCommand): Promise<RegisterOperatorResult>;
+  existsByDocument(
+    documento: RegisterOperatorCommand["documento"]
+  ): Promise<boolean>;
+  registerOperator(
+    command: RegisterOperatorCommand
+  ): Promise<RegisterOperatorResult>;
 
   healthCheck(): Promise<void>;
   close(): Promise<void>;

@@ -11,7 +11,10 @@ import { randomUUID } from "node:crypto";
  * real del contrato HTTP y del catálogo público.
  */
 
-const API_URL = (process.env.API_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+const API_URL = (process.env.API_URL ?? "http://127.0.0.1:3000").replace(
+  /\/$/,
+  ""
+);
 const PASSWORD = process.env.NEXUS_DEMO_PASSWORD ?? "NexusMarketDemo2026!";
 
 interface ApiResponse<T> {
@@ -56,7 +59,9 @@ async function request<T>(
   const response = await fetch(`${API_URL}${path}`, {
     method: options.method ?? "GET",
     headers,
-    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) })
+    ...(options.body === undefined
+      ? {}
+      : { body: JSON.stringify(options.body) })
   });
   const text = await response.text();
   const body = (text.length === 0 ? null : JSON.parse(text)) as T;
@@ -64,10 +69,13 @@ async function request<T>(
 }
 
 async function login(correoElectronico: string): Promise<string> {
-  const response = await request<{ data: { token: string } }>("/api/v1/auth/login", {
-    method: "POST",
-    body: { correoElectronico, credencial: PASSWORD }
-  });
+  const response = await request<{ data: { token: string } }>(
+    "/api/v1/auth/login",
+    {
+      method: "POST",
+      body: { correoElectronico, credencial: PASSWORD }
+    }
+  );
   if (response.status !== 200) {
     throw new Error(
       `Login falló para ${correoElectronico}: ${response.status} ${JSON.stringify(response.body)}`
@@ -83,21 +91,22 @@ async function main(): Promise<void> {
   const otherSellerToken = await login("nido@nexusmarket.demo");
   const buyerToken = await login("comprador@nexusmarket.demo");
 
-  const session = await request<{ data: { usuario: { rol: string; sellerId: string | null } } }>(
-    "/api/v1/auth/session",
-    { token: sellerToken }
-  );
+  const session = await request<{
+    data: { usuario: { rol: string; sellerId: string | null } };
+  }>("/api/v1/auth/session", { token: sellerToken });
   assert(session.status === 200, "sesión de vendedor disponible");
-  assert(session.body.data.usuario.rol === "VENDEDOR", "la sesión declara rol VENDEDOR");
+  assert(
+    session.body.data.usuario.rol === "VENDEDOR",
+    "la sesión declara rol VENDEDOR"
+  );
   assert(
     typeof session.body.data.usuario.sellerId === "string",
     "la sesión expone el sellerId propio"
   );
 
-  const profile = await request<{ data: { id: string; nombreComercial: string; estado: string } }>(
-    "/api/v1/seller/profile",
-    { token: sellerToken }
-  );
+  const profile = await request<{
+    data: { id: string; nombreComercial: string; estado: string };
+  }>("/api/v1/seller/profile", { token: sellerToken });
   assert(profile.status === 200, "GET /seller/profile responde 200");
   assert(profile.body.data.estado === "ACTIVO", "el perfil demo está ACTIVO");
 
@@ -109,22 +118,33 @@ async function main(): Promise<void> {
       body: { nombreComercial: profile.body.data.nombreComercial }
     }
   );
-  assert(updatedProfile.status === 200, "PATCH /seller/profile conserva el nombre comercial");
-
-  const forbidden = await request<{ error: { code: string } }>("/api/v1/seller/products", {
-    token: buyerToken
-  });
-  assert(forbidden.status === 403, "un comprador recibe 403 en /seller/products");
-
-  const warehouses = await request<{ data: Array<{ id: string; estado: string }> }>(
-    "/api/v1/seller/warehouses",
-    { token: sellerToken }
+  assert(
+    updatedProfile.status === 200,
+    "PATCH /seller/profile conserva el nombre comercial"
   );
+
+  const forbidden = await request<{ error: { code: string } }>(
+    "/api/v1/seller/products",
+    {
+      token: buyerToken
+    }
+  );
+  assert(
+    forbidden.status === 403,
+    "un comprador recibe 403 en /seller/products"
+  );
+
+  const warehouses = await request<{
+    data: Array<{ id: string; estado: string }>;
+  }>("/api/v1/seller/warehouses", { token: sellerToken });
   assert(warehouses.status === 200, "GET /seller/warehouses responde 200");
   const activeWarehouse = warehouses.body.data.find(
     (warehouse) => warehouse.estado === "ACTIVA"
   );
-  assert(activeWarehouse !== undefined, "el vendedor demo tiene una bodega activa");
+  assert(
+    activeWarehouse !== undefined,
+    "el vendedor demo tiene una bodega activa"
+  );
 
   const sku = `SMOKE-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
   const created = await request<{
@@ -143,21 +163,23 @@ async function main(): Promise<void> {
     }
   });
   assert(created.status === 201, "POST /seller/products responde 201");
-  assert(created.body.data.estado === "BORRADOR", "el producto nace en BORRADOR");
+  assert(
+    created.body.data.estado === "BORRADOR",
+    "el producto nace en BORRADOR"
+  );
   assert(
     created.body.data.vendedorId === profile.body.data.id,
     "el propietario se deriva de la sesión"
   );
   const productId = created.body.data.id;
 
-  const publishWithoutImage = await request<{ error: { details?: { motivo?: string } } }>(
-    `/api/v1/seller/products/${productId}/publish`,
-    { method: "POST", token: sellerToken }
-  );
-  assert(
-    publishWithoutImage.status === 422,
-    "no se publica sin imagen (422)"
-  );
+  const publishWithoutImage = await request<{
+    error: { details?: { motivo?: string } };
+  }>(`/api/v1/seller/products/${productId}/publish`, {
+    method: "POST",
+    token: sellerToken
+  });
+  assert(publishWithoutImage.status === 422, "no se publica sin imagen (422)");
 
   const image = await request<{ data: { imagenes: Array<{ id: string }> } }>(
     `/api/v1/seller/products/${productId}/images`,
@@ -168,25 +190,37 @@ async function main(): Promise<void> {
     }
   );
   assert(image.status === 201, "POST de imagen responde 201");
-  assert(image.body.data.imagenes.length === 1, "el producto conserva una imagen");
+  assert(
+    image.body.data.imagenes.length === 1,
+    "el producto conserva una imagen"
+  );
 
   const published = await request<{ data: { estado: string } }>(
     `/api/v1/seller/products/${productId}/publish`,
     { method: "POST", token: sellerToken }
   );
   assert(published.status === 200, "publicar responde 200");
-  assert(published.body.data.estado === "PUBLICADO", "el producto queda PUBLICADO");
+  assert(
+    published.body.data.estado === "PUBLICADO",
+    "el producto queda PUBLICADO"
+  );
 
   const publicDetail = await request<{ data: { id: string; estado: string } }>(
     `/api/v1/products/${productId}`
   );
-  assert(publicDetail.status === 200, "el catálogo público muestra el producto publicado");
+  assert(
+    publicDetail.status === 200,
+    "el catálogo público muestra el producto publicado"
+  );
 
   const crossSeller = await request<{ error: { code: string } }>(
     `/api/v1/seller/products/${productId}`,
     { token: otherSellerToken }
   );
-  assert(crossSeller.status === 404, "otro vendedor recibe 404 (no filtra existencia)");
+  assert(
+    crossSeller.status === 404,
+    "otro vendedor recibe 404 (no filtra existencia)"
+  );
 
   const crossSellerIngress = await request<{ error: { code: string } }>(
     "/api/v1/seller/inventory/ingresos",
@@ -214,31 +248,43 @@ async function main(): Promise<void> {
     idempotencyKey: ingressKey,
     motivo: "Smoke HTTP"
   };
-  const ingress = await request<{ data: { duplicado: boolean; posicion: { disponible: number } } }>(
-    "/api/v1/seller/inventory/ingresos",
-    { method: "POST", token: sellerToken, body: ingressBody }
-  );
+  const ingress = await request<{
+    data: { duplicado: boolean; posicion: { disponible: number } };
+  }>("/api/v1/seller/inventory/ingresos", {
+    method: "POST",
+    token: sellerToken,
+    body: ingressBody
+  });
   assert(ingress.status === 201, "el ingreso responde 201");
-  assert(ingress.body.data.posicion.disponible === 4, "el ingreso suma 4 unidades");
-
-  const repeated = await request<{ data: { duplicado: boolean; posicion: { disponible: number } } }>(
-    "/api/v1/seller/inventory/ingresos",
-    { method: "POST", token: sellerToken, body: ingressBody }
+  assert(
+    ingress.body.data.posicion.disponible === 4,
+    "el ingreso suma 4 unidades"
   );
+
+  const repeated = await request<{
+    data: { duplicado: boolean; posicion: { disponible: number } };
+  }>("/api/v1/seller/inventory/ingresos", {
+    method: "POST",
+    token: sellerToken,
+    body: ingressBody
+  });
   assert(repeated.status === 200, "el ingreso repetido responde 200");
-  assert(repeated.body.data.duplicado === true, "el ingreso repetido es idempotente");
+  assert(
+    repeated.body.data.duplicado === true,
+    "el ingreso repetido es idempotente"
+  );
   assert(
     repeated.body.data.posicion.disponible === 4,
     "el ingreso repetido no vuelve a sumar stock"
   );
 
-  const inventory = await request<{ data: Array<{ productoId: string; disponible: number }> }>(
-    "/api/v1/seller/inventory",
-    { token: sellerToken }
-  );
+  const inventory = await request<{
+    data: Array<{ productoId: string; disponible: number }>;
+  }>("/api/v1/seller/inventory", { token: sellerToken });
   assert(
     inventory.body.data.some(
-      (position) => position.productoId === productId && position.disponible === 4
+      (position) =>
+        position.productoId === productId && position.disponible === 4
     ),
     "el inventario refleja la posición del producto"
   );
@@ -247,7 +293,10 @@ async function main(): Promise<void> {
     `/api/v1/seller/products/${productId}/suspend`,
     { method: "POST", token: sellerToken }
   );
-  assert(suspended.body.data.estado === "SUSPENDIDO", "suspender deja el producto SUSPENDIDO");
+  assert(
+    suspended.body.data.estado === "SUSPENDIDO",
+    "suspender deja el producto SUSPENDIDO"
+  );
 
   const hidden = await request<{ error: { code: string } }>(
     `/api/v1/products/${productId}`
@@ -258,7 +307,10 @@ async function main(): Promise<void> {
     `/api/v1/seller/products/${productId}/publish`,
     { method: "POST", token: sellerToken }
   );
-  assert(resumed.body.data.estado === "PUBLICADO", "reanudar republica con revalidación");
+  assert(
+    resumed.body.data.estado === "PUBLICADO",
+    "reanudar republica con revalidación"
+  );
 
   const discontinued = await request<{ data: { estado: string } }>(
     `/api/v1/seller/products/${productId}/discontinue`,
@@ -273,7 +325,10 @@ async function main(): Promise<void> {
     `/api/v1/seller/products/${productId}/publish`,
     { method: "POST", token: sellerToken }
   );
-  assert(cannotRepublish.status === 422, "un producto descontinuado no se republica");
+  assert(
+    cannotRepublish.status === 422,
+    "un producto descontinuado no se republica"
+  );
 
   const sellerOrders = await request<{ data: Array<{ id: string }> }>(
     "/api/v1/seller/orders",

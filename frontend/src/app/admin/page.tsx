@@ -13,7 +13,6 @@ import { getSessionToken, requireAdmin } from "@/features/auth/session";
 import { fetchAdminDashboard } from "@/features/admin/api";
 import {
   CATEGORIA_LABEL,
-  ESTADO_BODEGA_LABEL,
   ESTADO_COMPRADOR_LABEL,
   ESTADO_PAGO_LABEL,
   ESTADO_PEDIDO_LABEL,

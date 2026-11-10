@@ -23,8 +23,14 @@ export type ResultadoEntrega = (typeof RESULTADOS_ENTREGA)[number];
 /** Estados del pedido en los que la operación logística puede preparar. */
 const ESTADOS_PEDIDO_PREPARABLES = new Set(["PAGADO", "EN_PREPARACION"]);
 const ESTADOS_PEDIDO_DESPACHABLES = new Set(["PAGADO", "EN_PREPARACION"]);
-const ESTADOS_ENVIO_PREPARABLES = new Set<EstadoEnvio>(["PREPARACION", "EMPACADO"]);
-const ESTADOS_ENVIO_ENTREGABLES = new Set<EstadoEnvio>(["DESPACHADO", "EN_TRANSITO"]);
+const ESTADOS_ENVIO_PREPARABLES = new Set<EstadoEnvio>([
+  "PREPARACION",
+  "EMPACADO"
+]);
+const ESTADOS_ENVIO_ENTREGABLES = new Set<EstadoEnvio>([
+  "DESPACHADO",
+  "EN_TRANSITO"
+]);
 
 export function assertPedidoPreparable(estado: string): void {
   if (!ESTADOS_PEDIDO_PREPARABLES.has(estado)) {

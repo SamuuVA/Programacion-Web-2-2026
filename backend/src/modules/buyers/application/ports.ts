@@ -1,8 +1,14 @@
 import type { PerfilComprador } from "../domain/perfil-comprador.js";
 import type { Carrito } from "../../cart/domain/carrito.js";
 import type { Usuario } from "../../identity/domain/usuario.js";
-import type { RegistroAuditoria, EventoDominio } from "../../../shared/domain/audit.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../../shared/domain/value-objects.js";
+import type {
+  RegistroAuditoria,
+  EventoDominio
+} from "../../../shared/domain/audit.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../../shared/domain/value-objects.js";
 
 /**
  * Frontera transaccional del primer vertical.

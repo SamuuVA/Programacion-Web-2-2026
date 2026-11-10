@@ -14,12 +14,13 @@ export const CATEGORIAS_PRODUCTO = [
 
 export type CategoriaProducto = (typeof CATEGORIAS_PRODUCTO)[number];
 
-export const ETIQUETAS_CATEGORIA: Readonly<Record<CategoriaProducto, string>> = {
-  ELECTRONICA: "Electrónica",
-  ROPA: "Ropa",
-  HOGAR: "Hogar",
-  DIGITAL: "Digital"
-};
+export const ETIQUETAS_CATEGORIA: Readonly<Record<CategoriaProducto, string>> =
+  {
+    ELECTRONICA: "Electrónica",
+    ROPA: "Ropa",
+    HOGAR: "Hogar",
+    DIGITAL: "Digital"
+  };
 
 export const ESTADOS_PRODUCTO = [
   "PUBLICADO",

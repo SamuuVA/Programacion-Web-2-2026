@@ -45,7 +45,8 @@ function createApp(
     NODE_ENV: "test",
     HOST: "127.0.0.1",
     PORT: "3000",
-    DATABASE_URL: "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test",
+    DATABASE_URL:
+      "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket_test",
     LOG_LEVEL: "silent",
     ...environment
   });
@@ -224,7 +225,9 @@ describe("Contrato HTTP de PI-01", () => {
     });
     expect(simple.statusCode).toBe(200);
     expect(simple.headers["access-control-allow-origin"]).toBe(allowedOrigin);
-    expect(simple.headers["access-control-expose-headers"]).toBe("x-correlation-id");
+    expect(simple.headers["access-control-expose-headers"]).toBe(
+      "x-correlation-id"
+    );
 
     const preflight = await current.inject({
       method: "OPTIONS",
@@ -236,7 +239,9 @@ describe("Contrato HTTP de PI-01", () => {
       }
     });
     expect(preflight.statusCode).toBe(204);
-    expect(preflight.headers["access-control-allow-origin"]).toBe(allowedOrigin);
+    expect(preflight.headers["access-control-allow-origin"]).toBe(
+      allowedOrigin
+    );
     expect(preflight.headers["access-control-allow-methods"]).toBe(
       "GET, POST, PATCH, DELETE, OPTIONS"
     );

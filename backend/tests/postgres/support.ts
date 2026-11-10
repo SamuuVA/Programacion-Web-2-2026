@@ -79,7 +79,9 @@ export async function ensureTestSchema(pool: Pool): Promise<void> {
 
   const after = await tablePresence(pool);
   if (!after.every(Boolean)) {
-    throw new Error("Las migraciones de prueba no crearon todas las tablas requeridas.");
+    throw new Error(
+      "Las migraciones de prueba no crearon todas las tablas requeridas."
+    );
   }
 }
 
@@ -121,15 +123,23 @@ export async function deleteRegistrationRows(
   const carritoIds = unique(records.map((record) => record.carritoId));
   const correlationIds = unique(records.map((record) => record.correlationId));
 
-  await pool.query("DELETE FROM outbox WHERE correlation_id = ANY($1::text[])", [
-    correlationIds
+  await pool.query(
+    "DELETE FROM outbox WHERE correlation_id = ANY($1::text[])",
+    [correlationIds]
+  );
+  await pool.query(
+    "DELETE FROM audit_log WHERE correlation_id = ANY($1::text[])",
+    [correlationIds]
+  );
+  await pool.query("DELETE FROM carts WHERE id = ANY($1::uuid[])", [
+    carritoIds
   ]);
-  await pool.query("DELETE FROM audit_log WHERE correlation_id = ANY($1::text[])", [
-    correlationIds
+  await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [
+    compradorIds
   ]);
-  await pool.query("DELETE FROM carts WHERE id = ANY($1::uuid[])", [carritoIds]);
-  await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [compradorIds]);
-  await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [usuarioIds]);
+  await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [
+    usuarioIds
+  ]);
 }
 
 async function tablePresence(pool: Pool): Promise<boolean[]> {

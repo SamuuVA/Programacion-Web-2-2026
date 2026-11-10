@@ -7,16 +7,16 @@ import type { CategoriaProducto } from "../../catalog/domain/producto.js";
 import type { EstadoPedido } from "../../orders/application/ports.js";
 import type { EstadoPago } from "../../orders/application/ports.js";
 import type { AuthenticatedUser } from "../../identity/application/ports.js";
-import type { EstadoUsuario, RolSistema } from "../../identity/domain/usuario.js";
+import type {
+  EstadoUsuario,
+  RolSistema
+} from "../../identity/domain/usuario.js";
 import type { EstadoVendedor } from "../../seller-workspace/application/ports.js";
 import type {
   EstadoProductoVendedor,
   TipoEntregaVendedor
 } from "../../seller-workspace/domain/producto-vendedor.js";
-import {
-  PAGE_SIZE_MAX,
-  type AdminStore
-} from "./ports.js";
+import { PAGE_SIZE_MAX, type AdminStore } from "./ports.js";
 
 /**
  * El Administrador solo puede consultar a través de este módulo. Las dos altas
@@ -43,7 +43,9 @@ export interface PageInput {
 function normalizePage(input: PageInput): PageInput {
   const { page, pageSize } = input;
   if (!Number.isInteger(page) || page < 1) {
-    throw new ValidationError("La página debe ser un entero mayor o igual a 1.");
+    throw new ValidationError(
+      "La página debe ser un entero mayor o igual a 1."
+    );
   }
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > PAGE_SIZE_MAX) {
     throw new ValidationError(

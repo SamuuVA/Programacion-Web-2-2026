@@ -3,8 +3,14 @@ import {
   DependencyUnavailableError,
   UniquenessConflictError
 } from "../../../shared/domain/errors.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../../shared/domain/value-objects.js";
-import type { BuyerRegistrationRecord, BuyerRegistrationStore } from "../application/ports.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../../shared/domain/value-objects.js";
+import type {
+  BuyerRegistrationRecord,
+  BuyerRegistrationStore
+} from "../application/ports.js";
 
 export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
   private readonly pool: Pool;
@@ -26,9 +32,12 @@ export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
       );
       return result.rowCount === 1;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la base de datos.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la base de datos.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
   }
 
@@ -45,9 +54,12 @@ export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
       );
       return result.rowCount === 1;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la base de datos.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la base de datos.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
   }
 
@@ -134,11 +146,16 @@ export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
     } catch (error) {
       await this.rollback(client);
       if (isUniqueViolation(error)) {
-        throw new UniquenessConflictError("El correo o el documento ya están registrados.");
+        throw new UniquenessConflictError(
+          "El correo o el documento ya están registrados."
+        );
       }
-      throw new DependencyUnavailableError("No fue posible completar el registro.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible completar el registro.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     } finally {
       client.release();
     }
@@ -148,9 +165,12 @@ export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
     try {
       await this.pool.query("SELECT 1");
     } catch (error) {
-      throw new DependencyUnavailableError("La base de datos no está disponible.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "La base de datos no está disponible.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
   }
 
@@ -162,9 +182,12 @@ export class PostgresBuyerRegistrationStore implements BuyerRegistrationStore {
     try {
       return await this.pool.connect();
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible conectar con la base de datos.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible conectar con la base de datos.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
   }
 

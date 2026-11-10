@@ -70,14 +70,20 @@ describe("PI-02 alta administrativa de vendedor", () => {
 
   it("exige un administrador activo y rechaza otros roles", async () => {
     for (const actor of [
-      admin({ rol: "COMPRADOR", compradorId: "00000000-0000-4000-8001-000000000001" }),
-      admin({ rol: "VENDEDOR", sellerId: "00000000-0000-4000-8006-000000000001" }),
+      admin({
+        rol: "COMPRADOR",
+        compradorId: "00000000-0000-4000-8001-000000000001"
+      }),
+      admin({
+        rol: "VENDEDOR",
+        sellerId: "00000000-0000-4000-8006-000000000001"
+      }),
       admin({ estado: "INACTIVO" })
     ]) {
       const { store, useCase } = harness();
-      await expect(
-        useCase.execute(command({ actor }))
-      ).rejects.toMatchObject({ code: "NO_AUTORIZADO" });
+      await expect(useCase.execute(command({ actor }))).rejects.toMatchObject({
+        code: "NO_AUTORIZADO"
+      });
       expect(store.getUserCount()).toBe(0);
     }
   });
@@ -115,9 +121,9 @@ describe("PI-02 alta administrativa de vendedor", () => {
 
     for (const overrides of invalid) {
       const { store, useCase } = harness();
-      await expect(
-        useCase.execute(command(overrides))
-      ).rejects.toMatchObject({ code: "VALIDACION_INVALIDA" });
+      await expect(useCase.execute(command(overrides))).rejects.toMatchObject({
+        code: "VALIDACION_INVALIDA"
+      });
       expect(store.getUserCount()).toBe(0);
     }
   });

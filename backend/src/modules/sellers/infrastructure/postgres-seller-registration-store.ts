@@ -3,8 +3,14 @@ import {
   DependencyUnavailableError,
   UniquenessConflictError
 } from "../../../shared/domain/errors.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../../shared/domain/value-objects.js";
-import type { SellerRegistrationRecord, SellerRegistrationStore } from "../application/ports.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../../shared/domain/value-objects.js";
+import type {
+  SellerRegistrationRecord,
+  SellerRegistrationStore
+} from "../application/ports.js";
 
 export class PostgresSellerRegistrationStore implements SellerRegistrationStore {
   private readonly pool: Pool;
@@ -26,9 +32,12 @@ export class PostgresSellerRegistrationStore implements SellerRegistrationStore 
       );
       return result.rowCount === 1;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -45,9 +54,12 @@ export class PostgresSellerRegistrationStore implements SellerRegistrationStore 
       );
       return result.rowCount === 1;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -139,11 +151,16 @@ export class PostgresSellerRegistrationStore implements SellerRegistrationStore 
     } catch (error) {
       await rollback(client);
       if (isUniqueViolation(error)) {
-        throw new UniquenessConflictError("El correo o el documento ya están registrados.");
+        throw new UniquenessConflictError(
+          "El correo o el documento ya están registrados."
+        );
       }
-      throw new DependencyUnavailableError("No fue posible completar el registro del vendedor.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible completar el registro del vendedor.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
@@ -153,9 +170,12 @@ export class PostgresSellerRegistrationStore implements SellerRegistrationStore 
     try {
       await this.pool.query("SELECT 1");
     } catch (error) {
-      throw new DependencyUnavailableError("La base de datos no está disponible.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "La base de datos no está disponible.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -167,9 +187,12 @@ export class PostgresSellerRegistrationStore implements SellerRegistrationStore 
     try {
       return await this.pool.connect();
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible conectar con la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible conectar con la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 }

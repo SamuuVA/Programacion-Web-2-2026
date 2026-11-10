@@ -7,7 +7,10 @@ import type {
   SessionRecord,
   StoredSession
 } from "../../src/modules/identity/application/ports.js";
-import type { RolSistema, EstadoUsuario } from "../../src/modules/identity/domain/usuario.js";
+import type {
+  RolSistema,
+  EstadoUsuario
+} from "../../src/modules/identity/domain/usuario.js";
 import type { DireccionEntrega } from "../../src/modules/buyers/domain/direccion-entrega.js";
 import type { AddressStore } from "../../src/modules/buyers/application/address-ports.js";
 import type {
@@ -16,7 +19,10 @@ import type {
   SellerRegistrationStore,
   WarehouseRecord
 } from "../../src/modules/sellers/application/ports.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../src/shared/domain/value-objects.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../src/shared/domain/value-objects.js";
 import type { Usuario } from "../../src/modules/identity/domain/usuario.js";
 import type {
   CartItemState,
@@ -88,15 +94,24 @@ export class FakeIdentityStore implements IdentityStore {
     }));
   }
 
-  async findCredentialsByEmail(email: string): Promise<CredentialRecord | null> {
+  async findCredentialsByEmail(
+    email: string
+  ): Promise<CredentialRecord | null> {
     const normalized = email.trim().toLowerCase();
-    return this.credentials.find((user) => user.correoElectronico === normalized) ?? null;
+    return (
+      this.credentials.find((user) => user.correoElectronico === normalized) ??
+      null
+    );
   }
 
   async createSession(record: SessionRecord): Promise<void> {
-    const credential = this.credentials.find((user) => user.usuarioId === record.usuarioId);
+    const credential = this.credentials.find(
+      (user) => user.usuarioId === record.usuarioId
+    );
     if (!credential) {
-      throw new DependencyUnavailableError("El usuario de la sesión no existe.");
+      throw new DependencyUnavailableError(
+        "El usuario de la sesión no existe."
+      );
     }
     this.sessions.set(record.tokenHash, {
       session: record,
@@ -104,7 +119,9 @@ export class FakeIdentityStore implements IdentityStore {
     });
   }
 
-  async findSessionByTokenHash(tokenHash: string): Promise<StoredSession | null> {
+  async findSessionByTokenHash(
+    tokenHash: string
+  ): Promise<StoredSession | null> {
     if (this.revoked.has(tokenHash)) {
       return null;
     }
@@ -147,7 +164,10 @@ export class FakeAddressStore implements AddressStore {
       });
   }
 
-  async findById(compradorId: string, direccionId: string): Promise<DireccionEntrega | null> {
+  async findById(
+    compradorId: string,
+    direccionId: string
+  ): Promise<DireccionEntrega | null> {
     const address = this.addresses.get(direccionId);
     return address && address.compradorId === compradorId ? address : null;
   }
@@ -180,7 +200,10 @@ export class FakeAddressStore implements AddressStore {
     return true;
   }
 
-  async setPrincipal(compradorId: string, direccionId: string): Promise<boolean> {
+  async setPrincipal(
+    compradorId: string,
+    direccionId: string
+  ): Promise<boolean> {
     const address = this.addresses.get(direccionId);
     if (!address || address.compradorId !== compradorId) {
       return false;
@@ -274,7 +297,9 @@ export class FakeCartStore implements CartStore {
       ([productoId, state]) => {
         const product = this.products.get(productoId);
         if (!product) {
-          throw new DependencyUnavailableError("Producto eliminado del catálogo.");
+          throw new DependencyUnavailableError(
+            "Producto eliminado del catálogo."
+          );
         }
         return toCartLine(product, state);
       }
@@ -283,7 +308,10 @@ export class FakeCartStore implements CartStore {
       carritoId: `cart-${compradorId}`,
       compradorId,
       items,
-      totalCentavos: items.reduce((sum, item) => sum + item.subtotalCentavos, 0),
+      totalCentavos: items.reduce(
+        (sum, item) => sum + item.subtotalCentavos,
+        0
+      ),
       moneda: items[0]?.moneda ?? null,
       actualizadoEn: "2026-10-28T12:00:00.000Z",
       version: 1,
@@ -299,7 +327,10 @@ export class FakeCartStore implements CartStore {
     return this.products.get(productoId) ?? null;
   }
 
-  async getItem(compradorId: string, productoId: string): Promise<CartItemState | null> {
+  async getItem(
+    compradorId: string,
+    productoId: string
+  ): Promise<CartItemState | null> {
     return this.items.get(compradorId)?.get(productoId) ?? null;
   }
 
@@ -333,11 +364,7 @@ export class FakeCartStore implements CartStore {
     this.products.set(product.productoId, product);
   }
 
-  setItem(
-    compradorId: string,
-    productoId: string,
-    state: CartItemState
-  ): void {
+  setItem(compradorId: string, productoId: string, state: CartItemState): void {
     const current = this.items.get(compradorId) ?? new Map();
     current.set(productoId, state);
     this.items.set(compradorId, current);
@@ -374,7 +401,9 @@ export class FakeCheckoutStore implements CheckoutStore {
   }
 }
 
-export function toAuthenticatedUser(credential: CredentialRecord): AuthenticatedUser {
+export function toAuthenticatedUser(
+  credential: CredentialRecord
+): AuthenticatedUser {
   return {
     usuarioId: credential.usuarioId,
     nombreCompleto: credential.nombreCompleto,
@@ -386,7 +415,10 @@ export function toAuthenticatedUser(credential: CredentialRecord): Authenticated
   };
 }
 
-function toCartLine(product: SellableProduct, state: CartItemState): CartLineView {
+function toCartLine(
+  product: SellableProduct,
+  state: CartItemState
+): CartLineView {
   const motivo = motivoNoVendible(product, state.cantidad);
   return {
     ...product,
@@ -409,7 +441,10 @@ function motivoNoVendible(
   if (product.estadoVendedor !== "ACTIVO") {
     return "VENDEDOR_NO_ACTIVO";
   }
-  if (product.tipoEntrega === "FISICA" && cantidad > (product.disponible ?? 0)) {
+  if (
+    product.tipoEntrega === "FISICA" &&
+    cantidad > (product.disponible ?? 0)
+  ) {
     return "STOCK_INSUFICIENTE";
   }
   return null;

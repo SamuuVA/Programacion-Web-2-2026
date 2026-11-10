@@ -1,4 +1,5 @@
 # 21 — Trazabilidad inicial
+
 | ID | Requisito | Artefacto | Prueba |
 |---|---|---|---|
 | FE-01 | Home | `/` | E2E home |
@@ -11,3 +12,8 @@
 | FE-08 | Alta atómica | formulario Admin | error sin éxito parcial |
 | FE-09 | Rutas protegidas | layouts/guards | pruebas 401/403 |
 | FE-10 | Responsive/accesibilidad | componentes | auditoría |
+| FE-11 | Registro público de comprador | `/register` | `identity-onboarding.spec.ts` (registro) |
+| FE-12 | Solicitud comprador → vendedor | `/seller-application` | `identity-onboarding.spec.ts` (solicitud y aprobación) |
+| FE-13 | Revisión administrativa de solicitudes | `/admin/seller-applications` y detalle | `identity-onboarding.spec.ts` (aprobación/rechazo) |
+| FE-14 | Estado de acceso y revocación de sesión | `/admin/users/[userId]` | `identity-onboarding.spec.ts` (desactivación/reactivación) |
+| FE-15 | Lint del frontend | `frontend/eslint.config.mjs` | `npm run lint` |

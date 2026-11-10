@@ -46,7 +46,10 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
   private readonly products = new Map<string, SellerProductView>();
   private readonly warehouses = new Map<string, SellerWarehouseView>();
   private readonly inventory = new Map<string, InventoryPosition>();
-  private readonly movements = new Map<string, { id: string; position: SellerInventoryView }>();
+  private readonly movements = new Map<
+    string,
+    { id: string; position: SellerInventoryView }
+  >();
   private readonly orders = new Map<string, StoredOrder>();
 
   seedProfile(profile: SellerProfileView): void {
@@ -119,9 +122,10 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
       creadoEn: record.creadoEn,
       actualizadoEn: record.creadoEn,
       imagenes: record.imagenes.map((imagen) => ({ ...imagen })),
-      inventario: record.datos.tipoEntrega === "FISICA"
-        ? { onHand: 0, reserved: 0, unavailable: 0, disponible: 0 }
-        : null
+      inventario:
+        record.datos.tipoEntrega === "FISICA"
+          ? { onHand: 0, reserved: 0, unavailable: 0, disponible: 0 }
+          : null
     };
     this.products.set(product.id, product);
     return product;
@@ -171,7 +175,9 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
     return this.withInventory(updated);
   }
 
-  async addProductImage(record: AddImageRecord): Promise<SellerProductView | null> {
+  async addProductImage(
+    record: AddImageRecord
+  ): Promise<SellerProductView | null> {
     const current = this.products.get(record.productoId);
     if (!current || current.vendedorId !== record.vendedorId) {
       return null;
@@ -215,7 +221,9 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
     );
   }
 
-  async createWarehouse(record: CreateWarehouseRecord): Promise<SellerWarehouseView> {
+  async createWarehouse(
+    record: CreateWarehouseRecord
+  ): Promise<SellerWarehouseView> {
     const warehouse: SellerWarehouseView = {
       id: record.id,
       vendedorId: record.vendedorId,
@@ -277,9 +285,12 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
       throw new ResourceNotFoundError("El producto no pertenece al vendedor.");
     }
     if (product.tipoEntrega !== "FISICA") {
-      throw new BusinessRuleError("Los productos digitales no usan inventario.", {
-        motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO"
-      });
+      throw new BusinessRuleError(
+        "Los productos digitales no usan inventario.",
+        {
+          motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO"
+        }
+      );
     }
     if (product.estado === "DESCONTINUADO") {
       throw new BusinessRuleError("El producto está descontinuado.", {
@@ -322,8 +333,15 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
     };
     this.inventory.set(key, updated);
     const view = this.toInventoryView(updated, product, warehouse);
-    this.movements.set(movementKey, { id: command.movimientoId, position: view });
-    return { movimientoId: command.movimientoId, duplicado: false, posicion: view };
+    this.movements.set(movementKey, {
+      id: command.movimientoId,
+      position: view
+    });
+    return {
+      movimientoId: command.movimientoId,
+      duplicado: false,
+      posicion: view
+    };
   }
 
   async listOrders(sellerId: string): Promise<SellerOrderSummary[]> {
@@ -358,7 +376,10 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
     const positions = [...this.inventory.values()].filter(
       (position) => position.productoId === product.id
     );
-    const onHand = positions.reduce((total, position) => total + position.onHand, 0);
+    const onHand = positions.reduce(
+      (total, position) => total + position.onHand,
+      0
+    );
     const reserved = positions.reduce(
       (total, position) => total + position.reserved,
       0
@@ -392,8 +413,7 @@ export class FakeSellerWorkspaceStore implements SellerWorkspaceStore {
       onHand: position.onHand,
       reserved: position.reserved,
       unavailable: position.unavailable,
-      disponible:
-        position.onHand - position.reserved - position.unavailable,
+      disponible: position.onHand - position.reserved - position.unavailable,
       actualizadoEn: position.actualizadoEn
     };
   }

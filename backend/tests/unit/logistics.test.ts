@@ -159,8 +159,16 @@ function order(
       }
     ],
     reservas: [
-      reservation("84000000-0000-4000-8013-000000000001", PRODUCT_A, WAREHOUSE_A),
-      reservation("84000000-0000-4000-8013-000000000002", PRODUCT_B, WAREHOUSE_A)
+      reservation(
+        "84000000-0000-4000-8013-000000000001",
+        PRODUCT_A,
+        WAREHOUSE_A
+      ),
+      reservation(
+        "84000000-0000-4000-8013-000000000002",
+        PRODUCT_B,
+        WAREHOUSE_A
+      )
     ],
     envios: [],
     historial: [
@@ -241,11 +249,15 @@ describe("dominio logístico", () => {
   it("valida los estados del envío antes de despachar y entregar", () => {
     expect(() => assertEnvioPreparable("PREPARACION")).not.toThrow();
     expect(() => assertEnvioPreparable("EMPACADO")).not.toThrow();
-    expect(() => assertEnvioPreparable("DESPACHADO")).toThrow(BusinessRuleError);
+    expect(() => assertEnvioPreparable("DESPACHADO")).toThrow(
+      BusinessRuleError
+    );
 
     expect(() => assertEnvioEntregable("DESPACHADO")).not.toThrow();
     expect(() => assertEnvioEntregable("EN_TRANSITO")).not.toThrow();
-    expect(() => assertEnvioEntregable("PREPARACION")).toThrow(BusinessRuleError);
+    expect(() => assertEnvioEntregable("PREPARACION")).toThrow(
+      BusinessRuleError
+    );
     expect(() => assertEnvioEntregable("FALLIDO")).toThrow(BusinessRuleError);
   });
 
@@ -258,9 +270,9 @@ describe("dominio logístico", () => {
       })
     ).toEqual({ tipo: "RECIBO", referencia: "REC-001", nota: null });
 
-    expect(() =>
-      normalizarEvidencia("ENTREGADO", { tipo: "RECIBO" })
-    ).toThrow(BusinessRuleError);
+    expect(() => normalizarEvidencia("ENTREGADO", { tipo: "RECIBO" })).toThrow(
+      BusinessRuleError
+    );
     expect(() => normalizarEvidencia("ENTREGADO", {})).toThrow(
       BusinessRuleError
     );
@@ -348,7 +360,11 @@ describe("casos de uso logísticos", () => {
     const first = await prepare.execute(
       OPERATOR_A_USER,
       ORDER_A,
-      { bodegaId: WAREHOUSE_A, transportista: "  Transportes Uno ", idempotencyKey: "prep-1" },
+      {
+        bodegaId: WAREHOUSE_A,
+        transportista: "  Transportes Uno ",
+        idempotencyKey: "prep-1"
+      },
       CORRELATION
     );
     expect(first.duplicado).toBe(false);
@@ -446,7 +462,9 @@ describe("casos de uso logísticos", () => {
     expect(dispatched.movimientoIds).toHaveLength(2);
     expect(dispatched.pedido.estado).toBe("DESPACHADO");
     expect(
-      dispatched.pedido.reservas.every((reserva) => reserva.estado === "CONSUMIDA")
+      dispatched.pedido.reservas.every(
+        (reserva) => reserva.estado === "CONSUMIDA"
+      )
     ).toBe(true);
 
     const inventory = await new ListLogisticsInventory(store).execute(
@@ -661,7 +679,10 @@ describe("casos de uso logísticos", () => {
 
   it("registra operadores solo desde un administrador activo y con bodegas válidas", async () => {
     const { store, clock, ids } = createHarness();
-    store.assignWarehouse("seed", warehouse(WAREHOUSE_INACTIVE, { estado: "INACTIVA" }));
+    store.assignWarehouse(
+      "seed",
+      warehouse(WAREHOUSE_INACTIVE, { estado: "INACTIVA" })
+    );
     const register = new RegisterLogisticsOperator(
       store,
       new FakePasswordHasher(),
@@ -679,10 +700,7 @@ describe("casos de uso logísticos", () => {
     };
 
     await expect(
-      register.execute(
-        { ...ADMIN, rol: "COMPRADOR" },
-        input
-      )
+      register.execute({ ...ADMIN, rol: "COMPRADOR" }, input)
     ).rejects.toBeInstanceOf(AuthorizationError);
 
     await expect(

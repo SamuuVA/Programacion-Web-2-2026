@@ -2,7 +2,10 @@ import {
   CATEGORIAS_PRODUCTO,
   type CategoriaProducto
 } from "../../catalog/domain/producto.js";
-import { BusinessRuleError, ValidationError } from "../../../shared/domain/errors.js";
+import {
+  BusinessRuleError,
+  ValidationError
+} from "../../../shared/domain/errors.js";
 
 /**
  * Ciclo de vida del producto en el espacio del vendedor.
@@ -92,14 +95,20 @@ export function normalizarDatosProducto(input: DatosProducto): DatosProducto {
   if (!(CATEGORIAS_PRODUCTO as readonly string[]).includes(input.categoria)) {
     throw new ValidationError("La categoría del producto no es válida.");
   }
-  if (!(TIPOS_ENTREGA_VENDEDOR as readonly string[]).includes(input.tipoEntrega)) {
+  if (
+    !(TIPOS_ENTREGA_VENDEDOR as readonly string[]).includes(input.tipoEntrega)
+  ) {
     throw new ValidationError("El tipo de entrega no es válido.");
   }
   if (!Number.isInteger(input.precioCentavos) || input.precioCentavos <= 0) {
-    throw new ValidationError("El precio debe ser un entero positivo en centavos.");
+    throw new ValidationError(
+      "El precio debe ser un entero positivo en centavos."
+    );
   }
 
-  const moneda = String(input.moneda ?? "").trim().toUpperCase();
+  const moneda = String(input.moneda ?? "")
+    .trim()
+    .toUpperCase();
   if (!/^[A-Z]{3}$/.test(moneda)) {
     throw new ValidationError("La moneda debe tener tres letras mayúsculas.");
   }
@@ -174,16 +183,25 @@ export function evaluarPublicacion(
   if (producto.descripcion.trim().length === 0) {
     faltantes.push("descripcion");
   }
-  if (!(CATEGORIAS_PRODUCTO as readonly string[]).includes(producto.categoria)) {
+  if (
+    !(CATEGORIAS_PRODUCTO as readonly string[]).includes(producto.categoria)
+  ) {
     faltantes.push("categoria");
   }
-  if (!(TIPOS_ENTREGA_VENDEDOR as readonly string[]).includes(producto.tipoEntrega)) {
+  if (
+    !(TIPOS_ENTREGA_VENDEDOR as readonly string[]).includes(
+      producto.tipoEntrega
+    )
+  ) {
     faltantes.push("tipoEntrega");
   }
   if (producto.sku.trim().length === 0) {
     faltantes.push("sku");
   }
-  if (!Number.isInteger(producto.precioCentavos) || producto.precioCentavos <= 0) {
+  if (
+    !Number.isInteger(producto.precioCentavos) ||
+    producto.precioCentavos <= 0
+  ) {
     faltantes.push("precio");
   }
   if (!/^[A-Z]{3}$/.test(producto.moneda)) {

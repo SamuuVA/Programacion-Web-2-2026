@@ -47,7 +47,9 @@ function summary(
  * en ejecución usa PostgreSQL.
  */
 export class FakeCatalogQueryRepository implements CatalogQueryRepository {
-  constructor(private readonly products: readonly ProductDetail[] = sampleProducts()) {}
+  constructor(
+    private readonly products: readonly ProductDetail[] = sampleProducts()
+  ) {}
 
   async searchPublic(filters: CatalogFilters): Promise<CatalogPage> {
     let items = [...this.products];
@@ -96,8 +98,12 @@ export class FakeCatalogQueryRepository implements CatalogQueryRepository {
 }
 
 function toSummary(product: ProductDetail): ProductSummary {
-  const { sku: _sku, imagenes: _imagenes, actualizadoEn: _actualizadoEn, ...summary } =
-    product;
+  const {
+    sku: _sku,
+    imagenes: _imagenes,
+    actualizadoEn: _actualizadoEn,
+    ...summary
+  } = product;
   return summary;
 }
 

@@ -7,9 +7,7 @@ import type { CategoriaProducto } from "../../catalog/domain/producto.js";
 import type { EstadoEnvio } from "../../logistics/domain/envio.js";
 import type { EstadoPedido } from "../../orders/application/ports.js";
 import type { AuthenticatedUser } from "../../identity/application/ports.js";
-import type {
-  EstadoProductoVendedor
-} from "../../seller-workspace/domain/producto-vendedor.js";
+import type { EstadoProductoVendedor } from "../../seller-workspace/domain/producto-vendedor.js";
 import type { EstadoVendedor } from "../../seller-workspace/application/ports.js";
 import {
   PAGE_SIZE_MAX,
@@ -30,9 +28,7 @@ function assertSupervisor(actor: AuthenticatedUser): void {
     );
   }
   if (actor.estado !== "ACTIVO") {
-    throw new AuthorizationError(
-      "La cuenta del supervisor no está activa."
-    );
+    throw new AuthorizationError("La cuenta del supervisor no está activa.");
   }
 }
 
@@ -44,7 +40,9 @@ export interface PageInput {
 function normalizePage(input: PageInput): PageInput {
   const { page, pageSize } = input;
   if (!Number.isInteger(page) || page < 1) {
-    throw new ValidationError("La página debe ser un entero mayor o igual a 1.");
+    throw new ValidationError(
+      "La página debe ser un entero mayor o igual a 1."
+    );
   }
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > PAGE_SIZE_MAX) {
     throw new ValidationError(

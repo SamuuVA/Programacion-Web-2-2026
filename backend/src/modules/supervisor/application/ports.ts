@@ -1,6 +1,9 @@
 import type { CategoriaProducto } from "../../catalog/domain/producto.js";
 import type { EstadoEnvio } from "../../logistics/domain/envio.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import type {
   EstadoProductoVendedor,
   TipoEntregaVendedor
@@ -324,9 +327,13 @@ export interface SupervisorDashboardView {
   readonly vendedoresTotal: number;
   readonly vendedoresPorEstado: Readonly<Record<EstadoVendedor, number>>;
   readonly operadoresLogisticosTotal: number;
-  readonly operadoresLogisticosPorEstado: Readonly<Record<"ACTIVO" | "INACTIVO", number>>;
+  readonly operadoresLogisticosPorEstado: Readonly<
+    Record<"ACTIVO" | "INACTIVO", number>
+  >;
   readonly compradoresTotal: number;
-  readonly compradoresPorEstado: Readonly<Record<"HABILITADO" | "RESTRINGIDO", number>>;
+  readonly compradoresPorEstado: Readonly<
+    Record<"HABILITADO" | "RESTRINGIDO", number>
+  >;
 }
 
 /**
@@ -336,7 +343,9 @@ export interface SupervisorDashboardView {
 export interface SupervisorStore {
   dashboard(): Promise<SupervisorDashboardView>;
 
-  listOrders(filter: SupervisorOrderFilter): Promise<SupervisorPage<SupervisorOrderSummary>>;
+  listOrders(
+    filter: SupervisorOrderFilter
+  ): Promise<SupervisorPage<SupervisorOrderSummary>>;
   findOrder(orderId: string): Promise<SupervisorOrderDetail | null>;
 
   listProducts(

@@ -16,6 +16,7 @@ import {
   productImageId,
   productoId,
   reservationId,
+  sellerApplicationId,
   sellerId,
   sessionId,
   shipmentEventId,
@@ -55,6 +56,10 @@ export class UuidGenerator implements IdGenerator {
 
   sellerId() {
     return sellerId(randomUUID());
+  }
+
+  sellerApplicationId() {
+    return sellerApplicationId(randomUUID());
   }
 
   warehouseId() {

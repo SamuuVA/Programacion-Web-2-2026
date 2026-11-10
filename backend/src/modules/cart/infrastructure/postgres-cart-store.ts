@@ -85,7 +85,9 @@ export class PostgresCartStore implements CartStore {
       );
       const cart = cartResult.rows[0];
       if (!cart) {
-        throw new ResourceNotFoundError("El comprador no tiene un carrito activo.");
+        throw new ResourceNotFoundError(
+          "El comprador no tiene un carrito activo."
+        );
       }
 
       const linesResult = await this.pool.query<CartLineRow>(
@@ -119,7 +121,10 @@ export class PostgresCartStore implements CartStore {
       );
 
       const items = linesResult.rows.map(toCartLine);
-      const totalCentavos = items.reduce((sum, item) => sum + item.subtotalCentavos, 0);
+      const totalCentavos = items.reduce(
+        (sum, item) => sum + item.subtotalCentavos,
+        0
+      );
       const requiereConfirmacionPrecio = items.some(
         (item) =>
           item.precioReferencialCentavos !== item.precioCentavos ||
@@ -140,9 +145,12 @@ export class PostgresCartStore implements CartStore {
       if (error instanceof ResourceNotFoundError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible consultar el carrito.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar el carrito.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -157,13 +165,19 @@ export class PostgresCartStore implements CartStore {
       const row = result.rows[0];
       return row ? toSellableProduct(row) : null;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar el producto.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar el producto.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
-  async getItem(compradorId: string, productoId: string): Promise<CartItemState | null> {
+  async getItem(
+    compradorId: string,
+    productoId: string
+  ): Promise<CartItemState | null> {
     try {
       const result = await this.pool.query<{
         cantidad: number;
@@ -182,14 +196,19 @@ export class PostgresCartStore implements CartStore {
       return row
         ? {
             cantidad: row.cantidad,
-            precioReferencialCentavos: toInteger(row.precio_referencial_centavos),
+            precioReferencialCentavos: toInteger(
+              row.precio_referencial_centavos
+            ),
             monedaReferencial: row.moneda_referencial
           }
         : null;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la línea del carrito.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la línea del carrito.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -237,15 +256,22 @@ export class PostgresCartStore implements CartStore {
       if (error instanceof ResourceNotFoundError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible actualizar el carrito.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible actualizar el carrito.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
   }
 
-  async removeItem(compradorId: string, productoId: string, now: string): Promise<boolean> {
+  async removeItem(
+    compradorId: string,
+    productoId: string,
+    now: string
+  ): Promise<boolean> {
     const client = await this.connect();
     try {
       await client.query("BEGIN");
@@ -270,9 +296,12 @@ export class PostgresCartStore implements CartStore {
       if (error instanceof ResourceNotFoundError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible actualizar el carrito.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible actualizar el carrito.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
@@ -286,14 +315,20 @@ export class PostgresCartStore implements CartStore {
     try {
       return await this.pool.connect();
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible conectar con la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible conectar con la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 }
 
-async function lockCart(client: PoolClient, compradorId: string): Promise<string> {
+async function lockCart(
+  client: PoolClient,
+  compradorId: string
+): Promise<string> {
   const result = await client.query<{ id: string }>(
     `SELECT id FROM carts WHERE comprador_id = $1 FOR UPDATE`,
     [compradorId]

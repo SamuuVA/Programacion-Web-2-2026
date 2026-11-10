@@ -34,7 +34,10 @@ const NO_ENCONTRADO_BODEGA =
 const NO_ENCONTRADO_PEDIDO =
   "El pedido no existe o no contiene productos de tu catálogo.";
 
-async function perfil(store: SellerWorkspaceStore, sellerId: string): Promise<SellerProfileView> {
+async function perfil(
+  store: SellerWorkspaceStore,
+  sellerId: string
+): Promise<SellerProfileView> {
   const profile = await store.findProfile(sellerId);
   if (profile === null) {
     throw new AuthorizationError(
@@ -120,7 +123,10 @@ export class CreateSellerProduct {
     actor: SellerActor,
     input: {
       readonly datos: DatosProducto;
-      readonly imagenes?: readonly { readonly url: string; readonly alt?: string | undefined }[];
+      readonly imagenes?: readonly {
+        readonly url: string;
+        readonly alt?: string | undefined;
+      }[];
     }
   ) {
     exigirVendedorActivo(await perfil(this.store, actor.sellerId));
@@ -386,7 +392,11 @@ export class CreateSellerWarehouse {
 export class UpdateSellerWarehouse {
   constructor(private readonly store: SellerWorkspaceStore) {}
 
-  async execute(actor: SellerActor, warehouseId: string, changes: WarehouseChanges) {
+  async execute(
+    actor: SellerActor,
+    warehouseId: string,
+    changes: WarehouseChanges
+  ) {
     exigirVendedorActivo(await perfil(this.store, actor.sellerId));
     const normalized: WarehouseChanges = {
       nombre:
@@ -444,7 +454,10 @@ export class RegisterInventoryIngress {
     exigirVendedorActivo(await perfil(this.store, actor.sellerId));
     const command = normalizarIngreso(input);
 
-    const producto = await this.store.findProduct(actor.sellerId, command.productoId);
+    const producto = await this.store.findProduct(
+      actor.sellerId,
+      command.productoId
+    );
     if (producto === null) {
       throw new ResourceNotFoundError(NO_ENCONTRADO_PRODUCTO);
     }
@@ -452,7 +465,9 @@ export class RegisterInventoryIngress {
     assertProductoConInventario(producto.estado);
 
     const bodegas = await this.store.listWarehouses(actor.sellerId);
-    const bodega = bodegas.find((candidate) => candidate.id === command.bodegaId);
+    const bodega = bodegas.find(
+      (candidate) => candidate.id === command.bodegaId
+    );
     if (bodega === undefined) {
       throw new ResourceNotFoundError(NO_ENCONTRADO_BODEGA);
     }

@@ -39,6 +39,15 @@
 | `DEC-V2-034` | Dashboard y reportes admin solo con agregados reales derivables | Vigente | `postgres-admin-store.ts`, `admin-postgres.test.ts` |
 | `DEC-V2-035` | Minimización de datos en las vistas administrativas | Vigente | `ports.ts`, `postgres-admin-store.ts` |
 | `DEC-V2-036` | `/admin/sellers` como lista y alta en `/admin/sellers/new` | Vigente | `frontend/src/app/admin/sellers/` |
+| `DEC-V2-037` | Registro público reutiliza `registerBuyer`; el rol lo fija el backend | Vigente | `POST /api/v1/buyers`, `frontend/src/features/registration/` |
+| `DEC-V2-038` | Solicitud de vendedor como agregado separado del estado de acceso | Vigente | `migrations/009_seller_applications.sql`, `modules/seller-applications/` |
+| `DEC-V2-039` | Una sola solicitud `PENDIENTE` por usuario; reenvío tras rechazo sin definir | Vigente | Índice único parcial; UI sin reenvío |
+| `DEC-V2-040` | La promoción conserva la identidad y el perfil/historial de comprador | Vigente | Aprobación actualiza `users.rol` sin crear otra cuenta |
+| `DEC-V2-041` | Aprobación atómica e idempotente de vendedor + primera bodega | Vigente | `postgres-seller-application-store.ts`, prueba PostgreSQL |
+| `DEC-V2-042` | Rechazo sin efectos de incorporación y sin cambiar el acceso | Vigente | `reject`, pruebas unitarias/HTTP/PostgreSQL |
+| `DEC-V2-043` | Estados de acceso con tabla de transiciones explícita | Vigente | `update-user-access-status.ts`, `422` con `transicionInvalida` |
+| `DEC-V2-044` | Desactivar/bloquear revoca sesiones; autogestión prohibida | Vigente | `postgres-user-access-store.ts`, E2E |
+| `DEC-V2-045` | ESLint y Prettier integrados; CI de 5 jobs con E2E | Vigente (local) | `eslint.config.mjs`, `.prettierrc.json`, `ci.yml` |
 
 > Las decisiones `DEC-V2-011` a `DEC-V2-031` están documentadas en las secciones siguientes; esta tabla se actualizó de forma incremental.
 
@@ -446,6 +455,78 @@
 - **Consecuencias:** el enlace de la cabecera apunta a `/admin`; el E2E de recorrido cruzado usa `/admin/sellers/new`.
 - **Evidencia:** `frontend/src/app/admin/sellers/`, `frontend/src/features/sellers/actions.ts`, `frontend/e2e/cross-role.spec.ts`.
 
+## DEC-V2-037 — Registro público reutiliza el caso de uso existente
+
+- **Contexto:** el comprador ya podía crearse mediante `registerBuyer`; la fase necesitaba exponerlo al público sin duplicar la lógica ni abrir el rol a la petición.
+- **Decisión:** reutilizar `RegisterBuyer` y `POST /api/v1/buyers`. El cuerpo declara identidad, documento y credencial; el rol `COMPRADOR` y el estado `ACTIVO` los fija el backend. La transacción crea `users`, `buyers`, `carts`, dirección principal, auditoría y outbox.
+- **Alternativas descartadas:** un endpoint de registro nuevo (duplicación); aceptar `rol` desde el navegador (escalamiento de privilegios); crear la cuenta sin perfil o sin carrito (estado parcial).
+- **Consecuencias:** el frontend `/register` no decide permisos; el login sigue siendo el único mecanismo de sesión.
+- **Evidencia:** `backend/src/modules/buyers/**`, `frontend/src/features/registration/**`, `frontend/e2e/identity-onboarding.spec.ts`.
+
+## DEC-V2-038 — Solicitud de vendedor separada del estado de acceso
+
+- **Contexto:** el estado de acceso (`ACTIVO`, `INACTIVO`, `BLOQUEADO`) describe la cuenta, no el avance de una solicitud comercial.
+- **Decisión:** crear `seller_applications` con estados propios `PENDIENTE`, `APROBADA` y `RECHAZADA`, más fechas, revisor, motivo, `seller_id` y `warehouse_id`. No se reutiliza el estado del usuario.
+- **Alternativas descartadas:** añadir estados de solicitud a `users` (mezcla conceptos); usar `PENDIENTE` como estado de acceso (inventa un estado no aprobado).
+- **Consecuencias:** una cuenta `BLOQUEADA` puede tener una solicitud pendiente sin que eso la habilite; la autorización de envío exige comprador `ACTIVO`.
+- **Evidencia:** `backend/migrations/009_seller_applications.sql`, `backend/src/modules/seller-applications/domain/solicitud-vendedor.ts`.
+
+## DEC-V2-039 — Una sola solicitud pendiente; reenvío sin definir
+
+- **Contexto:** la documentación no define si un comprador puede reenviar o editar tras un rechazo.
+- **Decisión:** permitir como máximo una solicitud `PENDIENTE` por usuario mediante índice único parcial. El backend no bloquea una nueva solicitud después de una `RECHAZADA`, pero la interfaz no ofrece reenvío y la política queda registrada como pendiente.
+- **Alternativas descartadas:** prohibir toda nueva solicitud (inventa una política); permitir varias pendientes (duplica revisión); habilitar edición (no hay contrato).
+- **Consecuencias:** si negocio define el reenvío, se implementará con una decisión explícita y probablemente una nueva restricción.
+- **Evidencia:** índice `seller_applications_pendiente_unica`, `SubmitSellerApplication`, página `/seller-application`.
+
+## DEC-V2-040 — Promoción sobre la misma identidad
+
+- **Contexto:** un usuario tiene un único rol principal y `buyers`/`sellers` son perfiles relacionados, no herencia.
+- **Decisión:** la aprobación conserva `users.id`, no crea una segunda cuenta y no elimina `buyers` ni el historial de pedidos. Cambia `users.rol` a `VENDEDOR`; el perfil de comprador permanece como dato histórico y no concede permisos de comprador.
+- **Alternativas descartadas:** crear un usuario nuevo (duplica identidad e historial); borrar el perfil de comprador (pierde trazabilidad); mantener dos roles principales (rompe la regla del dominio).
+- **Consecuencias:** las autorizaciones dependen del rol principal vigente y del estado de acceso; el acceso a `/seller` funciona con la misma sesión tras la aprobación.
+- **Evidencia:** `ApproveSellerApplication`, `postgres-seller-application-store.ts`, E2E de aprobación.
+
+## DEC-V2-041 — Aprobación atómica e idempotente
+
+- **Contexto:** la incorporación crea varias filas en agregados distintos y debe resistir reintentos.
+- **Decisión:** una única transacción PostgreSQL crea `sellers`, la primera `warehouses`, actualiza `users.rol`, marca la solicitud `APROBADA`, registra revisor, auditoría y outbox. Solo se aprueba desde `PENDIENTE`; un reintento sobre `APROBADA` devuelve `sellerId` y `warehouseId` existentes con `yaAprobada: true`.
+- **Alternativas descartadas:** transacciones separadas (deja solicitud aprobada sin vendedor); compensación manual (mayor complejidad); crear vendedor provisional al solicitar (el dominio no lo contempla).
+- **Consecuencias:** un fallo en cualquier paso revierte todo; no se duplican vendedores ni bodegas.
+- **Evidencia:** `backend/src/modules/seller-applications/infrastructure/postgres-seller-application-store.ts`, `seller-applications-postgres.test.ts` (atomicidad, reintento y rollback por auditoría).
+
+## DEC-V2-042 — Rechazo sin efectos de incorporación
+
+- **Contexto:** el rechazo debe comunicar una decisión sin alterar la cuenta del comprador.
+- **Decisión:** exigir `motivo`, marcar `RECHAZADA`, registrar revisor y auditoría. No se crea vendedor ni bodega y no se cambia el estado de acceso ni el estado comercial del comprador. Rechazar una solicitud ya rechazada es idempotente; una `APROBADA` no puede rechazarse.
+- **Alternativas descartadas:** desactivar al comprador (castiga el rechazo); borrar la solicitud (pierde trazabilidad); permitir rechazar una aprobada (inconsistencia).
+- **Consecuencias:** el comprador conserva su cuenta y puede seguir operando como comprador.
+- **Evidencia:** `RejectSellerApplication`, `seller-applications.test.ts`, `seller-applications-http.test.ts`, E2E de rechazo.
+
+## DEC-V2-043 — Estados de acceso y transiciones explícitas
+
+- **Contexto:** `UserManagementService.md` documenta `ACTIVO`, `INACTIVO` y `BLOQUEADO`, pero no todas las transiciones ni sus consecuencias.
+- **Decisión:** implementar la tabla `ACTIVO→INACTIVO`, `ACTIVO→BLOQUEADO`, `INACTIVO→ACTIVO`, `BLOQUEADO→ACTIVO`, `INACTIVO→BLOQUEADO`; `BLOQUEADO→INACTIVO` queda prohibida. `DESACTIVAR` y `BLOQUEAR` exigen motivo; `ACTIVAR` y `DESBLOQUEAR` lo admiten opcional. Una transición inválida responde `422 REGLA_NEGOCIO_INCUMPLIDA` con `detalles.transicionInvalida`.
+- **Alternativas descartadas:** añadir `PENDIENTE`, `SUSPENDIDO` o `ELIMINADO` (sin decisión de dominio); permitir cualquier transición (inconsistencia); crear un código de error nuevo (el contrato ya cubre la regla).
+- **Consecuencias:** el catálogo de estados permanece cerrado y auditable; la UI solo ofrece las acciones derivadas de la tabla, pero el backend revalida.
+- **Evidencia:** `backend/src/modules/identity/application/update-user-access-status.ts`, `update-user-access-status.test.ts`, `admin-routes.ts`.
+
+## DEC-V2-044 — Revocación de sesiones y autogestión prohibida
+
+- **Contexto:** ocultar el menú no impide que una sesión vigente siga operando.
+- **Decisión:** al pasar a `INACTIVO` o `BLOQUEADO`, revocar las sesiones activas de la cuenta en la misma transacción. `GetSession` ya rechaza estados distintos de `ACTIVO`, por lo que la sesión deja de servir de inmediato. Un administrador no puede cambiar su propio estado ni aprobar/rechazar su propia solicitud.
+- **Alternativas descartadas:** confiar solo en el frontend (bypass); añadir JWT/denylist (incompatible con sesiones opacas); esperar la expiración natural (deja acceso indebido).
+- **Consecuencias:** el usuario debe iniciar sesión de nuevo tras reactivarse; otro administrador debe gestionar la cuenta propia.
+- **Evidencia:** `backend/src/modules/identity/infrastructure/postgres-user-access-store.ts`, `seller-applications-postgres.test.ts`, E2E de estado de acceso.
+
+## DEC-V2-045 — Lint, formato y CI ampliado
+
+- **Contexto:** el proyecto tenía TypeScript estricto pero ningún lint ni formato, y el CI no cubría E2E.
+- **Decisión:** añadir ESLint 10 con `typescript-eslint` en ambos proyectos, reglas de Next/React Hooks en frontend y Prettier en backend. Ampliar `verify` del backend con `lint` y `format:check`. El workflow pasa a 5 jobs e incluye un E2E con PostgreSQL, backend, frontend y Chromium.
+- **Alternativas descartadas:** Biome (herramienta nueva sin necesidad); solo TypeScript (no cubre hooks ni reglas de Next); E2E fuera del CI (menor cobertura).
+- **Consecuencias:** el CI tarda más; los comandos equivalentes se ejecutaron localmente, pero la ejecución remota sigue pendiente.
+- **Evidencia:** `backend/eslint.config.mjs`, `frontend/eslint.config.mjs`, `backend/.prettierrc.json`, `.github/workflows/ci.yml`.
+
 ---
 
 ## Decisiones pendientes
@@ -454,7 +535,8 @@
 |---|---|---|
 | Reconciliación de pagos `DESCONOCIDO` | Pendiente | El pedido queda pendiente; falta consulta o reintento controlado |
 | Reembolsos y logística inversa | Fuera de alcance | Requieren decisión de negocio y contrato propio |
-| Lint (ESLint/Biome) | `BLOCKED` | No hay herramienta configurada |
+| Reenvío o edición tras rechazo | Pendiente | El backend solo impide solicitudes `PENDIENTE` duplicadas; la UI no ofrece reenvío |
+| Notificaciones externas de decisión | Pendiente | No hay infraestructura de correo/mensajería aprobada; el resultado se consulta en la app |
 | Ejecución de CI en GitHub | `READY_FOR_REVIEW` | El workflow existe y es válido, pero no se ejecutó en remoto |
 | Subida binaria de imágenes | `BLOQUEADO` | Sin proveedor, mecanismo ni límites aprobados; se usan URLs |
 | Ajustes negativos / movimientos logísticos del vendedor | `BLOQUEADO` | La matriz §19 no autoriza explícitamente; solo se implementó `INGRESO` |
@@ -467,8 +549,8 @@
 | Reportes del administrador | `PARCIAL` / `BLOQUEADO` (`L-19`) | Solo agregados reales directos; catálogo, fórmulas, filtros y exportaciones sin aprobar |
 | Devoluciones, reembolsos y facturación | `BLOQUEADO` | Sin tablas de persistencia ni reglas de negocio aprobadas |
 | Mutaciones admin de producto/inventario/pago | `BLOQUEADO` | No definidas ni autorizadas; el espacio admin es de consulta salvo las dos altas |
-| Autoregistro público de comprador | Diferido | Sin reglas de aprobación ni contrato; se documenta la dependencia |
-| Solicitud comprador → vendedor | Diferido | Sin flujo, estados ni aprobación definidos; se documenta la dependencia |
+| Autoregistro público de comprador | Implementado | `DEC-V2-037`; el rol lo fija el backend |
+| Solicitud comprador → vendedor | Implementado | `DEC-V2-038` a `DEC-V2-042`; revisión administrativa y aprobación atómica |
 | Variantes comerciales | Fuera de V1 por decisión | Discrepancia con `CAT-02` registrada, no resuelta por invención |
 
 Estas decisiones no se resuelven por conveniencia en este corte.

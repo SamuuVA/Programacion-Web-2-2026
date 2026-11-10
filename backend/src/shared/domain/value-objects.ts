@@ -39,7 +39,9 @@ export class CorreoElectronico {
       throw new ValidationError("El correo electrónico no puede estar vacío.");
     }
     if (!EMAIL_PATTERN.test(normalized)) {
-      throw new ValidationError("El correo electrónico no tiene un formato válido.");
+      throw new ValidationError(
+        "El correo electrónico no tiene un formato válido."
+      );
     }
     return new CorreoElectronico(normalized);
   }
@@ -60,7 +62,11 @@ export class DocumentoIdentidad {
     readonly numero: string
   ) {}
 
-  static create(input: { tipo: string; pais: string; numero: string }): DocumentoIdentidad {
+  static create(input: {
+    tipo: string;
+    pais: string;
+    numero: string;
+  }): DocumentoIdentidad {
     const tipo = normalizeComponent(input.tipo, "tipo de documento");
     const pais = normalizeComponent(input.pais, "país del documento");
     const numero = normalizeComponent(input.numero, "número de documento");
@@ -84,7 +90,9 @@ export class HashCredencial {
       throw new ValidationError("El hash de la credencial es obligatorio.");
     }
     if (!PHC_ARGON2ID_PATTERN.test(value)) {
-      throw new ValidationError("El hash de la credencial no corresponde a la política aprobada.");
+      throw new ValidationError(
+        "El hash de la credencial no corresponde a la política aprobada."
+      );
     }
     return new HashCredencial(value);
   }
@@ -145,7 +153,9 @@ export class Instant {
   static fromISOString(value: string): Instant {
     const date = new Date(value);
     if (Number.isNaN(date.getTime()) || date.toISOString() !== value) {
-      throw new ValidationError("El instante debe estar en formato ISO 8601 UTC.");
+      throw new ValidationError(
+        "El instante debe estar en formato ISO 8601 UTC."
+      );
     }
     return new Instant(value);
   }

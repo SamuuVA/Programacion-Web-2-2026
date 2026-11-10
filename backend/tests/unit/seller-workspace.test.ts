@@ -35,7 +35,10 @@ const NOW = "2026-11-03T12:00:00.000Z";
 const actorA = { usuarioId: "user-a", sellerId: SELLER_A };
 const actorB = { usuarioId: "user-b", sellerId: SELLER_B };
 
-function profile(sellerId: string, estado: SellerProfileView["estado"] = "ACTIVO"): SellerProfileView {
+function profile(
+  sellerId: string,
+  estado: SellerProfileView["estado"] = "ACTIVO"
+): SellerProfileView {
   return {
     id: sellerId,
     usuarioId: `user-${sellerId}`,
@@ -119,12 +122,18 @@ describe("ciclo de vida del producto del vendedor", () => {
     ]);
     expect(TRANSICIONES_PRODUCTO.DESCONTINUADO).toEqual([]);
 
-    expect(() => assertTransicionPermitida("BORRADOR", "PUBLICADO")).not.toThrow();
-    expect(() => assertTransicionPermitida("PUBLICADO", "SUSPENDIDO")).not.toThrow();
-    expect(() => assertTransicionPermitida("SUSPENDIDO", "PUBLICADO")).not.toThrow();
-    expect(() => assertTransicionPermitida("DESCONTINUADO", "PUBLICADO")).toThrow(
-      /no se puede pasar/i
-    );
+    expect(() =>
+      assertTransicionPermitida("BORRADOR", "PUBLICADO")
+    ).not.toThrow();
+    expect(() =>
+      assertTransicionPermitida("PUBLICADO", "SUSPENDIDO")
+    ).not.toThrow();
+    expect(() =>
+      assertTransicionPermitida("SUSPENDIDO", "PUBLICADO")
+    ).not.toThrow();
+    expect(() =>
+      assertTransicionPermitida("DESCONTINUADO", "PUBLICADO")
+    ).toThrow(/no se puede pasar/i);
   });
 
   it("exige al menos una imagen para publicar", () => {
@@ -303,7 +312,9 @@ describe("casos de uso del espacio del vendedor", () => {
       })
     ).rejects.toMatchObject({
       code: "REGLA_NEGOCIO_INCUMPLIDA",
-      details: expect.objectContaining({ motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO" })
+      details: expect.objectContaining({
+        motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO"
+      })
     });
   });
 
@@ -329,6 +340,8 @@ describe("casos de uso del espacio del vendedor", () => {
     await expect(get.execute(actorA, "order-b")).rejects.toMatchObject({
       code: "RECURSO_NO_ENCONTRADO"
     });
-    expect(await get.execute(actorB, "order-b")).toMatchObject({ id: "order-b" });
+    expect(await get.execute(actorB, "order-b")).toMatchObject({
+      id: "order-b"
+    });
   });
 });

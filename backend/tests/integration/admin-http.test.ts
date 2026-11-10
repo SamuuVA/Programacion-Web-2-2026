@@ -506,7 +506,10 @@ describe("HTTP del espacio administrativo", () => {
       headers
     });
     expect(userDetail.statusCode).toBe(200);
-    expect(userDetail.json().data).toMatchObject({ id: ADMIN_USER, perfil: null });
+    expect(userDetail.json().data).toMatchObject({
+      id: ADMIN_USER,
+      perfil: null
+    });
 
     const buyers = await harness.app.inject({
       method: "GET",
@@ -646,7 +649,11 @@ describe("HTTP del espacio administrativo", () => {
       `/api/v1/admin/products/${missing}`,
       `/api/v1/admin/orders/${missing}`
     ]) {
-      const response = await harness.app.inject({ method: "GET", url, headers });
+      const response = await harness.app.inject({
+        method: "GET",
+        url,
+        headers
+      });
       expect(response.statusCode, url).toBe(404);
     }
 
@@ -722,7 +729,11 @@ describe("HTTP del espacio administrativo", () => {
       `/api/v1/admin/orders/${ORDER_ID}`,
       "/api/v1/admin/payments"
     ]) {
-      const response = await harness.app.inject({ method: "GET", url, headers });
+      const response = await harness.app.inject({
+        method: "GET",
+        url,
+        headers
+      });
       expect(response.statusCode).toBe(200);
       for (const forbidden of [
         "hashCredencial",
@@ -735,9 +746,10 @@ describe("HTTP del espacio administrativo", () => {
         "proveedorReferencia",
         "referenciaExterna"
       ]) {
-        expect(response.body, `${url} no debe contener ${forbidden}`).not.toContain(
-          forbidden
-        );
+        expect(
+          response.body,
+          `${url} no debe contener ${forbidden}`
+        ).not.toContain(forbidden);
       }
     }
   });

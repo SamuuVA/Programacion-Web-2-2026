@@ -60,10 +60,7 @@ export class FakeLogisticsStore implements LogisticsStore {
   }
 
   seedInventory(position: LogisticsInventoryView): void {
-    this.inventory.set(
-      `${position.productoId}:${position.bodegaId}`,
-      position
-    );
+    this.inventory.set(`${position.productoId}:${position.bodegaId}`, position);
   }
 
   seedOrder(detail: LogisticsOrderDetail): void {
@@ -75,7 +72,9 @@ export class FakeLogisticsStore implements LogisticsStore {
   }
 
   seedDocument(documento: RegisterOperatorCommand["documento"]): void {
-    this.documents.add(`${documento.tipo}:${documento.pais}:${documento.numero}`);
+    this.documents.add(
+      `${documento.tipo}:${documento.pais}:${documento.numero}`
+    );
   }
 
   async findProfile(usuarioId: string): Promise<LogisticsProfileView | null> {
@@ -140,10 +139,12 @@ export class FakeLogisticsStore implements LogisticsStore {
         (envio) => envio.estado === "PREPARACION" || envio.estado === "EMPACADO"
       ).length,
       enviosDespachados: shipments.filter(
-        (envio) => envio.estado === "DESPACHADO" || envio.estado === "EN_TRANSITO"
+        (envio) =>
+          envio.estado === "DESPACHADO" || envio.estado === "EN_TRANSITO"
       ).length,
-      enviosEntregados: shipments.filter((envio) => envio.estado === "ENTREGADO")
-        .length,
+      enviosEntregados: shipments.filter(
+        (envio) => envio.estado === "ENTREGADO"
+      ).length,
       enviosConFallo: shipments.filter(
         (envio) => envio.estado === "FALLIDO" || envio.estado === "DEVUELTO"
       ).length,
@@ -179,7 +180,8 @@ export class FakeLogisticsStore implements LogisticsStore {
     assertPedidoPreparable(order.estado);
 
     const reservations = order.reservas.filter(
-      (reserva) => reserva.bodegaId === command.bodegaId && reserva.estado === "ACTIVA"
+      (reserva) =>
+        reserva.bodegaId === command.bodegaId && reserva.estado === "ACTIVA"
     );
     if (reservations.length === 0) {
       throw new BusinessRuleError(
@@ -196,7 +198,15 @@ export class FakeLogisticsStore implements LogisticsStore {
       );
     }
 
-    const grouped = new Map<string, { productoId: string; nombreProducto: string; sku: string; cantidad: number }>();
+    const grouped = new Map<
+      string,
+      {
+        productoId: string;
+        nombreProducto: string;
+        sku: string;
+        cantidad: number;
+      }
+    >();
     for (const reserva of reservations) {
       const current = grouped.get(reserva.productoId);
       grouped.set(reserva.productoId, {
@@ -229,7 +239,8 @@ export class FakeLogisticsStore implements LogisticsStore {
 
     const updated: LogisticsOrderDetail = {
       ...order,
-      estado: order.estado === "EN_PREPARACION" ? order.estado : "EN_PREPARACION",
+      estado:
+        order.estado === "EN_PREPARACION" ? order.estado : "EN_PREPARACION",
       envios: [...order.envios, envio],
       historial:
         order.estado === "EN_PREPARACION"
@@ -270,7 +281,10 @@ export class FakeLogisticsStore implements LogisticsStore {
       );
     }
     this.assertScope(command.operadorId, shipment.bodegaOrigenId);
-    const order = await this.requireOrder(command.operadorId, shipment.pedidoId);
+    const order = await this.requireOrder(
+      command.operadorId,
+      shipment.pedidoId
+    );
     assertPedidoDespachable(order.estado);
     assertEnvioPreparable(shipment.estado);
 
@@ -285,7 +299,10 @@ export class FakeLogisticsStore implements LogisticsStore {
           { motivo: "SIN_INVENTARIO" }
         );
       }
-      if (position.onHand < item.cantidad || position.reserved < item.cantidad) {
+      if (
+        position.onHand < item.cantidad ||
+        position.reserved < item.cantidad
+      ) {
         throw new BusinessRuleError(
           "El inventario reservado no cubre la cantidad a despachar.",
           { motivo: "STOCK_INSUFICIENTE" }
@@ -296,7 +313,10 @@ export class FakeLogisticsStore implements LogisticsStore {
         onHand: position.onHand - item.cantidad,
         reserved: position.reserved - item.cantidad,
         disponible:
-          position.onHand - item.cantidad - (position.reserved - item.cantidad) - position.unavailable,
+          position.onHand -
+          item.cantidad -
+          (position.reserved - item.cantidad) -
+          position.unavailable,
         actualizadoEn: command.now
       });
       movimientoIds.push(randomUUID());
@@ -316,7 +336,8 @@ export class FakeLogisticsStore implements LogisticsStore {
     );
 
     const reservas = order.reservas.map((reserva) =>
-      reserva.bodegaId === shipment.bodegaOrigenId && reserva.estado === "ACTIVA"
+      reserva.bodegaId === shipment.bodegaOrigenId &&
+      reserva.estado === "ACTIVA"
         ? { ...reserva, estado: "CONSUMIDA" as const }
         : reserva
     );
@@ -372,12 +393,16 @@ export class FakeLogisticsStore implements LogisticsStore {
     }
     this.assertScope(command.operadorId, shipment.bodegaOrigenId);
     assertEnvioEntregable(shipment.estado);
-    const order = await this.requireOrder(command.operadorId, shipment.pedidoId);
+    const order = await this.requireOrder(
+      command.operadorId,
+      shipment.pedidoId
+    );
 
     const updatedShipment: LogisticsShipmentView = {
       ...shipment,
       estado: command.resultado,
-      entregadoEn: command.resultado === "ENTREGADO" ? command.now : shipment.entregadoEn,
+      entregadoEn:
+        command.resultado === "ENTREGADO" ? command.now : shipment.entregadoEn,
       evidencia: {
         tipo: command.evidencia.tipo,
         referencia: command.evidencia.referencia,
@@ -444,7 +469,9 @@ export class FakeLogisticsStore implements LogisticsStore {
       }
     }
     if (this.emails.has(command.correoNormalizado)) {
-      throw new UniquenessConflictError("El correo electrónico ya está registrado.");
+      throw new UniquenessConflictError(
+        "El correo electrónico ya está registrado."
+      );
     }
     this.emails.add(command.correoNormalizado);
     const profile: LogisticsProfileView = {
@@ -512,7 +539,8 @@ export class FakeLogisticsStore implements LogisticsStore {
       reservasActivas: order.reservas.filter(
         (reserva) => reserva.estado === "ACTIVA"
       ).length,
-      bodegasCount: new Set(order.reservas.map((reserva) => reserva.bodegaId)).size
+      bodegasCount: new Set(order.reservas.map((reserva) => reserva.bodegaId))
+        .size
     };
   }
 }

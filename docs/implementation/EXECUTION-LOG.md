@@ -1,7 +1,7 @@
 # NexusMarket — Registro de ejecución
 
-**Corte:** 2026-11-06
-**Sesiones:** S-006 (cierre de `PI-01` y catálogo), S-007 (marketplace funcional), S-009 (espacio de trabajo del vendedor), S-012 (operación logística) y S-013 (supervisión de solo lectura)
+**Corte:** 2026-11-09
+**Sesiones:** S-006 (cierre de `PI-01` y catálogo), S-007 (marketplace funcional), S-009 (espacio de trabajo del vendedor), S-012 (operación logística), S-013 (supervisión de solo lectura), S-014 (administración) y S-015 (identidad y onboarding)
 **Regla:** solo se registran comandos ejecutados y resultados observados. Lo no ejecutado se declara como tal.
 
 ---
@@ -642,8 +642,8 @@ npm run db:seed:demo
 
 | Verificación | Estado |
 |---|---|
-| Lint (ESLint/Biome) | No configurado (`BLOCKED`) |
-| CI en GitHub Actions | Workflow creado y validado localmente; **no ejecutado en remoto** |
+| Lint (ESLint/Biome) | Resuelto en S-015: ESLint configurado en backend y frontend; Prettier en backend (ver §13) |
+| CI en GitHub Actions | Workflow de 5 jobs creado y validado localmente; **no ejecutado en remoto** |
 | Reconciliación de pagos `DESCONOCIDO` | No implementada |
 | Reembolsos y logística inversa | No implementados (fuera de alcance) |
 | Pruebas de carga o concurrencia masiva | No ejecutadas (sí se probó concurrencia e idempotencia funcional) |
@@ -676,3 +676,72 @@ Estas ausencias no se compensan con afirmaciones: el estado correcto es “no ej
 6. Verificar `http://127.0.0.1:3000/health` y `/ready`.
 
 Si PostgreSQL no está disponible, el backend no arranca y el estado correcto es `BLOCKED`, no `PASS`.
+
+---
+
+## 13. Fase de identidad y onboarding (S-015, 2026-11-09)
+
+### 13.1 Punto de partida
+
+- Rama `main`, commit base `9b10282` (fase administrativa fusionada y sincronizada con `origin/main`).
+- Árbol limpio antes de empezar. No se recuperaron implementaciones parciales de esta fase: no existían solicitudes de vendedor ni cambio de estado de acceso.
+- Se reutilizaron `RegisterBuyer`, la autenticación de sesiones opacas, el alta administrativa de vendedor y los patrones de UI administrativos.
+
+### 13.2 Implementación
+
+- Backend: módulo `seller-applications` (dominio, puertos, casos de uso, adaptador PostgreSQL y rutas HTTP), `UpdateUserAccessStatus` y su adaptador transaccional, migración `009_seller_applications.sql` y conexión en `app.ts`, `server.ts` y `factory.ts`.
+- Identidad: la aprobación conserva `users.id`, no crea una segunda cuenta y cambia el rol principal a `VENDEDOR`. El perfil `buyers` y el historial de pedidos se conservan.
+- Estados de acceso: tabla de transiciones explícita, motivo obligatorio para desactivar/bloquear y revocación de sesiones en la misma transacción.
+- Frontend: `/register`, `/seller-application`, `/admin/seller-applications` (lista y detalle), formulario de estado de acceso en el detalle de usuario, enlaces en cabecera y navegación admin.
+- Contrato: `openapi.yaml` `0.8.0` con 74 rutas, 83 operaciones y 984 referencias.
+- Calidad: ESLint en backend y frontend, Prettier en backend, scripts `lint`/`format:check` y workflow de CI con 5 jobs.
+
+### 13.3 Comandos ejecutados y resultados
+
+Desde `backend/`:
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run lint` | OK, 0 errores |
+| `npm run format:check` | OK, todos los archivos cumplen Prettier |
+| `npm run typecheck` | OK |
+| `npm test` | 23 archivos, 187 pruebas aprobadas |
+| `npm run validate:openapi` | `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias.` |
+| `npm run build` | OK |
+| `npm run verify` | OK (lint + formato + typecheck + pruebas + OpenAPI + build) |
+| `npm run test:postgres` | 9 archivos, 46 pruebas aprobadas contra PostgreSQL 17.11 |
+| `npm run db:migrate` | Aplicó `009` sobre la base demo |
+| `npm run db:status` | `009` aplicada; sin pendientes |
+
+Desde `frontend/`:
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run lint` | 0 errores, 2 avisos `@next/next/no-img-element` |
+| `npm run typecheck` | OK |
+| `npm run build` | OK; 56 rutas |
+| `npm run test:e2e` | 10/10 PASS en 5.6 min |
+
+Escenarios E2E nuevos (`identity-onboarding.spec.ts`, 3/3):
+
+1. Registro público → inicio de sesión → solicitud → aprobación admin → vendedor y primera bodega → acceso a `/seller` → sin segunda cuenta ni segunda incorporación.
+2. Rechazo con motivo → sin vendedor ni bodega → el comprador conserva su cuenta y sigue operando.
+3. Desactivación con motivo → sesión del comprador revocada → reactivación → nuevo inicio de sesión → autogestión del admin bloqueada en la UI.
+
+### 13.4 Incidencias y mitigaciones
+
+| Incidencia | Efecto | Mitigación |
+|---|---|---|
+| Checksum de migraciones distinto entre Windows (CRLF) y Linux (LF) | `db:status` fallaba con “la migración 003 cambió” | Se normalizan `\r\n`/`\r` a `\n` antes de calcular el SHA-256 en `migrations.ts` |
+| Base `nexusmarket_test` con checksums antiguos | La suite PostgreSQL no arrancaba | Se recreó el esquema de prueba y se aplicaron las migraciones normalizadas |
+| Puerto `3001` ocupado por un `next start` previo | El nuevo servidor no arrancaba | Se detuvo el proceso y se reutilizó el servidor de producción ya compilado para el E2E |
+| Prettier marcaba 119 archivos del backend | El formato no era verificable | Se adoptó `trailingComma: none` y `endOfLine: auto`, y se normalizó el backend con `npm run format` |
+
+### 13.5 Lo que no se ejecutó
+
+| Verificación | Estado |
+|---|---|
+| GitHub Actions en remoto | Workflow de 5 jobs válido y parseado; **no ejecutado en GitHub** |
+| Reenvío/edición de solicitudes rechazadas | No implementado; decisión pendiente |
+| Notificaciones externas de decisión | No implementadas; no hay infraestructura aprobada |
+| Reconciliación de pagos `DESCONOCIDO`, reportes `L-19`, devoluciones/reembolsos/facturación y `CloseOrder` | Fuera de alcance; sin reglas inventadas |

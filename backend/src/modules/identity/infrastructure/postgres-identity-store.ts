@@ -38,7 +38,9 @@ export class PostgresIdentityStore implements IdentityStore {
     });
   }
 
-  async findCredentialsByEmail(email: string): Promise<CredentialRecord | null> {
+  async findCredentialsByEmail(
+    email: string
+  ): Promise<CredentialRecord | null> {
     try {
       const result = await this.pool.query<CredentialRow>(
         `SELECT u.id AS usuario_id,
@@ -59,9 +61,12 @@ export class PostgresIdentityStore implements IdentityStore {
       const row = result.rows[0];
       return row ? toCredential(row) : null;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la identidad.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la identidad.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -82,13 +87,18 @@ export class PostgresIdentityStore implements IdentityStore {
         ]
       );
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible guardar la sesión.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible guardar la sesión.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
-  async findSessionByTokenHash(tokenHash: string): Promise<StoredSession | null> {
+  async findSessionByTokenHash(
+    tokenHash: string
+  ): Promise<StoredSession | null> {
     try {
       const result = await this.pool.query<SessionRow>(
         `SELECT se.id AS session_id,
@@ -137,9 +147,12 @@ export class PostgresIdentityStore implements IdentityStore {
         }
       };
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la sesión.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la sesión.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -153,9 +166,12 @@ export class PostgresIdentityStore implements IdentityStore {
         [tokenHash, at]
       );
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible actualizar la sesión.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible actualizar la sesión.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -179,9 +195,12 @@ export class PostgresIdentityStore implements IdentityStore {
     try {
       await this.pool.query("SELECT 1");
     } catch (error) {
-      throw new DependencyUnavailableError("La base de datos no está disponible.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "La base de datos no está disponible.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 

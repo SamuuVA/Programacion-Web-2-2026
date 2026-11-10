@@ -140,8 +140,16 @@ function order(
       }
     ],
     reservas: [
-      reservation("84000000-0000-4000-8013-000000000001", PRODUCT_A, WAREHOUSE_A),
-      reservation("84000000-0000-4000-8013-000000000002", PRODUCT_B, WAREHOUSE_A)
+      reservation(
+        "84000000-0000-4000-8013-000000000001",
+        PRODUCT_A,
+        WAREHOUSE_A
+      ),
+      reservation(
+        "84000000-0000-4000-8013-000000000002",
+        PRODUCT_B,
+        WAREHOUSE_A
+      )
     ],
     envios: [],
     historial: [
@@ -333,9 +341,9 @@ describe("HTTP de la operación logística", () => {
       headers
     });
     expect(warehouses.statusCode).toBe(200);
-    expect(warehouses.json().data.map((item: { id: string }) => item.id)).toEqual([
-      WAREHOUSE_A
-    ]);
+    expect(
+      warehouses.json().data.map((item: { id: string }) => item.id)
+    ).toEqual([WAREHOUSE_A]);
 
     const inventory = await harness.app.inject({
       method: "GET",
@@ -347,7 +355,9 @@ describe("HTTP de la operación logística", () => {
     expect(
       inventory
         .json()
-        .data.every((item: { bodegaId: string }) => item.bodegaId === WAREHOUSE_A)
+        .data.every(
+          (item: { bodegaId: string }) => item.bodegaId === WAREHOUSE_A
+        )
     ).toBe(true);
 
     const orders = await harness.app.inject({
@@ -468,7 +478,9 @@ describe("HTTP de la operación logística", () => {
     expect(
       detail
         .json()
-        .data.historial.map((entry: { estadoNuevo: string }) => entry.estadoNuevo)
+        .data.historial.map(
+          (entry: { estadoNuevo: string }) => entry.estadoNuevo
+        )
     ).toEqual(["PAGADO", "EN_PREPARACION", "DESPACHADO", "ENTREGADO"]);
   });
 
@@ -502,7 +514,9 @@ describe("HTTP de la operación logística", () => {
       "http-prep-sin-reservas"
     );
     expect(withoutReservations.statusCode).toBe(422);
-    expect(withoutReservations.json().error.detalles.motivo).toBe("SIN_RESERVAS");
+    expect(withoutReservations.json().error.detalles.motivo).toBe(
+      "SIN_RESERVAS"
+    );
 
     harness.store.seedOrder(order({ estado: "PENDIENTE_DE_PAGO" }));
     const notPaid = await prepare(harness.app, token, "http-prep-no-pagado");
@@ -535,7 +549,9 @@ describe("HTTP de la operación logística", () => {
       }
     });
     expect(earlyDelivery.statusCode).toBe(422);
-    expect(earlyDelivery.json().error.detalles.motivo).toBe("TRANSICION_INVALIDA");
+    expect(earlyDelivery.json().error.detalles.motivo).toBe(
+      "TRANSICION_INVALIDA"
+    );
   });
 
   it("registra operadores logísticos solo desde un administrador activo", async () => {

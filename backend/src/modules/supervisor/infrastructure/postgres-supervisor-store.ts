@@ -4,7 +4,10 @@ import {
   DependencyUnavailableError
 } from "../../../shared/domain/errors.js";
 import type { EstadoEnvio } from "../../logistics/domain/envio.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import type {
   EstadoProductoVendedor,
   TipoEntregaVendedor
@@ -411,7 +414,11 @@ export class PostgresSupervisorStore implements SupervisorStore {
           LIMIT $2 OFFSET $3`,
         [filter.estado, filter.pageSize, offsetOf(filter.page, filter.pageSize)]
       );
-      return pageOf(result.rows.map(toOrderSummary), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toOrderSummary),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -554,13 +561,19 @@ export class PostgresSupervisorStore implements SupervisorStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toProductSummary), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toProductSummary),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
   }
 
-  async findProduct(productId: string): Promise<SupervisorProductDetail | null> {
+  async findProduct(
+    productId: string
+  ): Promise<SupervisorProductDetail | null> {
     try {
       const product = await this.pool.query<ProductDetailRow>(
         `SELECT p.id, p.vendedor_id, s.nombre_comercial AS vendedor_nombre,
@@ -659,7 +672,11 @@ export class PostgresSupervisorStore implements SupervisorStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toInventory), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toInventory),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -739,7 +756,11 @@ export class PostgresSupervisorStore implements SupervisorStore {
           LIMIT $2 OFFSET $3`,
         [filter.estado, filter.pageSize, offsetOf(filter.page, filter.pageSize)]
       );
-      return pageOf(result.rows.map(toSeller), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toSeller),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -954,7 +975,9 @@ function toProductSummary(row: ProductRow): SupervisorProductSummary {
     moneda: row.moneda,
     imagenesCount: row.imagenes_count,
     inventarioDisponible:
-      row.inventario_disponible === null ? null : Number(row.inventario_disponible),
+      row.inventario_disponible === null
+        ? null
+        : Number(row.inventario_disponible),
     creadoEn: row.creado_en.toISOString(),
     actualizadoEn: row.actualizado_en.toISOString()
   };

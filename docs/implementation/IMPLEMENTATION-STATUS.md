@@ -1,7 +1,7 @@
 # NexusMarket — Estado de implementación
 
-**Corte:** 2026-11-08
-**Estado global:** marketplace funcional local (autenticación, direcciones, alta de vendedor, carrito, checkout con pago simulado, frontend integrado, espacio de trabajo del vendedor, operación logística, supervisión de solo lectura y espacio administrativo de consulta) verificado con evidencia ejecutada.
+**Corte:** 2026-11-09
+**Estado global:** marketplace funcional local (autenticación, direcciones, alta de vendedor, carrito, checkout con pago simulado, frontend integrado, espacio de trabajo del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, autoregistro público de comprador, solicitud comprador → vendedor, revisión administrativa y gestión de estados de acceso) verificado con evidencia ejecutada.
 **Fuente de verdad:** código del repositorio, PostgreSQL real y comandos ejecutados en este corte.
 
 ---
@@ -10,7 +10,7 @@
 
 | Gate | Alcance | Estado | Evidencia principal |
 |---|---|---|---|
-| A | Persistencia PostgreSQL obligatoria | `PASS` | Sin almacén memoria en `src/`; 160 pruebas; 40 pruebas PostgreSQL |
+| A | Persistencia PostgreSQL obligatoria | `PASS` | Sin almacén memoria en `src/`; 187 pruebas; 46 pruebas PostgreSQL |
 | B | Catálogo backend | `PASS` | Migración `003`; rutas de productos y categorías |
 | C | Contrato OpenAPI | `PASS` | `openapi.yaml` 0.7.0; validador offline; prueba de contrato |
 | D | Frontend de catálogo | `PASS` | Typecheck/build; home, catálogo y detalle contra API real |
@@ -21,12 +21,13 @@
 | I | Carrito persistente | `PASS` | `GET/POST/PATCH/DELETE`; validación de producto y cantidades |
 | J | Checkout, pedidos y pago simulado | `PASS` | Confirmado/rechazado/desconocido; idempotencia; reservas |
 | K | Integración frontend del marketplace | `PASS` | Login, carrito, checkout, pedidos, direcciones, admin; E2E navegador 13/13 |
-| L | CI y validación OpenAPI | `READY_FOR_REVIEW` | Workflow válido y reproducible; **no ejecutado en GitHub** |
-| M | Lint | `BLOCKED` | No existe herramienta de lint configurada en el repositorio |
+| L | CI y validación OpenAPI | `READY_FOR_REVIEW` | Workflow de 5 jobs válido (lint, formato, tipos, pruebas, PostgreSQL y E2E); **no ejecutado en GitHub** |
+| M | Lint y formato | `PASS` local | ESLint en backend y frontend; Prettier `format:check` en backend; ambos ejecutados sin errores |
 | N | Espacio de trabajo del vendedor (`GATE-V2-SELLER`) | `PASS` local | 18 rutas `/api/v1/seller/*`; 110 pruebas backend; 28 PostgreSQL; smoke 33/33; E2E 4/4 |
 | O | Operación logística (`GATE-V2-LOGISTICS`) | `PASS` local | 9 rutas `/api/v1/logistics/*` + alta administrativa; 145 pruebas backend; 37 PostgreSQL; smoke 33/33; E2E 6/6 |
 | P | Supervisión de solo lectura (`GATE-V2-SUPERVISOR`) | `PASS` local | 9 rutas `GET /api/v1/supervisor/*` + guarda `405`; dashboard real; E2E 6/6; reportes `BLOQUEADO` (`L-19`) |
 | Q | Espacio administrativo (`GATE-V2-ADMIN`) | `PASS` local | 17 rutas `GET /api/v1/admin/*` + guarda de método; alta atómica de vendedor/logística intacta; 160 pruebas backend; 40 PostgreSQL; E2E 7/7; reportes solo agregados reales |
+| R | Identidad y onboarding (`GATE-V2-IDENTITY`) | `PASS` local | Registro público, solicitud comprador → vendedor, aprobación atómica, rechazo sin efectos y estados de acceso con revocación de sesión; 187 pruebas backend; 46 PostgreSQL; E2E 10/10; lint y formato ejecutados |
 
 `PASS` significa “verificado con la evidencia listada”. No implica ejecución remota de CI ni revisión independiente. `READY_FOR_REVIEW` indica que el artefacto existe y fue validado localmente, pero su ejecución real en GitHub Actions está pendiente.
 
@@ -38,12 +39,14 @@
 
 | Comando | Resultado observado |
 |---|---|
+| `npm run lint` | OK (ESLint 10 + typescript-eslint; 0 errores) |
+| `npm run format:check` | OK (Prettier; todos los archivos cumplen) |
 | `npm run typecheck` | OK |
-| `npm test` | 20 archivos, 160 pruebas aprobadas |
-| `npm run validate:openapi` | `OpenAPI válido: 68 rutas, 76 operaciones, 904 referencias.` |
+| `npm test` | 23 archivos, 187 pruebas aprobadas |
+| `npm run validate:openapi` | `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias.` |
 | `npm run build` | OK |
-| `npm run verify` | OK (typecheck + test + validate:openapi + build) |
-| `npm run test:postgres` | 8 archivos, 40 pruebas aprobadas |
+| `npm run verify` | OK (lint + format + typecheck + test + validate:openapi + build) |
+| `npm run test:postgres` | 9 archivos, 46 pruebas aprobadas |
 | `npm run smoke:seller` | 33/33 comprobaciones PASS contra la API real |
 
 Desglose de `npm test`:
@@ -69,6 +72,9 @@ Desglose de `npm test`:
 | `tests/integration/logistics-http.test.ts` | 7 |
 | `tests/integration/supervisor-http.test.ts` | 9 |
 | `tests/integration/admin-http.test.ts` | 10 |
+| `tests/unit/seller-applications.test.ts` | 9 |
+| `tests/unit/update-user-access-status.test.ts` | 7 |
+| `tests/integration/seller-applications-http.test.ts` | 11 |
 | `tests/contract/openapi.test.ts` | 6 |
 
 Desglose de `npm run test:postgres`:
@@ -83,21 +89,23 @@ Desglose de `npm run test:postgres`:
 | `tests/postgres/logistics-postgres.test.ts` | 6 |
 | `tests/postgres/supervisor-postgres.test.ts` | 3 |
 | `tests/postgres/admin-postgres.test.ts` | 3 |
+| `tests/postgres/seller-applications-postgres.test.ts` | 6 |
 
 ### Frontend
 
 | Comando / comprobación | Resultado observado |
 |---|---|
+| `npm run lint` | OK (ESLint 10 + Next + React Hooks; 0 errores, 2 avisos de `<img>`) |
 | `npm run typecheck` | OK |
-| `npm run build` | OK (Next.js 16.4.3, 49 rutas) |
+| `npm run build` | OK (Next.js 16.4.3, 56 rutas) |
 | Smoke HTTP del frontend (corte anterior) | 15/15 PASS |
 | E2E de navegador real del marketplace (corte anterior, Chrome CDP) | 13/13 PASS |
-| E2E de navegador real (Playwright + Microsoft Edge) | 7/7 PASS (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión de solo lectura y espacio administrativo) |
+| E2E de navegador real (Playwright + Microsoft Edge) | 10/10 PASS (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión de solo lectura, administración y onboarding de identidad) |
 | Smoke HTTP del vendedor | 33/33 PASS |
 
 ### Migraciones aplicadas
 
-`001_initial.sql`, `002_audit_nested_secrets.sql`, `003_catalog.sql`, `004_identity_sessions.sql`, `005_buyer_addresses.sql`, `006_cart_checkout.sql`, `007_seller_workspace.sql`, `008_logistics.sql`.
+`001_initial.sql`, `002_audit_nested_secrets.sql`, `003_catalog.sql`, `004_identity_sessions.sql`, `005_buyer_addresses.sql`, `006_cart_checkout.sql`, `007_seller_workspace.sql`, `008_logistics.sql`, `009_seller_applications.sql`.
 
 ---
 
@@ -407,24 +415,40 @@ Desglose de `npm run test:postgres`:
 
 - `backend/scripts/validate-openapi.ts`: valida sintaxis YAML, versión 3.1.x, rutas, `operationId` únicos, respuestas, parámetros de ruta, seguridad y resolución de `$ref`; corre offline con la dependencia `yaml` existente.
 - `npm run validate:openapi` integrado en `npm run verify`.
-- `.github/workflows/ci.yml` con cuatro jobs:
-  1. Backend typecheck + OpenAPI + build.
+- `.github/workflows/ci.yml` con cinco jobs:
+  1. Backend lint + formato + typecheck + OpenAPI + build.
   2. Backend pruebas unitarias e integración.
   3. PostgreSQL 17: migraciones + pruebas.
-  4. Frontend typecheck + build.
+  4. Frontend lint + typecheck + build.
+  5. Frontend E2E Playwright contra PostgreSQL, backend y frontend reales (Chromium).
 
 ### Evidencia y límite
 
-- `npm run validate:openapi` → `OpenAPI válido: 68 rutas, 76 operaciones, 904 referencias.` (versión `0.7.0`)
-- YAML del workflow parseado correctamente: 4 jobs (`backend-static`, `backend-tests`, `backend-postgres`, `frontend`).
-- `npm run db:migrate` es idempotente: “No había migraciones pendientes.”
-- **No hay evidencia de ejecución en GitHub Actions** en este corte. El gate queda `READY_FOR_REVIEW`, no `PASS`.
+- `npm run validate:openapi` → `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias.` (versión `0.8.0`)
+- YAML del workflow parseado correctamente: 5 jobs (`backend-static`, `backend-tests`, `backend-postgres`, `frontend`, `frontend-e2e`).
+- `npm run db:migrate` es idempotente y aplicó `009` sobre la base demo.
+- **No hay evidencia de ejecución en GitHub Actions** en este corte. El gate queda `READY_FOR_REVIEW`, no `PASS`. Los comandos equivalentes sí se ejecutaron localmente: lint, formato, typecheck, 187 pruebas backend, 46 PostgreSQL, build y E2E 10/10.
 
 ---
 
-## 14. Gate M — Lint (limitación declarada)
+## 14. Gate M — Lint y formato
 
-No existe ESLint, Biome ni herramienta equivalente configurada en `backend/` ni en `frontend/`. El análisis estático disponible es TypeScript estricto (`npm run typecheck` en ambos proyectos). No se declara lint como `PASS`; el estado correcto es `BLOCKED` por ausencia de herramienta, no por fallo del código.
+### Implementado
+
+- **Backend:** ESLint 10 con `@eslint/js`, `typescript-eslint` y `globals`; configuración plana en `backend/eslint.config.mjs`. Prettier 3 con `.prettierrc.json` (`trailingComma: none`, `endOfLine: auto`) y `.prettierignore`.
+- **Frontend:** ESLint 10 con `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks` y `@next/eslint-plugin-next` (reglas `recommended` y `core-web-vitals`) en `frontend/eslint.config.mjs`.
+- Scripts: `npm run lint` en ambos proyectos; `npm run format` y `npm run format:check` en backend. `npm run verify` del backend incluye lint, formato, typecheck, pruebas, OpenAPI y build.
+- Los dos avisos del frontend son `@next/next/no-img-element` en imágenes ya existentes; no son errores y no bloquean la build.
+
+### Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `backend`: `npm run lint` | 0 errores |
+| `backend`: `npm run format:check` | Todos los archivos cumplen Prettier |
+| `frontend`: `npm run lint` | 0 errores, 2 avisos `no-img-element` |
+
+No se declara el CI remoto como `PASS`; el gate L sigue `READY_FOR_REVIEW`.
 
 ---
 
@@ -444,24 +468,63 @@ No existe ESLint, Biome ni herramienta equivalente configurada en `backend/` ni 
 | Reportes administrativos del supervisor | `BLOQUEADO` (`L-19`): sin catálogo, fórmulas, filtros ni límites aprobados |
 | Reportes del administrador | Solo agregados reales directos; catálogo/fórmulas/filtros/exportaciones `BLOQUEADO` (`L-19`) |
 | Devoluciones, reembolsos y facturación | `BLOQUEADO`: sin tablas de persistencia ni reglas aprobadas |
-| Autoregistro público de comprador | Diferido a la siguiente fase; solo se documenta la dependencia |
-| Solicitud comprador → vendedor | Diferida a la siguiente fase; solo se documenta la dependencia |
+| Autoregistro público de comprador | `IMPLEMENTED` (Gate R): `POST /api/v1/buyers` reutilizado; rol `COMPRADOR` fijado por el backend |
+| Solicitud comprador → vendedor | `IMPLEMENTED` (Gate R): envío, consulta propia, aprobación atómica y rechazo |
+| Reenvío o edición tras rechazo | Pendiente de decisión; el backend solo impide más de una solicitud `PENDIENTE` y la UI no ofrece reenvío |
 | Mutaciones admin de producto/inventario/pago/reembolso | No definidas ni autorizadas; el espacio admin es de consulta salvo las dos altas |
 | Variantes comerciales | Fuera de V1 por decisión (discrepancia con `CAT-02` registrada) |
 | Recuperación de contraseña / MFA | No implementado |
-| CI ejecutado en GitHub | `READY_FOR_REVIEW`; no ejecutado |
-| Lint | `BLOCKED`: sin herramienta configurada |
+| CI ejecutado en GitHub | `READY_FOR_REVIEW`; workflow de 5 jobs válido, no ejecutado en remoto |
+| Lint y formato | `PASS` local: ESLint en ambos proyectos y Prettier en backend |
 | Despliegue / producción | No realizado |
 
 ---
 
-## 16. Próxima acción
+## 16. Gate R — Identidad y onboarding (`GATE-V2-IDENTITY`)
 
-1. Revisar el diff completo (vendedor, imágenes, logística, supervisión y administración) y ejecutar el workflow de CI en GitHub; si falla, corregir y registrar evidencia.
-2. Decidir el actor y el proceso de `CloseOrder` (`ENTREGADO → CERRADO`) antes de implementar el cierre; no inventar un actor.
-3. Decidir e implementar la resolución de pagos `DESCONOCIDO` (consulta/reconciliación) antes de considerar completo el flujo de pagos.
-4. Definir con negocio el catálogo de reportes (`L-19`): métricas, fórmulas, filtros, límites y exportaciones. Hasta entonces, el espacio admin solo muestra agregados reales.
-5. Definir el autoregistro público de comprador y la solicitud comprador → vendedor antes de implementarlos; no inventar reglas de aprobación.
-6. Incorporar lint (ESLint/Biome) si el proyecto lo requiere, y registrar el gate correspondiente.
-7. Definir con negocio el mecanismo de almacenamiento de imágenes y la estructura de entrega digital antes de ampliar el vendedor.
-8. No declarar reembolsos ni logística inversa hasta que exista decisión de negocio, persistencia y contrato; mantener bloqueadas la asignación automática, los transportistas externos, el tracking integrado y la evidencia del proveedor (`L-23`).
+### Alcance implementado
+
+- **Registro público de comprador:** se reutiliza `RegisterBuyer` y `POST /api/v1/buyers`. El cuerpo no acepta `rol` ni `estado`; el backend asigna `COMPRADOR` y `ACTIVO`. La creación de `users`, `buyers`, `carts`, dirección principal, auditoría y outbox sigue siendo transaccional. El frontend añade `/register` con validación, estado de carga, prevención de doble envío y aviso en `/login`.
+- **Solicitud comprador → vendedor:** nueva entidad `seller_applications` (migración `009`) con estados `PENDIENTE`, `APROBADA` y `RECHAZADA`, independiente del estado de acceso. Un índice único parcial impide más de una solicitud `PENDIENTE` por usuario.
+- **API de solicitudes:**
+  - `POST /api/v1/buyer/seller-application` (comprador `ACTIVO`): crea la solicitud `PENDIENTE`.
+  - `GET /api/v1/buyer/seller-application`: devuelve solo la solicitud del solicitante.
+  - `GET /api/v1/admin/seller-applications` y `GET /api/v1/admin/seller-applications/{applicationId}`: listado con filtros/paginación y detalle.
+  - `POST /api/v1/admin/seller-applications/{applicationId}/approve`: crea `sellers` + primera `warehouses`, cambia el rol principal a `VENDEDOR`, marca `APROBADA`, registra revisor, auditoría y outbox en una única transacción PostgreSQL. Un reintento devuelve los identificadores existentes sin duplicar.
+  - `POST /api/v1/admin/seller-applications/{applicationId}/reject`: exige motivo, marca `RECHAZADA`, registra revisor y auditoría; no crea vendedor ni bodega y no cambia el estado de acceso.
+- **Identidad:** se conserva el mismo `users.id`. El perfil `buyers` y el historial de pedidos no se eliminan. El rol principal vigente (`VENDEDOR`) gobierna las autorizaciones; conservar el perfil de comprador no concede permisos de comprador.
+- **Estados de acceso:** `UpdateUserAccessStatus` implementa `ACTIVO`, `INACTIVO` y `BLOQUEADO` con transiciones explícitas (`ACTIVO→INACTIVO`, `ACTIVO→BLOQUEADO`, `INACTIVO→ACTIVO`, `BLOQUEADO→ACTIVO`, `INACTIVO→BLOQUEADO`; `BLOQUEADO→INACTIVO` prohibida). `DESACTIVAR` y `BLOQUEAR` exigen motivo. Al pasar a `INACTIVO` o `BLOQUEADO` se revocan las sesiones activas en la misma transacción; `GetSession` ya rechaza estados distintos de `ACTIVO`. Un administrador no puede cambiar su propio estado.
+- **Autorización:** todas las decisiones se aplican en el backend (`requireAdmin`, `requireBuyer`, ownership por `usuarioId`). El administrador no puede aprobar ni rechazar su propia solicitud. El frontend solo refleja el resultado y oculta acciones no permitidas como ayuda visual.
+- **Frontend:** `/seller-application` (formulario, estado, resultado y enlace al espacio del vendedor), `/admin/seller-applications` (lista con búsqueda, filtro y paginación) y `/admin/seller-applications/{applicationId}` (detalle, aprobación y rechazo con confirmación). El detalle admin de usuario incorpora el formulario de estado de acceso; el autogestión se bloquea también en la interfaz.
+- **OpenAPI `0.8.0`:** 74 rutas, 83 operaciones y 984 referencias.
+
+### Evidencia ejecutada
+
+| Comprobación | Resultado |
+|---|---|
+| `backend`: `npm run verify` | OK; lint, formato, typecheck, 23 archivos / 187 pruebas, OpenAPI 74/83/984 y build |
+| `backend`: `npm run test:postgres` | 9 archivos / 46 pruebas OK contra PostgreSQL 17.11 |
+| `backend`: pruebas nuevas | `seller-applications.test.ts` (9), `update-user-access-status.test.ts` (7), `seller-applications-http.test.ts` (11), `seller-applications-postgres.test.ts` (6) |
+| `backend`: migración `009` | Aplicada sobre la base demo; índice único parcial de solicitud pendiente verificado |
+| `frontend`: `npm run lint` / `npm run typecheck` / `npm run build` | OK; 0 errores de lint; 56 rutas |
+| `frontend`: `npm run test:e2e` | 10/10 PASS; los 3 escenarios nuevos cubren registro → solicitud → aprobación → acceso vendedor, rechazo sin efectos y cambio de estado con revocación de sesión |
+
+### Decisiones y límites
+
+- La aprobación solo es válida desde `PENDIENTE`; un reintento sobre `APROBADA` devuelve el vendedor y la bodega existentes. El rechazo desde `RECHAZADA` es idempotente; desde `APROBADA` se rechaza.
+- Una transición de acceso inválida responde `422 REGLA_NEGOCIO_INCUMPLIDA` con `detalles.transicionInvalida`; no se añadió un código de error nuevo.
+- El reenvío o la edición después de un rechazo **no están definidos**. El backend solo impide solicitudes `PENDIENTE` duplicadas y la interfaz no ofrece reenvío. Queda registrado como decisión pendiente.
+- No se implementaron notificaciones externas ni correo: no existe infraestructura aprobada. El resultado se consulta dentro de la aplicación.
+- No se crearon cuentas duplicadas, vendedores por autoregistro, comisiones, datos bancarios, tributarios o empresariales.
+
+---
+
+## 17. Próxima acción
+
+1. Ejecutar el workflow de CI en GitHub y registrar el resultado real; los cinco jobs están definidos y sus comandos equivalentes ya pasaron localmente.
+2. Decidir la política de reenvío/edición de solicitudes rechazadas antes de habilitarla; no inventar el comportamiento.
+3. Decidir el actor y el proceso de `CloseOrder` (`ENTREGADO → CERRADO`) antes de implementar el cierre; no inventar un actor.
+4. Decidir e implementar la resolución de pagos `DESCONOCIDO` (consulta/reconciliación) antes de considerar completo el flujo de pagos.
+5. Definir con negocio el catálogo de reportes (`L-19`): métricas, fórmulas, filtros, límites y exportaciones. Hasta entonces, el espacio admin solo muestra agregados reales.
+6. Definir con negocio el mecanismo de almacenamiento de imágenes y la estructura de entrega digital antes de ampliar el vendedor.
+7. No declarar reembolsos ni logística inversa hasta que exista decisión de negocio, persistencia y contrato; mantener bloqueadas la asignación automática, los transportistas externos, el tracking integrado y la evidencia del proveedor (`L-23`).

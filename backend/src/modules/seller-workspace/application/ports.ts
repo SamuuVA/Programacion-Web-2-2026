@@ -1,4 +1,7 @@
-import type { EstadoPedido, EstadoPago } from "../../orders/application/ports.js";
+import type {
+  EstadoPedido,
+  EstadoPago
+} from "../../orders/application/ports.js";
 import type {
   DatosProducto,
   EstadoProductoVendedor,
@@ -14,10 +17,7 @@ export interface SellerActor {
 }
 
 export type EstadoVendedor =
-  | "EN_REVISION"
-  | "ACTIVO"
-  | "SUSPENDIDO"
-  | "INACTIVO";
+  "EN_REVISION" | "ACTIVO" | "SUSPENDIDO" | "INACTIVO";
 
 export interface SellerProfileView {
   readonly id: string;
@@ -163,7 +163,10 @@ export interface SellerWorkspaceStore {
   ): Promise<SellerProfileView | null>;
 
   listProducts(sellerId: string): Promise<SellerProductView[]>;
-  findProduct(sellerId: string, productoId: string): Promise<SellerProductView | null>;
+  findProduct(
+    sellerId: string,
+    productoId: string
+  ): Promise<SellerProductView | null>;
   createProduct(record: CreateProductRecord): Promise<SellerProductView>;
   updateProduct(
     sellerId: string,
@@ -197,7 +200,10 @@ export interface SellerWorkspaceStore {
   registerIngress(command: IngressCommand): Promise<IngressResult>;
 
   listOrders(sellerId: string): Promise<SellerOrderSummary[]>;
-  findOrder(sellerId: string, orderId: string): Promise<SellerOrderDetail | null>;
+  findOrder(
+    sellerId: string,
+    orderId: string
+  ): Promise<SellerOrderDetail | null>;
 
   healthCheck(): Promise<void>;
   close(): Promise<void>;

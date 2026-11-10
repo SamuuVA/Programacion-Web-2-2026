@@ -39,7 +39,10 @@ export class CreateAddress {
     private readonly ids: IdGenerator
   ) {}
 
-  async execute(compradorId: string, command: CreateAddressCommand): Promise<DireccionEntrega> {
+  async execute(
+    compradorId: string,
+    command: CreateAddressCommand
+  ): Promise<DireccionEntrega> {
     const now = this.clock.now().value;
     const existing = await this.store.list(compradorId);
     const esPrincipal = command.esPrincipal === true || existing.length === 0;
@@ -75,14 +78,18 @@ export class UpdateAddress {
   ): Promise<DireccionEntrega> {
     const current = await this.store.findById(compradorId, command.direccionId);
     if (current === null) {
-      throw new ResourceNotFoundError("La dirección no existe o no pertenece al comprador.");
+      throw new ResourceNotFoundError(
+        "La dirección no existe o no pertenece al comprador."
+      );
     }
     const updated = current
       .withUpdatedFields({
         ...(command.destinatario !== undefined
           ? { destinatario: command.destinatario }
           : {}),
-        ...(command.telefono !== undefined ? { telefono: command.telefono } : {}),
+        ...(command.telefono !== undefined
+          ? { telefono: command.telefono }
+          : {}),
         ...(command.linea1 !== undefined ? { linea1: command.linea1 } : {}),
         ...(command.linea2 !== undefined ? { linea2: command.linea2 } : {}),
         ...(command.ciudad !== undefined ? { ciudad: command.ciudad } : {}),
@@ -104,7 +111,9 @@ export class DeleteAddress {
   async execute(compradorId: string, direccionId: string): Promise<void> {
     const deleted = await this.store.delete(compradorId, direccionId);
     if (!deleted) {
-      throw new ResourceNotFoundError("La dirección no existe o no pertenece al comprador.");
+      throw new ResourceNotFoundError(
+        "La dirección no existe o no pertenece al comprador."
+      );
     }
   }
 }
@@ -122,7 +131,9 @@ export class SetPrincipalAddress {
       this.clock.now().value
     );
     if (!updated) {
-      throw new ResourceNotFoundError("La dirección no existe o no pertenece al comprador.");
+      throw new ResourceNotFoundError(
+        "La dirección no existe o no pertenece al comprador."
+      );
     }
   }
 }

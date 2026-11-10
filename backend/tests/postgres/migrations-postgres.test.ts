@@ -26,7 +26,17 @@ describe("Migraciones versionadas contra PostgreSQL real", () => {
 
   it("crea el esquema desde cero, registra historial y es idempotente", async () => {
     const first = await runMigrations({ pool, schema });
-    expect(first.applied).toEqual(["001", "002", "003", "004", "005", "006", "007", "008"]);
+    expect(first.applied).toEqual([
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+      "009"
+    ]);
     expect(first.baselined).toEqual([]);
 
     const second = await runMigrations({ pool, schema });
@@ -39,7 +49,8 @@ describe("Migraciones versionadas contra PostgreSQL real", () => {
       "005",
       "006",
       "007",
-      "008"
+      "008",
+      "009"
     ]);
 
     const status = await getMigrationStatus({ pool, schema });
@@ -51,7 +62,8 @@ describe("Migraciones versionadas contra PostgreSQL real", () => {
       "005",
       "006",
       "007",
-      "008"
+      "008",
+      "009"
     ]);
     expect(status.pending).toHaveLength(0);
 
@@ -78,6 +90,7 @@ describe("Migraciones versionadas contra PostgreSQL real", () => {
         "product_images",
         "products",
         "schema_migrations",
+        "seller_applications",
         "sellers",
         "shipment_events",
         "shipment_items",

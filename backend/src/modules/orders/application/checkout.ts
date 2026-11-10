@@ -33,15 +33,26 @@ export class Checkout {
     private readonly clock: Clock
   ) {}
 
-  execute(compradorId: string, input: CheckoutCommandInput): Promise<CheckoutResult> {
+  execute(
+    compradorId: string,
+    input: CheckoutCommandInput
+  ): Promise<CheckoutResult> {
     const idempotencyKey =
-      typeof input.idempotencyKey === "string" ? input.idempotencyKey.trim() : "";
-    if (idempotencyKey.length === 0 || idempotencyKey.length > IDEMPOTENCY_KEY_MAX) {
+      typeof input.idempotencyKey === "string"
+        ? input.idempotencyKey.trim()
+        : "";
+    if (
+      idempotencyKey.length === 0 ||
+      idempotencyKey.length > IDEMPOTENCY_KEY_MAX
+    ) {
       throw new ValidationError(
         `La clave de idempotencia debe tener entre 1 y ${IDEMPOTENCY_KEY_MAX} caracteres.`
       );
     }
-    if (input.direccionEntregaId !== undefined && input.direccionEntregaId !== null) {
+    if (
+      input.direccionEntregaId !== undefined &&
+      input.direccionEntregaId !== null
+    ) {
       if (!isUuid(input.direccionEntregaId)) {
         throw new ValidationError("La dirección de entrega no es válida.");
       }

@@ -45,7 +45,9 @@ export class AddCartItem {
     const current = await this.store.getItem(compradorId, command.productoId);
     const total = (current?.cantidad ?? 0) + cantidad;
     if (total > MAX_CART_QUANTITY) {
-      throw new ValidationError(`La cantidad máxima por producto es ${MAX_CART_QUANTITY}.`);
+      throw new ValidationError(
+        `La cantidad máxima por producto es ${MAX_CART_QUANTITY}.`
+      );
     }
     assertAvailability(product, total);
 
@@ -122,17 +124,22 @@ function positiveQuantity(value: number): number {
     throw new ValidationError("La cantidad debe ser un entero positivo.");
   }
   if (value > MAX_CART_QUANTITY) {
-    throw new ValidationError(`La cantidad máxima por producto es ${MAX_CART_QUANTITY}.`);
+    throw new ValidationError(
+      `La cantidad máxima por producto es ${MAX_CART_QUANTITY}.`
+    );
   }
   return value;
 }
 
 function assertSellable(product: SellableProduct): void {
   if (product.estadoProducto !== "PUBLICADO") {
-    throw new BusinessRuleError("El producto no está disponible para la venta.", {
-      motivo: "PRODUCTO_NO_PUBLICADO",
-      productoId: product.productoId
-    });
+    throw new BusinessRuleError(
+      "El producto no está disponible para la venta.",
+      {
+        motivo: "PRODUCTO_NO_PUBLICADO",
+        productoId: product.productoId
+      }
+    );
   }
   if (product.estadoVendedor !== "ACTIVO") {
     throw new BusinessRuleError("El vendedor del producto no está activo.", {

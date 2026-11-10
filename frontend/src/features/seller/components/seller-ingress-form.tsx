@@ -69,6 +69,9 @@ function IngressFormBody({
   const [idempotencyKey, setIdempotencyKey] = useState("");
 
   useEffect(() => {
+    // Se genera tras el montaje para evitar desajustes de hidratación: la clave
+    // debe ser única por intento y no puede coincidir entre servidor y cliente.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIdempotencyKey(crypto.randomUUID());
   }, []);
 

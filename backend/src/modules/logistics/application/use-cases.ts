@@ -1,4 +1,7 @@
-import type { Clock, PasswordHasher } from "../../../shared/application/ports.js";
+import type {
+  Clock,
+  PasswordHasher
+} from "../../../shared/application/ports.js";
 import {
   AuthorizationError,
   DependencyUnavailableError,
@@ -29,14 +32,10 @@ import type {
   RegisterOperatorResult
 } from "./ports.js";
 
-const SIN_PERFIL =
-  "La cuenta no tiene un perfil de operador logístico.";
-const PERFIL_INACTIVO =
-  "El perfil de operador logístico no está activo.";
+const SIN_PERFIL = "La cuenta no tiene un perfil de operador logístico.";
+const PERFIL_INACTIVO = "El perfil de operador logístico no está activo.";
 const PEDIDO_NO_ENCONTRADO =
   "El pedido no existe o no pertenece a tu ámbito logístico.";
-const ENVIO_NO_ENCONTRADO =
-  "El envío no existe o no pertenece a tu ámbito logístico.";
 
 async function resolverActor(
   store: LogisticsStore,
@@ -134,7 +133,10 @@ export class ListLogisticsOrders {
 export class GetLogisticsOrder {
   constructor(private readonly store: LogisticsStore) {}
 
-  async execute(usuarioId: string, pedidoId: string): Promise<LogisticsOrderDetail> {
+  async execute(
+    usuarioId: string,
+    pedidoId: string
+  ): Promise<LogisticsOrderDetail> {
     const actor = await resolverActor(this.store, usuarioId);
     const order = await this.store.findOrder(
       actor.operadorId,
@@ -173,7 +175,10 @@ export class PrepareShipment {
       pedidoId: textoRequerido(pedidoId, "El pedido"),
       bodegaId: textoRequerido(input.bodegaId, "La bodega"),
       transportista: textoAcotado(input.transportista, "El transportista", 120),
-      idempotencyKey: textoRequerido(input.idempotencyKey, "La clave de idempotencia"),
+      idempotencyKey: textoRequerido(
+        input.idempotencyKey,
+        "La clave de idempotencia"
+      ),
       now: this.clock.now().toString(),
       correlationId: textoRequerido(correlationId, "correlationId", 200)
     });
@@ -206,7 +211,10 @@ export class DispatchOrder {
       envioId: textoRequerido(envioId, "El envío"),
       transportista: textoAcotado(input.transportista, "El transportista", 120),
       trackingNumber: textoAcotado(input.trackingNumber, "El seguimiento", 200),
-      idempotencyKey: textoRequerido(input.idempotencyKey, "La clave de idempotencia"),
+      idempotencyKey: textoRequerido(
+        input.idempotencyKey,
+        "La clave de idempotencia"
+      ),
       now: this.clock.now().toString(),
       correlationId: textoRequerido(correlationId, "correlationId", 200)
     });
@@ -247,7 +255,10 @@ export class ConfirmDelivery {
       envioId: textoRequerido(envioId, "El envío"),
       resultado: input.resultado,
       evidencia: normalizarEvidencia(input.resultado, input.evidencia),
-      idempotencyKey: textoRequerido(input.idempotencyKey, "La clave de idempotencia"),
+      idempotencyKey: textoRequerido(
+        input.idempotencyKey,
+        "La clave de idempotencia"
+      ),
       now: this.clock.now().toString(),
       correlationId: textoRequerido(correlationId, "correlationId", 200)
     });
@@ -316,7 +327,9 @@ export class RegisterLogisticsOperator {
       );
     }
 
-    const bodegaIds = [...new Set(input.bodegaIds.map((id) => textoRequerido(id, "La bodega")))];
+    const bodegaIds = [
+      ...new Set(input.bodegaIds.map((id) => textoRequerido(id, "La bodega")))
+    ];
     if (bodegaIds.length === 0) {
       throw new ValidationError(
         "El operador logístico necesita al menos una bodega asignada."
@@ -324,19 +337,26 @@ export class RegisterLogisticsOperator {
     }
 
     if (await this.store.existsByEmail(correo.value)) {
-      throw new UniquenessConflictError("El correo electrónico ya está registrado.");
+      throw new UniquenessConflictError(
+        "El correo electrónico ya está registrado."
+      );
     }
     if (await this.store.existsByDocument(documento)) {
-      throw new UniquenessConflictError("El documento de identidad ya está registrado.");
+      throw new UniquenessConflictError(
+        "El documento de identidad ya está registrado."
+      );
     }
 
     let hashValue: string;
     try {
       hashValue = await this.hasher.hash(input.credencial);
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible procesar la credencial.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible procesar la credencial.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
 
     return this.store.registerOperator({

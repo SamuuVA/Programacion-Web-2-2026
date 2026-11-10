@@ -1,8 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { ResourceNotFoundError, ValidationError } from "../../../../shared/domain/errors.js";
+import {
+  ResourceNotFoundError,
+  ValidationError
+} from "../../../../shared/domain/errors.js";
 import { isUuid } from "../../../../shared/domain/value-objects.js";
-import type { Checkout, GetOrder, ListOrders } from "../../application/checkout.js";
+import type {
+  Checkout,
+  GetOrder,
+  ListOrders
+} from "../../application/checkout.js";
 import { RESULTADOS_PAGO_SIMULADO } from "../../application/ports.js";
 import type { SessionAuthenticator } from "../../../identity/interfaces/http/session.js";
 
@@ -59,9 +66,14 @@ export function registerOrderRoutes(
     const user = await dependencies.authenticator.requireUser(request);
     const compradorId = dependencies.authenticator.requireBuyer(user);
     const params = parse(orderParamsSchema, request.params);
-    const order = await dependencies.getOrder.execute(compradorId, params.orderId);
+    const order = await dependencies.getOrder.execute(
+      compradorId,
+      params.orderId
+    );
     if (order === null) {
-      throw new ResourceNotFoundError("El pedido no existe o no pertenece al comprador.");
+      throw new ResourceNotFoundError(
+        "El pedido no existe o no pertenece al comprador."
+      );
     }
     return reply.code(200).send({ data: order });
   });

@@ -4,7 +4,12 @@ import type { Instant } from "./value-objects.js";
 export const RESULTADOS_AUDITORIA = ["EXITO", "RECHAZO", "ERROR"] as const;
 export type ResultadoAuditoria = (typeof RESULTADOS_AUDITORIA)[number];
 
-export const GRAVEDADES_AUDITORIA = ["INFORMACION", "ADVERTENCIA", "ERROR", "CRITICO"] as const;
+export const GRAVEDADES_AUDITORIA = [
+  "INFORMACION",
+  "ADVERTENCIA",
+  "ERROR",
+  "CRITICO"
+] as const;
 export type GravedadAuditoria = (typeof GRAVEDADES_AUDITORIA)[number];
 
 export interface RegistroAuditoria {

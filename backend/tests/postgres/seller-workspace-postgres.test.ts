@@ -110,7 +110,14 @@ async function insertProduct(
        id, vendedor_id, nombre, descripcion, categoria, estado, tipo_entrega,
        sku, precio_centavos, moneda, creado_en, actualizado_en
      ) VALUES ($1, $2, 'Producto existente', 'Descripción', 'HOGAR', $3, $4, $5, 10000, 'COP', $6, $6)`,
-    [id, sellerId, options.estado ?? "BORRADOR", options.tipoEntrega ?? "FISICA", sku, NOW]
+    [
+      id,
+      sellerId,
+      options.estado ?? "BORRADOR",
+      options.tipoEntrega ?? "FISICA",
+      sku,
+      NOW
+    ]
   );
   productIds.push(id);
   return id;
@@ -176,10 +183,13 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
       return;
     }
     try {
-      await pool.query("DELETE FROM order_items WHERE pedido_id = ANY($1::uuid[])", [
+      await pool.query(
+        "DELETE FROM order_items WHERE pedido_id = ANY($1::uuid[])",
+        [orderIds]
+      );
+      await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [
         orderIds
       ]);
-      await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [orderIds]);
       await pool.query(
         "DELETE FROM checkout_attempts WHERE id = ANY($1::uuid[])",
         [checkoutIds]
@@ -188,20 +198,29 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
         "DELETE FROM inventory_movements WHERE producto_id = ANY($1::uuid[])",
         [productIds]
       );
-      await pool.query("DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])", [
-        productIds
-      ]);
+      await pool.query(
+        "DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])",
+        [productIds]
+      );
       await pool.query(
         "DELETE FROM product_images WHERE producto_id = ANY($1::uuid[])",
         [productIds]
       );
-      await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [productIds]);
+      await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [
+        productIds
+      ]);
       await pool.query("DELETE FROM warehouses WHERE id = ANY($1::uuid[])", [
         warehouseIds
       ]);
-      await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [sellerIds]);
-      await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [buyerIds]);
-      await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [usuarioIds]);
+      await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [
+        sellerIds
+      ]);
+      await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [
+        buyerIds
+      ]);
+      await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [
+        usuarioIds
+      ]);
     } finally {
       await store.close();
       await pool.end();
@@ -240,7 +259,9 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
     expect(row.rows[0]?.estado).toBe("BORRADOR");
 
     await expect(
-      pool.query("UPDATE products SET estado = 'INVALIDO' WHERE id = $1", [product.id])
+      pool.query("UPDATE products SET estado = 'INVALIDO' WHERE id = $1", [
+        product.id
+      ])
     ).rejects.toMatchObject({ code: "23514" });
   });
 
@@ -330,7 +351,9 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
 
     const ordersA = await listOrders.execute(actorA);
     expect(ordersA).toEqual([]);
-    await expect(getOrder.execute(actorA, orderB.orderId)).rejects.toMatchObject({
+    await expect(
+      getOrder.execute(actorA, orderB.orderId)
+    ).rejects.toMatchObject({
       code: "RECURSO_NO_ENCONTRADO"
     });
 
@@ -347,7 +370,11 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
     const productId = await insertProduct(seller.sellerId, `ING-${runId}`);
     const actor = { usuarioId: seller.usuarioId, sellerId: seller.sellerId };
     const clock = new FixedClock(NOW);
-    const ingress = new RegisterInventoryIngress(store, clock, new UuidGenerator());
+    const ingress = new RegisterInventoryIngress(
+      store,
+      clock,
+      new UuidGenerator()
+    );
 
     const payload = {
       productoId: productId,
@@ -402,7 +429,11 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
     });
     const actor = { usuarioId: seller.usuarioId, sellerId: seller.sellerId };
     const clock = new FixedClock(NOW);
-    const ingress = new RegisterInventoryIngress(store, clock, new UuidGenerator());
+    const ingress = new RegisterInventoryIngress(
+      store,
+      clock,
+      new UuidGenerator()
+    );
 
     await ingress.execute(actor, {
       productoId: physicalId,
@@ -426,14 +457,20 @@ describe("Espacio del vendedor contra PostgreSQL real", () => {
       })
     ).rejects.toMatchObject({
       code: "REGLA_NEGOCIO_INCUMPLIDA",
-      details: expect.objectContaining({ motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO" })
+      details: expect.objectContaining({
+        motivo: "PRODUCTO_DIGITAL_SIN_INVENTARIO"
+      })
     });
   });
 
   it("bloquea mutaciones de un vendedor suspendido", async () => {
     const seller = await createSeller("suspendido", "SUSPENDIDO");
     const actor = { usuarioId: seller.usuarioId, sellerId: seller.sellerId };
-    const create = new CreateSellerProduct(store, new FixedClock(NOW), new UuidGenerator());
+    const create = new CreateSellerProduct(
+      store,
+      new FixedClock(NOW),
+      new UuidGenerator()
+    );
 
     await expect(
       create.execute(actor, {

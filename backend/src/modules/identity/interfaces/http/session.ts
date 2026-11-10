@@ -13,9 +13,14 @@ export const SESSION_COOKIE = "nexus_session";
  * Extrae el token de la cookie HttpOnly o de `Authorization: Bearer`.
  * La segunda forma facilita pruebas y clientes de API; el frontend usa cookie.
  */
-export function extractSessionToken(request: FastifyRequest): string | undefined {
+export function extractSessionToken(
+  request: FastifyRequest
+): string | undefined {
   const authorization = request.headers.authorization;
-  if (typeof authorization === "string" && authorization.startsWith("Bearer ")) {
+  if (
+    typeof authorization === "string" &&
+    authorization.startsWith("Bearer ")
+  ) {
     const token = authorization.slice("Bearer ".length).trim();
     if (token.length > 0) {
       return token;
@@ -90,7 +95,9 @@ export function clearSessionCookie(reply: FastifyReply, secure: boolean): void {
 export class SessionAuthenticator {
   constructor(private readonly getSession: GetSession) {}
 
-  async authenticate(request: FastifyRequest): Promise<AuthenticatedUser | null> {
+  async authenticate(
+    request: FastifyRequest
+  ): Promise<AuthenticatedUser | null> {
     return this.getSession.execute(extractSessionToken(request));
   }
 
@@ -104,7 +111,9 @@ export class SessionAuthenticator {
 
   requireRole(user: AuthenticatedUser, roles: readonly RolSistema[]): void {
     if (!roles.includes(user.rol)) {
-      throw new AuthorizationError("Tu rol no permite realizar esta operación.");
+      throw new AuthorizationError(
+        "Tu rol no permite realizar esta operación."
+      );
     }
   }
 
@@ -115,7 +124,9 @@ export class SessionAuthenticator {
   requireBuyer(user: AuthenticatedUser): string {
     this.requireRole(user, ["COMPRADOR"]);
     if (user.compradorId === null) {
-      throw new AuthorizationError("La cuenta no tiene un perfil de comprador activo.");
+      throw new AuthorizationError(
+        "La cuenta no tiene un perfil de comprador activo."
+      );
     }
     return user.compradorId;
   }
@@ -123,7 +134,9 @@ export class SessionAuthenticator {
   requireSeller(user: AuthenticatedUser): string {
     this.requireRole(user, ["VENDEDOR"]);
     if (user.sellerId === null) {
-      throw new AuthorizationError("La cuenta no tiene un perfil de vendedor activo.");
+      throw new AuthorizationError(
+        "La cuenta no tiene un perfil de vendedor activo."
+      );
     }
     return user.sellerId;
   }

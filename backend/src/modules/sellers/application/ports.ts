@@ -1,5 +1,11 @@
-import type { EventoDominio, RegistroAuditoria } from "../../../shared/domain/audit.js";
-import type { CorreoElectronico, DocumentoIdentidad } from "../../../shared/domain/value-objects.js";
+import type {
+  EventoDominio,
+  RegistroAuditoria
+} from "../../../shared/domain/audit.js";
+import type {
+  CorreoElectronico,
+  DocumentoIdentidad
+} from "../../../shared/domain/value-objects.js";
 import type { Usuario } from "../../identity/domain/usuario.js";
 
 export interface SellerProfileRecord {

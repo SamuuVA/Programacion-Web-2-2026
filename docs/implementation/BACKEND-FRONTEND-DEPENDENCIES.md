@@ -74,6 +74,7 @@ Consecuencias:
 
 | Endpoint | Uso en frontend | Pantalla |
 |---|---|---|
+| `POST /api/v1/buyers` | Registro público de comprador (rol fijado por el backend) | Registro |
 | `POST /api/v1/auth/login` | Iniciar sesión | Login |
 | `POST /api/v1/auth/logout` | Cerrar sesión | Cabecera |
 | `GET /api/v1/auth/session` | Conocer usuario y rol | Cabecera y guardas |
@@ -143,8 +144,15 @@ Consecuencias:
 | `GET /api/v1/admin/orders/:orderId` | Detalle de pedido | Detalle de pedido |
 | `GET /api/v1/admin/payments` | Pagos por estado | Pagos |
 | `GET /api/v1/admin/reports` | Agregados reales directos | Reportes |
+| `POST /api/v1/buyer/seller-application` | Enviar solicitud comprador → vendedor | Solicitud de vendedor |
+| `GET /api/v1/buyer/seller-application` | Consultar la solicitud propia | Solicitud de vendedor |
+| `GET /api/v1/admin/seller-applications` | Listar solicitudes con filtro y paginación | Admin solicitudes |
+| `GET /api/v1/admin/seller-applications/:applicationId` | Detalle de la solicitud | Admin solicitud |
+| `POST /api/v1/admin/seller-applications/:applicationId/approve` | Aprobar y crear vendedor + primera bodega | Admin solicitud |
+| `POST /api/v1/admin/seller-applications/:applicationId/reject` | Rechazar con motivo | Admin solicitud |
+| `PATCH /api/v1/admin/users/:userId/access-status` | Cambiar estado de acceso y revocar sesiones | Detalle de usuario |
 
-No se consumen `POST /api/v1/buyers`, `/health` ni `/ready` desde la interfaz pública. La supervisión no consume ningún método de escritura: el frontend solo llama a las nueve rutas `GET`. El espacio administrativo solo consume las 17 rutas `GET` y las dos altas `POST /admin/sellers` y `POST /admin/logistics-operators`.
+No se consumen `/health` ni `/ready` desde la interfaz pública. La supervisión no consume ningún método de escritura: el frontend solo llama a las nueve rutas `GET`. El espacio administrativo consume las 17 rutas `GET`, las dos altas `POST /admin/sellers` y `POST /admin/logistics-operators`, y las operaciones de solicitud de vendedor y estado de acceso. La aprobación y el rechazo los decide el backend; el frontend solo oculta acciones que el backend rechazaría (por ejemplo, la autogestión del propio administrador).
 
 ---
 

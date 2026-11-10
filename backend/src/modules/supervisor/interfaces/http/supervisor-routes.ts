@@ -58,15 +58,24 @@ const listProductsSchema = z
   .object({
     estado: z.enum(ESTADOS_PRODUCTO_SUPERVISOR).optional(),
     categoria: z.enum(CATEGORIAS_PRODUCTO).optional(),
-    vendedorId: z.string().refine(isUuid, "El vendedorId debe ser un UUID.").optional(),
+    vendedorId: z
+      .string()
+      .refine(isUuid, "El vendedorId debe ser un UUID.")
+      .optional(),
     ...pageFields
   })
   .strict();
 
 const listInventorySchema = z
   .object({
-    bodegaId: z.string().refine(isUuid, "El bodegaId debe ser un UUID.").optional(),
-    productoId: z.string().refine(isUuid, "El productoId debe ser un UUID.").optional(),
+    bodegaId: z
+      .string()
+      .refine(isUuid, "El bodegaId debe ser un UUID.")
+      .optional(),
+    productoId: z
+      .string()
+      .refine(isUuid, "El productoId debe ser un UUID.")
+      .optional(),
     ...pageFields
   })
   .strict();
@@ -74,7 +83,10 @@ const listInventorySchema = z
 const listShipmentsSchema = z
   .object({
     estado: z.enum(ESTADOS_ENVIO).optional(),
-    pedidoId: z.string().refine(isUuid, "El pedidoId debe ser un UUID.").optional(),
+    pedidoId: z
+      .string()
+      .refine(isUuid, "El pedidoId debe ser un UUID.")
+      .optional(),
     ...pageFields
   })
   .strict();
@@ -113,7 +125,10 @@ export function registerSupervisorRoutes(
 ): void {
   app.addHook("onRequest", async (request, reply) => {
     const path = request.url.split("?")[0] ?? "/";
-    if (path !== "/api/v1/supervisor" && !path.startsWith("/api/v1/supervisor/")) {
+    if (
+      path !== "/api/v1/supervisor" &&
+      !path.startsWith("/api/v1/supervisor/")
+    ) {
       return;
     }
     if (
@@ -174,7 +189,10 @@ export function registerSupervisorRoutes(
   app.get("/api/v1/supervisor/products/:productId", async (request, reply) => {
     const actor = await supervisorOf(request, dependencies.authenticator);
     const params = parse(productParamsSchema, request.params);
-    const product = await dependencies.getProduct.execute(actor, params.productId);
+    const product = await dependencies.getProduct.execute(
+      actor,
+      params.productId
+    );
     return reply.code(200).send({ data: product });
   });
 

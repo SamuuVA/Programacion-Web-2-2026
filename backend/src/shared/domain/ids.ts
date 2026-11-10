@@ -7,6 +7,7 @@ export type AuditId = Brand<string, "AuditId">;
 export type EventId = Brand<string, "EventId">;
 export type SessionId = Brand<string, "SessionId">;
 export type SellerId = Brand<string, "SellerId">;
+export type SellerApplicationId = Brand<string, "SellerApplicationId">;
 export type WarehouseId = Brand<string, "WarehouseId">;
 export type AddressId = Brand<string, "AddressId">;
 export type CheckoutId = Brand<string, "CheckoutId">;
@@ -52,6 +53,10 @@ export function sessionId(value: string): SessionId {
 
 export function sellerId(value: string): SellerId {
   return nonEmptyId(value, "SellerId") as SellerId;
+}
+
+export function sellerApplicationId(value: string): SellerApplicationId {
+  return nonEmptyId(value, "SellerApplicationId") as SellerApplicationId;
 }
 
 export function warehouseId(value: string): WarehouseId {

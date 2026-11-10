@@ -151,28 +151,34 @@ export function registerLogisticsRoutes(
   app.get("/api/v1/logistics/orders/:orderId", async (request, reply) => {
     const usuarioId = await logisticsOf(request, dependencies.authenticator);
     const params = parse(orderParamsSchema, request.params);
-    const order = await dependencies.getOrder.execute(usuarioId, params.orderId);
+    const order = await dependencies.getOrder.execute(
+      usuarioId,
+      params.orderId
+    );
     return reply.code(200).send({ data: order });
   });
 
-  app.post("/api/v1/logistics/orders/:orderId/prepare", async (request, reply) => {
-    const usuarioId = await logisticsOf(request, dependencies.authenticator);
-    const params = parse(orderParamsSchema, request.params);
-    const body = parse(prepareSchema, request.body);
-    const result = await dependencies.prepare.execute(
-      usuarioId,
-      params.orderId,
-      {
-        bodegaId: body.bodegaId,
-        ...(body.transportista === undefined
-          ? {}
-          : { transportista: body.transportista }),
-        idempotencyKey: body.idempotencyKey
-      },
-      request.id
-    );
-    return reply.code(result.duplicado ? 200 : 201).send({ data: result });
-  });
+  app.post(
+    "/api/v1/logistics/orders/:orderId/prepare",
+    async (request, reply) => {
+      const usuarioId = await logisticsOf(request, dependencies.authenticator);
+      const params = parse(orderParamsSchema, request.params);
+      const body = parse(prepareSchema, request.body);
+      const result = await dependencies.prepare.execute(
+        usuarioId,
+        params.orderId,
+        {
+          bodegaId: body.bodegaId,
+          ...(body.transportista === undefined
+            ? {}
+            : { transportista: body.transportista }),
+          idempotencyKey: body.idempotencyKey
+        },
+        request.id
+      );
+      return reply.code(result.duplicado ? 200 : 201).send({ data: result });
+    }
+  );
 
   app.post(
     "/api/v1/logistics/shipments/:shipmentId/dispatch",

@@ -2,7 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { AppConfig } from "../../../../config.js";
 import { ValidationError } from "../../../../shared/domain/errors.js";
-import { SESSION_TTL_SECONDS, type LoginUser } from "../../application/login-user.js";
+import {
+  SESSION_TTL_SECONDS,
+  type LoginUser
+} from "../../application/login-user.js";
 import type { LogoutUser } from "../../application/logout-user.js";
 import {
   clearSessionCookie,

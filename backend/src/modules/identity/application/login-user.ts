@@ -1,7 +1,17 @@
 import type { SessionTokenGenerator } from "../../../shared/application/ports.js";
-import { AuthenticationError, DependencyUnavailableError } from "../../../shared/domain/errors.js";
-import type { Clock, IdGenerator, PasswordHasher } from "../../../shared/application/ports.js";
-import { CorrelationId, CorreoElectronico } from "../../../shared/domain/value-objects.js";
+import {
+  AuthenticationError,
+  DependencyUnavailableError
+} from "../../../shared/domain/errors.js";
+import type {
+  Clock,
+  IdGenerator,
+  PasswordHasher
+} from "../../../shared/application/ports.js";
+import {
+  CorrelationId,
+  CorreoElectronico
+} from "../../../shared/domain/value-objects.js";
 import type { AuthenticatedUser, IdentityStore } from "./ports.js";
 
 export const SESSION_TTL_SECONDS = 8 * 60 * 60;
@@ -33,7 +43,10 @@ export class LoginUser {
 
   async execute(command: LoginUserCommand): Promise<LoginUserResult> {
     const correo = CorreoElectronico.create(command.correoElectronico);
-    if (typeof command.credencial !== "string" || command.credencial.length === 0) {
+    if (
+      typeof command.credencial !== "string" ||
+      command.credencial.length === 0
+    ) {
       throw new AuthenticationError("Correo o contraseña incorrectos.");
     }
     const correlationId = CorrelationId.create(command.correlationId);
@@ -45,27 +58,37 @@ export class LoginUser {
       if (error instanceof DependencyUnavailableError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible consultar la identidad.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la identidad.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
 
     if (record === null || record.estado !== "ACTIVO") {
       throw new AuthenticationError("Correo o contraseña incorrectos.");
     }
 
-    let valid = false;
+    let valid: boolean;
     try {
-      valid = await this.hasher.verify(record.hashCredencial, command.credencial);
+      valid = await this.hasher.verify(
+        record.hashCredencial,
+        command.credencial
+      );
     } catch {
-      throw new DependencyUnavailableError("No fue posible verificar la credencial.");
+      throw new DependencyUnavailableError(
+        "No fue posible verificar la credencial."
+      );
     }
     if (!valid) {
       throw new AuthenticationError("Correo o contraseña incorrectos.");
     }
 
     const now = this.clock.now();
-    const expiresAt = new Date(now.toDate().getTime() + SESSION_TTL_SECONDS * 1000);
+    const expiresAt = new Date(
+      now.toDate().getTime() + SESSION_TTL_SECONDS * 1000
+    );
     const generated = this.tokens.generate();
 
     try {
@@ -78,9 +101,12 @@ export class LoginUser {
         correlationId: correlationId.value
       });
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible iniciar la sesión.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible iniciar la sesión.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
 
     return {

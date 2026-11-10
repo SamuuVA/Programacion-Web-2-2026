@@ -9,7 +9,9 @@ import {
 
 describe("value objects de identidad", () => {
   it("normaliza el nombre sin colapsar su contenido", () => {
-    expect(NombreCompleto.create("  Ana   María  Pérez ").value).toBe("Ana María Pérez");
+    expect(NombreCompleto.create("  Ana   María  Pérez ").value).toBe(
+      "Ana María Pérez"
+    );
     expect(() => NombreCompleto.create("   ")).toThrow(ValidationError);
   });
 
@@ -17,8 +19,12 @@ describe("value objects de identidad", () => {
     expect(CorreoElectronico.create("  Ana.Perez@Example.COM ").value).toBe(
       "ana.perez@example.com"
     );
-    expect(() => CorreoElectronico.create("ana@sin-punto")).toThrow(ValidationError);
-    expect(() => CorreoElectronico.create("ana ejemplo@correo.com")).toThrow(ValidationError);
+    expect(() => CorreoElectronico.create("ana@sin-punto")).toThrow(
+      ValidationError
+    );
+    expect(() => CorreoElectronico.create("ana ejemplo@correo.com")).toThrow(
+      ValidationError
+    );
   });
 
   it("compara documentos por sus tres componentes normalizados", () => {

@@ -26,7 +26,10 @@ const bodySchema = z
   })
   .strict();
 
-export function registerBuyerRoutes(app: FastifyInstance, useCase: RegisterBuyer): void {
+export function registerBuyerRoutes(
+  app: FastifyInstance,
+  useCase: RegisterBuyer
+): void {
   app.post("/api/v1/buyers", async (request, reply) => {
     const parsed = bodySchema.safeParse(request.body);
     if (!parsed.success) {

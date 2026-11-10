@@ -1,4 +1,7 @@
-import type { CategoriaProducto, TipoEntrega } from "../../catalog/domain/producto.js";
+import type {
+  CategoriaProducto,
+  TipoEntrega
+} from "../../catalog/domain/producto.js";
 
 export interface SellableProduct {
   readonly productoId: string;
@@ -16,9 +19,7 @@ export interface SellableProduct {
 }
 
 export type MotivoNoVendible =
-  | "PRODUCTO_NO_PUBLICADO"
-  | "VENDEDOR_NO_ACTIVO"
-  | "STOCK_INSUFICIENTE";
+  "PRODUCTO_NO_PUBLICADO" | "VENDEDOR_NO_ACTIVO" | "STOCK_INSUFICIENTE";
 
 export interface CartLineView extends SellableProduct {
   readonly cantidad: number;
@@ -49,7 +50,10 @@ export interface CartItemState {
 export interface CartStore {
   getCart(compradorId: string): Promise<CartView>;
   findProduct(productoId: string): Promise<SellableProduct | null>;
-  getItem(compradorId: string, productoId: string): Promise<CartItemState | null>;
+  getItem(
+    compradorId: string,
+    productoId: string
+  ): Promise<CartItemState | null>;
   upsertItem(input: {
     compradorId: string;
     productoId: string;
@@ -58,6 +62,10 @@ export interface CartStore {
     moneda: string;
     now: string;
   }): Promise<void>;
-  removeItem(compradorId: string, productoId: string, now: string): Promise<boolean>;
+  removeItem(
+    compradorId: string,
+    productoId: string,
+    now: string
+  ): Promise<boolean>;
   close(): Promise<void>;
 }

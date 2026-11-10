@@ -1,14 +1,14 @@
 # NexusMarket — Estado del contrato API
 
-**Corte:** 2026-11-08
-**Documento ejecutable:** `backend/openapi.yaml` (`openapi: 3.1.0`, `info.version: 0.7.0`)
+**Corte:** 2026-11-09
+**Documento ejecutable:** `backend/openapi.yaml` (`openapi: 3.1.0`, `info.version: 0.8.0`)
 **Autoridad:** el código y las pruebas del backend. Este documento describe lo que existe; no autoriza rutas futuras.
 
 ---
 
 ## 1. Alcance declarado
 
-El contrato cubre **68 rutas / 76 operaciones**:
+El contrato cubre **74 rutas / 83 operaciones**:
 
 | Método | Ruta | Operación | Autenticación |
 |---|---|---|---|
@@ -86,6 +86,13 @@ El contrato cubre **68 rutas / 76 operaciones**:
 | `GET` | `/api/v1/admin/orders/{orderId}` | `getAdminOrder` | Bearer (administrador) |
 | `GET` | `/api/v1/admin/payments` | `listAdminPayments` | Bearer (administrador) |
 | `GET` | `/api/v1/admin/reports` | `getAdminReports` | Bearer (administrador) |
+| `POST` | `/api/v1/buyer/seller-application` | `submitSellerApplication` | Bearer (comprador) |
+| `GET` | `/api/v1/buyer/seller-application` | `getOwnSellerApplication` | Bearer (comprador) |
+| `GET` | `/api/v1/admin/seller-applications` | `listSellerApplications` | Bearer (administrador) |
+| `GET` | `/api/v1/admin/seller-applications/{applicationId}` | `getSellerApplication` | Bearer (administrador) |
+| `POST` | `/api/v1/admin/seller-applications/{applicationId}/approve` | `approveSellerApplication` | Bearer (administrador) |
+| `POST` | `/api/v1/admin/seller-applications/{applicationId}/reject` | `rejectSellerApplication` | Bearer (administrador) |
+| `PATCH` | `/api/v1/admin/users/{userId}/access-status` | `updateUserAccessStatus` | Bearer (administrador) |
 | `GET` | `/health` | `health` | Pública |
 | `GET` | `/ready` | `ready` | Pública |
 
@@ -93,7 +100,9 @@ No se declaran reembolsos, logística inversa, subida binaria de archivos, varia
 
 La supervisión es estrictamente de solo lectura: solo se declaran operaciones `GET` bajo `/api/v1/supervisor/*`. Cualquier otro método responde `405 METODO_NO_PERMITIDO`. No se declaran reportes administrativos porque el catálogo, las fórmulas, los filtros y los límites siguen sin aprobarse (`L-19`).
 
-El espacio administrativo declara 17 operaciones `GET` bajo `/api/v1/admin/*`, más las dos altas existentes (`POST /admin/sellers` y `POST /admin/logistics-operators`). Bajo el prefijo admin, cualquier método distinto de `GET`/`HEAD`/`OPTIONS` fuera de esas dos rutas responde `405 METODO_NO_PERMITIDO`. Los reportes admin son solo agregados reales directos; no hay exportaciones ni catálogo de reportes aprobado.
+El espacio administrativo declara 17 operaciones `GET` bajo `/api/v1/admin/*`, más las dos altas existentes (`POST /admin/sellers` y `POST /admin/logistics-operators`). Bajo el prefijo admin, cualquier método distinto de `GET`/`HEAD`/`OPTIONS` fuera de las rutas de escritura autorizadas responde `405 METODO_NO_PERMITIDO`. Los reportes admin son solo agregados reales directos; no hay exportaciones ni catálogo de reportes aprobado.
+
+La fase de identidad añade el registro público de comprador (reutiliza `POST /api/v1/buyers`), la solicitud comprador → vendedor, su revisión administrativa y el cambio de estado de acceso. La aprobación de una solicitud crea vendedor y primera bodega en una transacción PostgreSQL; el rechazo no crea ninguno de los dos. Los estados de acceso son `ACTIVO`, `INACTIVO` y `BLOQUEADO`, con transiciones explícitas y revocación de sesiones al desactivar o bloquear.
 
 ---
 
@@ -221,6 +230,19 @@ El espacio administrativo declara 17 operaciones `GET` bajo `/api/v1/admin/*`, m
 - **Errores:** `400`, `401`, `403`, `404`, `405`, `500`, `503`.
 - **Pruebas:** `admin.test.ts` (5), `admin-http.test.ts` (10), `admin-postgres.test.ts` (3), E2E administrativo (1).
 
+### 3.13 Solicitudes de vendedor y estados de acceso
+
+- **Registro público:** `POST /api/v1/buyers` no acepta `rol` ni `estado`; el backend asigna `COMPRADOR` y `ACTIVO` y crea `users`, `buyers`, `carts` y dirección principal en una transacción.
+- **Solicitud propia:** `POST /api/v1/buyer/seller-application` exige comprador `ACTIVO`; el cuerpo declara `nombreComercial`, `nombreBodega` y `ubicacionBodega`. `GET /api/v1/buyer/seller-application` devuelve solo la solicitud del usuario autenticado.
+- **Estados de solicitud:** `PENDIENTE`, `APROBADA`, `RECHAZADA`. Solo existe una solicitud `PENDIENTE` por usuario mediante índice único parcial; la solicitud es independiente del estado de acceso.
+- **Listado y detalle admin:** `GET /api/v1/admin/seller-applications` con `estado`, `search`, `page` y `pageSize`; `GET /api/v1/admin/seller-applications/{applicationId}` con datos del solicitante, comerciales y de bodega. No se exponen datos sensibles innecesarios.
+- **Aprobación:** `POST .../approve` solo desde `PENDIENTE`. Crea `sellers` + primera `warehouses`, cambia el rol principal a `VENDEDOR`, registra revisor, auditoría y outbox en una transacción. Un reintento sobre `APROBADA` devuelve los identificadores existentes sin duplicar (`yaAprobada: true`).
+- **Rechazo:** `POST .../reject` exige `motivo`; no crea vendedor ni bodega y no cambia el estado de acceso. Rechazar una solicitud ya rechazada es idempotente; una `APROBADA` no puede rechazarse.
+- **Autoprotección:** un administrador no puede aprobar ni rechazar su propia solicitud.
+- **Estado de acceso:** `PATCH /api/v1/admin/users/{userId}/access-status` acepta `accion` (`ACTIVAR`, `DESACTIVAR`, `BLOQUEAR`, `DESBLOQUEAR`) y `motivo` opcional, obligatorio para desactivar/bloquear. Las transiciones inválidas responden `422 REGLA_NEGOCIO_INCUMPLIDA` con `detalles.transicionInvalida`. Desactivar o bloquear revoca las sesiones vigentes en la misma transacción.
+- **Errores:** `400`, `401`, `403`, `404`, `409` (solicitud pendiente duplicada), `422` (transición o estado inválido), `500`, `503`.
+- **Pruebas:** `seller-applications.test.ts` (9), `update-user-access-status.test.ts` (7), `seller-applications-http.test.ts` (11), `seller-applications-postgres.test.ts` (6), E2E de onboarding (3).
+
 ---
 
 ## 4. Esquemas declarados
@@ -256,6 +278,9 @@ El espacio administrativo declara 17 operaciones `GET` bajo `/api/v1/admin/*`, m
 | `AdminWarehouseSummary` / `AdminWarehouseDetail` | Bodegas |
 | `AdminProductSummary` / `AdminProductDetail` / `AdminInventoryPosition` / `AdminInventoryMovement` | Catálogo e inventario |
 | `AdminOrderSummary` / `AdminOrderDetail` / `AdminPayment` / `AdminReports` | Pedidos, pagos y reportes |
+| `SubmitSellerApplicationRequest` / `SellerApplicationSummary` / `SellerApplicationDetail` / `SellerApplicationPage` | Solicitud comprador → vendedor |
+| `RejectSellerApplicationRequest` / `ApproveSellerApplicationResult` | Rechazo y resultado de aprobación |
+| `UpdateUserAccessStatusRequest` / `UserAccessTransitionResult` | Cambio de estado de acceso |
 | `CategoriaProducto` / `PrecioProducto` / `ImagenProducto` / `VendedorResumen` | Catálogo |
 | `ProductoResumen` / `ProductoDetalle` / `PaginacionCatalogo` | Catálogo |
 | `HealthResponse` / `ReadyResponse` / `NotReadyResponse` | Estado |
@@ -276,7 +301,7 @@ Cabecera transversal: `x-correlation-id` (1–200 caracteres, patrón `^[A-Za-z0
 | `RECURSO_NO_ENCONTRADO` | 404 | Producto, pedido o dirección inexistente/no visible |
 | `METODO_NO_PERMITIDO` | 405 | Método no declarado; incluye `Allow` |
 | `CONFLICTO_UNICIDAD` | 409 | Correo/documento duplicado; dirección principal duplicada |
-| `REGLA_NEGOCIO_INCUMPLIDA` | 422 | Stock, carrito vacío, dirección, cambio de precio |
+| `REGLA_NEGOCIO_INCUMPLIDA` | 422 | Stock, carrito vacío, dirección, cambio de precio, transición de acceso inválida o solicitud ya resuelta |
 | `DEPENDENCIA_NO_DISPONIBLE` | 503 | PostgreSQL o hashing no disponible |
 | `ERROR_INTERNO` | 500 | Error no controlado |
 
@@ -287,11 +312,11 @@ Además, Fastify puede producir `413` y `415`; el contrato los declara donde apl
 ## 6. Validación del contrato
 
 - `backend/scripts/validate-openapi.ts` valida offline: YAML, versión 3.1.x, rutas, `operationId` únicos, respuestas, parámetros de ruta, seguridad y resolución de `$ref`.
-- `npm run validate:openapi` → `OpenAPI válido: 68 rutas, 76 operaciones, 904 referencias.`
-- `npm run verify` ejecuta typecheck + pruebas + validación OpenAPI + build.
-- `backend/tests/contract/openapi.test.ts` (6 pruebas) verifica rutas, métodos, respuestas, seguridad, esquemas y referencias. Incluye que las 9 rutas de supervisión solo declaren `GET`, que no existan operaciones de escritura bajo `/api/v1/supervisor/*`, y que las rutas admin sean de solo lectura salvo las dos altas.
+- `npm run validate:openapi` → `OpenAPI válido: 74 rutas, 83 operaciones, 984 referencias.`
+- `npm run verify` ejecuta lint + formato + typecheck + pruebas + validación OpenAPI + build.
+- `backend/tests/contract/openapi.test.ts` (6 pruebas) verifica rutas, métodos, respuestas, seguridad, esquemas y referencias. Incluye que las 9 rutas de supervisión solo declaren `GET`, que no existan operaciones de escritura bajo `/api/v1/supervisor/*`, que las rutas admin sean de solo lectura salvo las altas y las operaciones de solicitud/estado, y que las solicitudes de vendedor y el cambio de estado declaren sus cuerpos y respuestas.
 
-Conteo total del backend: **20 archivos / 160 pruebas** en `npm test`; **8 archivos / 40 pruebas** en `npm run test:postgres`.
+Conteo total del backend: **23 archivos / 187 pruebas** en `npm test`; **9 archivos / 46 pruebas** en `npm run test:postgres`.
 
 ---
 
@@ -302,7 +327,7 @@ Conteo total del backend: **20 archivos / 160 pruebas** en `npm test`; **8 archi
 | Resolución de pagos `DESCONOCIDO` | El pedido queda pendiente sin reconciliación automática | Abierta, fuera de alcance |
 | Sin reembolsos ni logística inversa | No se puede revertir un pago confirmado | Fuera de alcance |
 | Validador OpenAPI propio, no Spectral | Cobertura semántica menor que un validador estándar | Aceptada; corre offline |
-| Sin lint | Deuda de estilo no verificada | `BLOCKED`: sin herramienta |
+| Lint y formato | Verificados localmente | `PASS` local: ESLint en ambos proyectos y Prettier en backend |
 | Sin CI ejecutado en GitHub | La verificación continua no está probada en remoto | `READY_FOR_REVIEW` |
 | Sin pruebas de contrato generadas desde OpenAPI | Las pruebas HTTP son manuales respecto al documento | Abierta |
 | Sin `ETag`/`Cache-Control` explícitos | El frontend usa `cache: "no-store"` | Aceptado |
@@ -319,8 +344,10 @@ Conteo total del backend: **20 archivos / 160 pruebas** en `npm test`; **8 archi
 | Reportes del administrador | Solo agregados reales directos; sin catálogo, fórmulas, filtros ni exportaciones aprobadas | `PARCIAL`; catálogo y exportaciones `BLOQUEADO` (`L-19`) |
 | Devoluciones, reembolsos y facturación | No existen tablas de persistencia ni reglas aprobadas | `BLOQUEADO`; no se crean endpoints |
 | Mutaciones admin de producto/inventario/pago | No definidas ni autorizadas | `BLOQUEADO`; espacio admin de consulta salvo las dos altas |
-| Autoregistro público de comprador | No definido para esta fase | Diferido; solo se documenta la dependencia |
-| Solicitud comprador → vendedor | No definida para esta fase | Diferido; solo se documenta la dependencia |
+| Autoregistro público de comprador | Implementado reutilizando `POST /api/v1/buyers` | `IMPLEMENTED` (Gate R) |
+| Solicitud comprador → vendedor | Implementada con revisión administrativa | `IMPLEMENTED` (Gate R) |
+| Reenvío o edición tras rechazo | El backend solo impide solicitudes `PENDIENTE` duplicadas | Pendiente de decisión; la UI no ofrece reenvío |
+| Notificaciones externas de decisión | No hay infraestructura de correo/mensajería aprobada | `NOT_IMPLEMENTED`; el resultado se consulta en la app |
 
 Ninguna brecha se presenta como resuelta.
 

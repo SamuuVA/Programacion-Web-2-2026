@@ -6,13 +6,19 @@ import {
 import type { CategoriaProducto } from "../../catalog/domain/producto.js";
 import type { DireccionSnapshot } from "../../buyers/domain/direccion-entrega.js";
 import type { EstadoEnvio } from "../../logistics/domain/envio.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import type {
   EstadoProductoVendedor,
   TipoEntregaVendedor
 } from "../../seller-workspace/domain/producto-vendedor.js";
 import type { EstadoVendedor } from "../../seller-workspace/application/ports.js";
-import type { EstadoUsuario, RolSistema } from "../../identity/domain/usuario.js";
+import type {
+  EstadoUsuario,
+  RolSistema
+} from "../../identity/domain/usuario.js";
 import {
   type AdminBuyerDetail,
   type AdminBuyerFilter,
@@ -607,7 +613,9 @@ export class PostgresAdminStore implements AdminStore {
     try {
       const reports = await this.reports();
       const [users, buyers, sellers, orders] = await Promise.all([
-        this.pool.query<UserRow>(`${USER_SELECT} ORDER BY u.creado_en DESC, u.id DESC LIMIT 5`),
+        this.pool.query<UserRow>(
+          `${USER_SELECT} ORDER BY u.creado_en DESC, u.id DESC LIMIT 5`
+        ),
         this.pool.query<BuyerRow>(
           `${BUYER_SELECT} ORDER BY b.creado_en DESC, b.id DESC LIMIT 5`
         ),
@@ -760,7 +768,9 @@ export class PostgresAdminStore implements AdminStore {
     }
   }
 
-  async listUsers(filter: AdminUserFilter): Promise<AdminPage<AdminUserSummary>> {
+  async listUsers(
+    filter: AdminUserFilter
+  ): Promise<AdminPage<AdminUserSummary>> {
     try {
       const count = await this.pool.query<CountRow>(
         `SELECT COUNT(*)::int AS total
@@ -811,7 +821,9 @@ export class PostgresAdminStore implements AdminStore {
     }
   }
 
-  async listBuyers(filter: AdminBuyerFilter): Promise<AdminPage<AdminBuyerSummary>> {
+  async listBuyers(
+    filter: AdminBuyerFilter
+  ): Promise<AdminPage<AdminBuyerSummary>> {
     try {
       const count = await this.pool.query<CountRow>(
         `SELECT COUNT(*)::int AS total
@@ -838,7 +850,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toBuyer), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toBuyer),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -905,7 +921,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toSeller), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toSeller),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -998,13 +1018,19 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toWarehouse), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toWarehouse),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
   }
 
-  async findWarehouse(warehouseId: string): Promise<AdminWarehouseDetail | null> {
+  async findWarehouse(
+    warehouseId: string
+  ): Promise<AdminWarehouseDetail | null> {
     try {
       const result = await this.pool.query<WarehouseRow>(
         `${WAREHOUSE_SELECT} WHERE w.id = $1`,
@@ -1097,7 +1123,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toProductSummary), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toProductSummary),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -1183,7 +1213,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toInventory), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toInventory),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -1213,7 +1247,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toMovement), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toMovement),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -1253,7 +1291,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toOrderSummary), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toOrderSummary),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -1401,7 +1443,11 @@ export class PostgresAdminStore implements AdminStore {
           offsetOf(filter.page, filter.pageSize)
         ]
       );
-      return pageOf(result.rows.map(toPaymentSummary), count.rows[0]?.total ?? 0, filter);
+      return pageOf(
+        result.rows.map(toPaymentSummary),
+        count.rows[0]?.total ?? 0,
+        filter
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -1550,7 +1596,11 @@ function toUserProfile(row: UserDetailRow): AdminUserProfile | null {
       productosCount: row.vendedor_productos_count ?? 0
     };
   }
-  if (row.rol === "OPERADOR_LOGISTICO" && row.operador_id && row.nombre_operador) {
+  if (
+    row.rol === "OPERADOR_LOGISTICO" &&
+    row.operador_id &&
+    row.nombre_operador
+  ) {
     return {
       tipo: "OPERADOR_LOGISTICO",
       id: row.operador_id,
@@ -1681,7 +1731,9 @@ function toProductSummary(row: ProductRow): AdminProductSummary {
     imagenPrincipal: row.imagen_principal,
     imagenesCount: row.imagenes_count,
     inventarioDisponible:
-      row.inventario_disponible === null ? null : Number(row.inventario_disponible),
+      row.inventario_disponible === null
+        ? null
+        : Number(row.inventario_disponible),
     creadoEn: row.creado_en.toISOString(),
     actualizadoEn: row.actualizado_en.toISOString()
   };
@@ -1691,7 +1743,9 @@ function toProductImage(row: ProductImageRow): AdminProductImageView {
   return { id: row.id, url: row.url, alt: row.alt, orden: row.orden };
 }
 
-function toProductInventory(row: ProductInventoryRow): AdminProductInventoryView {
+function toProductInventory(
+  row: ProductInventoryRow
+): AdminProductInventoryView {
   return {
     bodegaId: row.bodega_id,
     bodegaNombre: row.bodega_nombre,
@@ -1720,9 +1774,17 @@ function toInventory(row: InventoryRow): AdminInventoryView {
   };
 }
 
-function toInventoryTotals(row: InventoryTotalsRow | undefined): AdminInventoryTotals {
+function toInventoryTotals(
+  row: InventoryTotalsRow | undefined
+): AdminInventoryTotals {
   if (!row) {
-    return { posiciones: 0, onHand: 0, reserved: 0, unavailable: 0, disponible: 0 };
+    return {
+      posiciones: 0,
+      onHand: 0,
+      reserved: 0,
+      unavailable: 0,
+      disponible: 0
+    };
   }
   return {
     posiciones: row.posiciones,
@@ -1866,7 +1928,9 @@ function toHistory(row: HistoryRow): AdminHistoryView {
   };
 }
 
-function toDelivery(snapshot: DireccionSnapshot | null): AdminDeliveryView | null {
+function toDelivery(
+  snapshot: DireccionSnapshot | null
+): AdminDeliveryView | null {
   if (!snapshot) {
     return null;
   }

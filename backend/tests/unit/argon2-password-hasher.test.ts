@@ -7,7 +7,11 @@ describe("Argon2PasswordHasher", () => {
     const hash = await hasher.hash("correct horse battery staple");
 
     expect(hash).toMatch(/^\$argon2id\$v=19\$m=19456,t=2,p=1\$/);
-    await expect(hasher.verify(hash, "correct horse battery staple")).resolves.toBe(true);
-    await expect(hasher.verify(hash, "otra contraseña distinta")).resolves.toBe(false);
+    await expect(
+      hasher.verify(hash, "correct horse battery staple")
+    ).resolves.toBe(true);
+    await expect(hasher.verify(hash, "otra contraseña distinta")).resolves.toBe(
+      false
+    );
   });
 });

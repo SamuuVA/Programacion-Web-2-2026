@@ -58,7 +58,9 @@ function resolvePointer(document: unknown, ref: string): unknown {
 
   let current: unknown = document;
   for (const rawSegment of ref.slice(2).split("/")) {
-    const segment = decodeURIComponent(rawSegment).replace(/~1/g, "/").replace(/~0/g, "~");
+    const segment = decodeURIComponent(rawSegment)
+      .replace(/~1/g, "/")
+      .replace(/~0/g, "~");
     if (typeof current !== "object" || current === null) {
       return undefined;
     }
@@ -73,8 +75,7 @@ function responseKeys(
   method: string
 ): string[] {
   const operation = document.paths[path]?.[method] as
-    | { responses?: JsonObject }
-    | undefined;
+    { responses?: JsonObject } | undefined;
   return Object.keys(operation?.responses ?? {}).sort();
 }
 
@@ -96,15 +97,21 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "/api/v1/admin/products",
       "/api/v1/admin/products/{productId}",
       "/api/v1/admin/reports",
+      "/api/v1/admin/seller-applications",
+      "/api/v1/admin/seller-applications/{applicationId}",
+      "/api/v1/admin/seller-applications/{applicationId}/approve",
+      "/api/v1/admin/seller-applications/{applicationId}/reject",
       "/api/v1/admin/sellers",
       "/api/v1/admin/sellers/{sellerId}",
       "/api/v1/admin/users",
       "/api/v1/admin/users/{userId}",
+      "/api/v1/admin/users/{userId}/access-status",
       "/api/v1/admin/warehouses",
       "/api/v1/admin/warehouses/{warehouseId}",
       "/api/v1/auth/login",
       "/api/v1/auth/logout",
       "/api/v1/auth/session",
+      "/api/v1/buyer/seller-application",
       "/api/v1/buyers",
       "/api/v1/buyers/me/addresses",
       "/api/v1/buyers/me/addresses/{direccionId}",
@@ -154,51 +161,105 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "/ready"
     ]);
 
-    expect(Object.keys(document.paths["/api/v1/buyers"] ?? {})).toEqual(["post"]);
-    expect(Object.keys(document.paths["/api/v1/products"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/products/{productId}"] ?? {})).toEqual([
+    expect(Object.keys(document.paths["/api/v1/buyers"] ?? {})).toEqual([
+      "post"
+    ]);
+    expect(Object.keys(document.paths["/api/v1/products"] ?? {})).toEqual([
       "get"
     ]);
-    expect(Object.keys(document.paths["/api/v1/categories"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/auth/login"] ?? {})).toEqual(["post"]);
-    expect(Object.keys(document.paths["/api/v1/auth/logout"] ?? {})).toEqual(["post"]);
-    expect(Object.keys(document.paths["/api/v1/auth/session"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/admin/sellers"] ?? {}).sort()).toEqual([
-      "get",
+    expect(
+      Object.keys(document.paths["/api/v1/products/{productId}"] ?? {})
+    ).toEqual(["get"]);
+    expect(Object.keys(document.paths["/api/v1/categories"] ?? {})).toEqual([
+      "get"
+    ]);
+    expect(Object.keys(document.paths["/api/v1/auth/login"] ?? {})).toEqual([
       "post"
     ]);
-    expect(Object.keys(document.paths["/api/v1/buyers/me/addresses"] ?? {}).sort()).toEqual([
-      "get",
+    expect(Object.keys(document.paths["/api/v1/auth/logout"] ?? {})).toEqual([
       "post"
+    ]);
+    expect(Object.keys(document.paths["/api/v1/auth/session"] ?? {})).toEqual([
+      "get"
     ]);
     expect(
-      Object.keys(document.paths["/api/v1/buyers/me/addresses/{direccionId}"] ?? {}).sort()
+      Object.keys(document.paths["/api/v1/admin/sellers"] ?? {}).sort()
+    ).toEqual(["get", "post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/buyer/seller-application"] ?? {}
+      ).sort()
+    ).toEqual(["get", "post"]);
+    expect(
+      Object.keys(document.paths["/api/v1/admin/seller-applications"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/admin/seller-applications/{applicationId}"] ??
+          {}
+      )
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(
+        document.paths[
+          "/api/v1/admin/seller-applications/{applicationId}/approve"
+        ] ?? {}
+      )
+    ).toEqual(["post"]);
+    expect(
+      Object.keys(
+        document.paths[
+          "/api/v1/admin/seller-applications/{applicationId}/reject"
+        ] ?? {}
+      )
+    ).toEqual(["post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/admin/users/{userId}/access-status"] ?? {}
+      )
+    ).toEqual(["patch"]);
+    expect(
+      Object.keys(document.paths["/api/v1/buyers/me/addresses"] ?? {}).sort()
+    ).toEqual(["get", "post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/buyers/me/addresses/{direccionId}"] ?? {}
+      ).sort()
     ).toEqual(["delete", "parameters", "patch"]);
     expect(
       Object.keys(
-        document.paths["/api/v1/buyers/me/addresses/{direccionId}/principal"] ?? {}
+        document.paths["/api/v1/buyers/me/addresses/{direccionId}/principal"] ??
+          {}
       )
     ).toEqual(["post"]);
     expect(Object.keys(document.paths["/api/v1/cart"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/cart/items"] ?? {})).toEqual(["post"]);
-    expect(
-      Object.keys(document.paths["/api/v1/cart/items/{productoId}"] ?? {}).sort()
-    ).toEqual(["delete", "parameters", "patch"]);
-    expect(Object.keys(document.paths["/api/v1/checkout"] ?? {})).toEqual(["post"]);
-    expect(Object.keys(document.paths["/api/v1/orders"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/orders/{orderId}"] ?? {})).toEqual([
-      "get"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/seller/profile"] ?? {}).sort()).toEqual([
-      "get",
-      "patch"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/seller/products"] ?? {}).sort()).toEqual([
-      "get",
+    expect(Object.keys(document.paths["/api/v1/cart/items"] ?? {})).toEqual([
       "post"
     ]);
     expect(
-      Object.keys(document.paths["/api/v1/seller/products/{productId}"] ?? {}).sort()
+      Object.keys(
+        document.paths["/api/v1/cart/items/{productoId}"] ?? {}
+      ).sort()
+    ).toEqual(["delete", "parameters", "patch"]);
+    expect(Object.keys(document.paths["/api/v1/checkout"] ?? {})).toEqual([
+      "post"
+    ]);
+    expect(Object.keys(document.paths["/api/v1/orders"] ?? {})).toEqual([
+      "get"
+    ]);
+    expect(
+      Object.keys(document.paths["/api/v1/orders/{orderId}"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/seller/profile"] ?? {}).sort()
+    ).toEqual(["get", "patch"]);
+    expect(
+      Object.keys(document.paths["/api/v1/seller/products"] ?? {}).sort()
+    ).toEqual(["get", "post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/seller/products/{productId}"] ?? {}
+      ).sort()
     ).toEqual(["get", "parameters", "patch"]);
     expect(
       Object.keys(
@@ -207,7 +268,9 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     ).toEqual(["parameters", "post"]);
     expect(
       Object.keys(
-        document.paths["/api/v1/seller/products/{productId}/images/{imageId}"] ?? {}
+        document.paths[
+          "/api/v1/seller/products/{productId}/images/{imageId}"
+        ] ?? {}
       ).sort()
     ).toEqual(["delete", "parameters"]);
     expect(
@@ -225,50 +288,59 @@ describe("Contrato OpenAPI del alcance implementado", () => {
         document.paths["/api/v1/seller/products/{productId}/discontinue"] ?? {}
       ).sort()
     ).toEqual(["parameters", "post"]);
-    expect(Object.keys(document.paths["/api/v1/seller/warehouses"] ?? {}).sort()).toEqual([
-      "get",
-      "post"
-    ]);
     expect(
-      Object.keys(document.paths["/api/v1/seller/warehouses/{warehouseId}"] ?? {}).sort()
+      Object.keys(document.paths["/api/v1/seller/warehouses"] ?? {}).sort()
+    ).toEqual(["get", "post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/seller/warehouses/{warehouseId}"] ?? {}
+      ).sort()
     ).toEqual(["parameters", "patch"]);
-    expect(Object.keys(document.paths["/api/v1/seller/inventory"] ?? {})).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/seller/inventory"] ?? {})
+    ).toEqual(["get"]);
     expect(
       Object.keys(document.paths["/api/v1/seller/inventory/ingresos"] ?? {})
     ).toEqual(["post"]);
-    expect(Object.keys(document.paths["/api/v1/seller/orders"] ?? {})).toEqual(["get"]);
-    expect(Object.keys(document.paths["/api/v1/seller/orders/{orderId}"] ?? {})).toEqual([
+    expect(Object.keys(document.paths["/api/v1/seller/orders"] ?? {})).toEqual([
       "get"
     ]);
-    expect(Object.keys(document.paths["/api/v1/logistics/profile"] ?? {})).toEqual([
-      "get"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/logistics/warehouses"] ?? {})).toEqual([
-      "get"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/logistics/inventory"] ?? {})).toEqual([
-      "get"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/logistics/summary"] ?? {})).toEqual([
-      "get"
-    ]);
-    expect(Object.keys(document.paths["/api/v1/logistics/orders"] ?? {})).toEqual([
-      "get"
-    ]);
+    expect(
+      Object.keys(document.paths["/api/v1/seller/orders/{orderId}"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/logistics/profile"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/logistics/warehouses"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/logistics/inventory"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/logistics/summary"] ?? {})
+    ).toEqual(["get"]);
+    expect(
+      Object.keys(document.paths["/api/v1/logistics/orders"] ?? {})
+    ).toEqual(["get"]);
     expect(
       Object.keys(document.paths["/api/v1/logistics/orders/{orderId}"] ?? {})
     ).toEqual(["get"]);
     expect(
-      Object.keys(document.paths["/api/v1/logistics/orders/{orderId}/prepare"] ?? {})
-    ).toEqual(["post"]);
-    expect(
       Object.keys(
-        document.paths["/api/v1/logistics/shipments/{shipmentId}/dispatch"] ?? {}
+        document.paths["/api/v1/logistics/orders/{orderId}/prepare"] ?? {}
       )
     ).toEqual(["post"]);
     expect(
       Object.keys(
-        document.paths["/api/v1/logistics/shipments/{shipmentId}/delivery"] ?? {}
+        document.paths["/api/v1/logistics/shipments/{shipmentId}/dispatch"] ??
+          {}
+      )
+    ).toEqual(["post"]);
+    expect(
+      Object.keys(
+        document.paths["/api/v1/logistics/shipments/{shipmentId}/delivery"] ??
+          {}
       )
     ).toEqual(["post"]);
     expect(
@@ -285,9 +357,10 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "/api/v1/supervisor/shipments",
       "/api/v1/supervisor/sellers"
     ]) {
-      expect(Object.keys(document.paths[path] ?? {}), `${path} debe ser solo GET`).toEqual([
-        "get"
-      ]);
+      expect(
+        Object.keys(document.paths[path] ?? {}),
+        `${path} debe ser solo GET`
+      ).toEqual(["get"]);
     }
     for (const path of [
       "/api/v1/admin/dashboard",
@@ -307,9 +380,10 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "/api/v1/admin/orders/{orderId}",
       "/api/v1/admin/payments"
     ]) {
-      expect(Object.keys(document.paths[path] ?? {}), `${path} debe ser solo GET`).toEqual([
-        "get"
-      ]);
+      expect(
+        Object.keys(document.paths[path] ?? {}),
+        `${path} debe ser solo GET`
+      ).toEqual(["get"]);
     }
     expect(Object.keys(document.paths["/health"] ?? {})).toEqual(["get"]);
     expect(Object.keys(document.paths["/ready"] ?? {})).toEqual(["get"]);
@@ -333,13 +407,9 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/products/{productId}", "get")).toEqual([
-      "200",
-      "400",
-      "404",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/products/{productId}", "get")
+    ).toEqual(["200", "400", "404", "500", "503"]);
     expect(responseKeys(document, "/health", "get")).toEqual(["200"]);
     expect(responseKeys(document, "/ready", "get")).toEqual(["200", "503"]);
 
@@ -361,26 +431,25 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/buyers/me/addresses", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/buyers/me/addresses", "post")).toEqual([
-      "201",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
     expect(
-      responseKeys(document, "/api/v1/buyers/me/addresses/{direccionId}", "patch")
+      responseKeys(document, "/api/v1/buyers/me/addresses", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/buyers/me/addresses", "post")
+    ).toEqual(["201", "400", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(
+        document,
+        "/api/v1/buyers/me/addresses/{direccionId}",
+        "patch"
+      )
     ).toEqual(["200", "400", "401", "403", "404", "500", "503"]);
     expect(
-      responseKeys(document, "/api/v1/buyers/me/addresses/{direccionId}", "delete")
+      responseKeys(
+        document,
+        "/api/v1/buyers/me/addresses/{direccionId}",
+        "delete"
+      )
     ).toEqual(["204", "401", "403", "404", "500", "503"]);
     expect(
       responseKeys(
@@ -416,24 +485,12 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/cart/items/{productoId}", "patch")).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "404",
-      "422",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/cart/items/{productoId}", "delete")).toEqual([
-      "200",
-      "401",
-      "403",
-      "404",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/cart/items/{productoId}", "patch")
+    ).toEqual(["200", "400", "401", "403", "404", "422", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/cart/items/{productoId}", "delete")
+    ).toEqual(["200", "401", "403", "404", "500", "503"]);
     expect(responseKeys(document, "/api/v1/checkout", "post")).toEqual([
       "201",
       "202",
@@ -496,19 +553,13 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     ).toEqual(["200", "401", "403", "404", "500", "503"]);
     expect(
       responseKeys(document, "/api/v1/seller/products/{productId}", "patch")
-    ).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "404",
-      "409",
-      "422",
-      "500",
-      "503"
-    ]);
+    ).toEqual(["200", "400", "401", "403", "404", "409", "422", "500", "503"]);
     expect(
-      responseKeys(document, "/api/v1/seller/products/{productId}/images", "post")
+      responseKeys(
+        document,
+        "/api/v1/seller/products/{productId}/images",
+        "post"
+      )
     ).toEqual(["201", "400", "401", "403", "404", "422", "500", "503"]);
     expect(
       responseKeys(
@@ -533,14 +584,9 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/seller/warehouses", "post")).toEqual([
-      "201",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
+    expect(responseKeys(document, "/api/v1/seller/warehouses", "post")).toEqual(
+      ["201", "400", "401", "403", "500", "503"]
+    );
     expect(
       responseKeys(document, "/api/v1/seller/warehouses/{warehouseId}", "patch")
     ).toEqual(["200", "400", "401", "403", "404", "500", "503"]);
@@ -561,14 +607,9 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/seller/orders/{orderId}", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "404",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/seller/orders/{orderId}", "get")
+    ).toEqual(["200", "401", "403", "404", "500", "503"]);
     expect(responseKeys(document, "/api/v1/logistics/profile", "get")).toEqual([
       "200",
       "401",
@@ -576,20 +617,12 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/logistics/warehouses", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/logistics/inventory", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/logistics/warehouses", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/logistics/inventory", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
     expect(responseKeys(document, "/api/v1/logistics/summary", "get")).toEqual([
       "200",
       "401",
@@ -609,7 +642,11 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       responseKeys(document, "/api/v1/logistics/orders/{orderId}", "get")
     ).toEqual(["200", "401", "403", "404", "500", "503"]);
     expect(
-      responseKeys(document, "/api/v1/logistics/orders/{orderId}/prepare", "post")
+      responseKeys(
+        document,
+        "/api/v1/logistics/orders/{orderId}/prepare",
+        "post"
+      )
     ).toEqual(["200", "201", "400", "401", "403", "404", "422", "500", "503"]);
     expect(
       responseKeys(
@@ -625,23 +662,12 @@ describe("Contrato OpenAPI del alcance implementado", () => {
         "post"
       )
     ).toEqual(["200", "201", "400", "401", "403", "404", "422", "500", "503"]);
-    expect(responseKeys(document, "/api/v1/admin/logistics-operators", "post")).toEqual([
-      "201",
-      "400",
-      "401",
-      "403",
-      "409",
-      "422",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/supervisor/dashboard", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/admin/logistics-operators", "post")
+    ).toEqual(["201", "400", "401", "403", "409", "422", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/dashboard", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
     expect(responseKeys(document, "/api/v1/supervisor/orders", "get")).toEqual([
       "200",
       "400",
@@ -650,56 +676,27 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "500",
       "503"
     ]);
-    expect(responseKeys(document, "/api/v1/supervisor/orders/{orderId}", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "404",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/supervisor/products", "get")).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/orders/{orderId}", "get")
+    ).toEqual(["200", "401", "403", "404", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/products", "get")
+    ).toEqual(["200", "400", "401", "403", "500", "503"]);
     expect(
       responseKeys(document, "/api/v1/supervisor/products/{productId}", "get")
     ).toEqual(["200", "401", "403", "404", "500", "503"]);
-    expect(responseKeys(document, "/api/v1/supervisor/warehouses", "get")).toEqual([
-      "200",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/supervisor/inventory", "get")).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/supervisor/shipments", "get")).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
-    expect(responseKeys(document, "/api/v1/supervisor/sellers", "get")).toEqual([
-      "200",
-      "400",
-      "401",
-      "403",
-      "500",
-      "503"
-    ]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/warehouses", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/inventory", "get")
+    ).toEqual(["200", "400", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/supervisor/shipments", "get")
+    ).toEqual(["200", "400", "401", "403", "500", "503"]);
+    expect(responseKeys(document, "/api/v1/supervisor/sellers", "get")).toEqual(
+      ["200", "400", "401", "403", "500", "503"]
+    );
     expect(responseKeys(document, "/api/v1/admin/dashboard", "get")).toEqual([
       "200",
       "401",
@@ -724,25 +721,81 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     ]);
     for (const [path, expected] of [
       ["/api/v1/admin/users", ["200", "400", "401", "403", "500", "503"]],
-      ["/api/v1/admin/users/{userId}", ["200", "400", "401", "403", "404", "500", "503"]],
+      [
+        "/api/v1/admin/users/{userId}",
+        ["200", "400", "401", "403", "404", "500", "503"]
+      ],
       ["/api/v1/admin/buyers", ["200", "400", "401", "403", "500", "503"]],
-      ["/api/v1/admin/buyers/{buyerId}", ["200", "400", "401", "403", "404", "500", "503"]],
-      ["/api/v1/admin/sellers/{sellerId}", ["200", "400", "401", "403", "404", "500", "503"]],
+      [
+        "/api/v1/admin/buyers/{buyerId}",
+        ["200", "400", "401", "403", "404", "500", "503"]
+      ],
+      [
+        "/api/v1/admin/sellers/{sellerId}",
+        ["200", "400", "401", "403", "404", "500", "503"]
+      ],
       ["/api/v1/admin/warehouses", ["200", "400", "401", "403", "500", "503"]],
       [
         "/api/v1/admin/warehouses/{warehouseId}",
         ["200", "400", "401", "403", "404", "500", "503"]
       ],
       ["/api/v1/admin/products", ["200", "400", "401", "403", "500", "503"]],
-      ["/api/v1/admin/products/{productId}", ["200", "400", "401", "403", "404", "500", "503"]],
+      [
+        "/api/v1/admin/products/{productId}",
+        ["200", "400", "401", "403", "404", "500", "503"]
+      ],
       ["/api/v1/admin/inventory", ["200", "400", "401", "403", "500", "503"]],
-      ["/api/v1/admin/inventory/movements", ["200", "400", "401", "403", "500", "503"]],
+      [
+        "/api/v1/admin/inventory/movements",
+        ["200", "400", "401", "403", "500", "503"]
+      ],
       ["/api/v1/admin/orders", ["200", "400", "401", "403", "500", "503"]],
-      ["/api/v1/admin/orders/{orderId}", ["200", "400", "401", "403", "404", "500", "503"]],
+      [
+        "/api/v1/admin/orders/{orderId}",
+        ["200", "400", "401", "403", "404", "500", "503"]
+      ],
       ["/api/v1/admin/payments", ["200", "400", "401", "403", "500", "503"]]
     ] as const) {
       expect(responseKeys(document, path, "get"), path).toEqual(expected);
     }
+
+    expect(
+      responseKeys(document, "/api/v1/buyer/seller-application", "post")
+    ).toEqual(["201", "400", "401", "403", "422", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/buyer/seller-application", "get")
+    ).toEqual(["200", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(document, "/api/v1/admin/seller-applications", "get")
+    ).toEqual(["200", "400", "401", "403", "500", "503"]);
+    expect(
+      responseKeys(
+        document,
+        "/api/v1/admin/seller-applications/{applicationId}",
+        "get"
+      )
+    ).toEqual(["200", "400", "401", "403", "404", "500", "503"]);
+    expect(
+      responseKeys(
+        document,
+        "/api/v1/admin/seller-applications/{applicationId}/approve",
+        "post"
+      )
+    ).toEqual(["200", "400", "401", "403", "404", "422", "500", "503"]);
+    expect(
+      responseKeys(
+        document,
+        "/api/v1/admin/seller-applications/{applicationId}/reject",
+        "post"
+      )
+    ).toEqual(["200", "400", "401", "403", "404", "422", "500", "503"]);
+    expect(
+      responseKeys(
+        document,
+        "/api/v1/admin/users/{userId}/access-status",
+        "patch"
+      )
+    ).toEqual(["200", "400", "401", "403", "404", "422", "500", "503"]);
   });
 
   it("rechaza propiedades desconocidas donde el adaptador las rechaza", async () => {
@@ -769,7 +822,10 @@ describe("Contrato OpenAPI del alcance implementado", () => {
       "PrepareShipmentRequest",
       "DispatchShipmentRequest",
       "DeliveryRequest",
-      "RegisterLogisticsOperatorRequest"
+      "RegisterLogisticsOperatorRequest",
+      "SubmitSellerApplicationRequest",
+      "RejectSellerApplicationRequest",
+      "UpdateUserAccessStatusRequest"
     ]) {
       expect(
         document.components.schemas[schemaName]?.additionalProperties,
@@ -792,8 +848,7 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     });
 
     const sessionOperation = document.paths["/api/v1/auth/session"]?.get as
-      | { security?: unknown }
-      | undefined;
+      { security?: unknown } | undefined;
     expect(sessionOperation?.security).toEqual([
       { SessionCookie: [] },
       { BearerAuth: [] }
@@ -819,9 +874,11 @@ describe("Contrato OpenAPI del alcance implementado", () => {
     });
 
     const errorSchema = document.components.schemas.ErrorResponse;
-    const errorProperty = (errorSchema?.properties as JsonObject | undefined)?.error;
+    const errorProperty = (errorSchema?.properties as JsonObject | undefined)
+      ?.error;
     const codigo = (
-      (errorProperty as JsonObject | undefined)?.properties as JsonObject | undefined
+      (errorProperty as JsonObject | undefined)?.properties as
+        JsonObject | undefined
     )?.codigo;
     expect((codigo as JsonObject | undefined)?.enum).toEqual(
       expect.arrayContaining([
@@ -840,7 +897,10 @@ describe("Contrato OpenAPI del alcance implementado", () => {
 
     expect(refs.length).toBeGreaterThan(0);
     for (const ref of refs) {
-      expect(resolvePointer(document, ref), `Referencia sin resolver: ${ref}`).toBeDefined();
+      expect(
+        resolvePointer(document, ref),
+        `Referencia sin resolver: ${ref}`
+      ).toBeDefined();
     }
   });
 });

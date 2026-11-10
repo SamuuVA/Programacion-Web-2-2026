@@ -3,7 +3,11 @@ import {
   UniquenessConflictError,
   ValidationError
 } from "../../../shared/domain/errors.js";
-import type { Clock, IdGenerator, PasswordHasher } from "../../../shared/application/ports.js";
+import type {
+  Clock,
+  IdGenerator,
+  PasswordHasher
+} from "../../../shared/application/ports.js";
 import {
   CorrelationId,
   CorreoElectronico,
@@ -61,19 +65,26 @@ export class RegisterBuyer {
     validatePasswordPolicy(command.credencial);
 
     if (await this.store.existsByEmail(correo)) {
-      throw new UniquenessConflictError("El correo electrónico ya está registrado.");
+      throw new UniquenessConflictError(
+        "El correo electrónico ya está registrado."
+      );
     }
     if (await this.store.existsByDocument(documento)) {
-      throw new UniquenessConflictError("El documento de identidad ya está registrado.");
+      throw new UniquenessConflictError(
+        "El documento de identidad ya está registrado."
+      );
     }
 
     let hashValue: string;
     try {
       hashValue = await this.hasher.hash(command.credencial);
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible procesar la credencial.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible procesar la credencial.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
     const hash = HashCredencial.create(hashValue);
 
@@ -146,9 +157,12 @@ export class RegisterBuyer {
       if (error instanceof UniquenessConflictError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible completar el registro.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible completar el registro.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
 
     return {

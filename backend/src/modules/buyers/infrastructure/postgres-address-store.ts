@@ -42,13 +42,19 @@ export class PostgresAddressStore implements AddressStore {
       );
       return result.rows.map(toDomain);
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar las direcciones.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar las direcciones.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
-  async findById(compradorId: string, direccionId: string): Promise<DireccionEntrega | null> {
+  async findById(
+    compradorId: string,
+    direccionId: string
+  ): Promise<DireccionEntrega | null> {
     try {
       const result = await this.pool.query<AddressRow>(
         `SELECT *
@@ -61,9 +67,12 @@ export class PostgresAddressStore implements AddressStore {
       const row = result.rows[0];
       return row ? toDomain(row) : null;
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la dirección.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la dirección.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -105,9 +114,12 @@ export class PostgresAddressStore implements AddressStore {
       await client.query("COMMIT");
     } catch (error) {
       await rollback(client);
-      throw new DependencyUnavailableError("No fue posible guardar la dirección.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible guardar la dirección.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
@@ -143,15 +155,20 @@ export class PostgresAddressStore implements AddressStore {
         ]
       );
       if (result.rowCount !== 1) {
-        throw new DependencyUnavailableError("La dirección dejó de existir durante la actualización.");
+        throw new DependencyUnavailableError(
+          "La dirección dejó de existir durante la actualización."
+        );
       }
     } catch (error) {
       if (error instanceof DependencyUnavailableError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible actualizar la dirección.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible actualizar la dirección.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -190,15 +207,22 @@ export class PostgresAddressStore implements AddressStore {
       return true;
     } catch (error) {
       await rollback(client);
-      throw new DependencyUnavailableError("No fue posible eliminar la dirección.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible eliminar la dirección.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
   }
 
-  async setPrincipal(compradorId: string, direccionId: string, at: string): Promise<boolean> {
+  async setPrincipal(
+    compradorId: string,
+    direccionId: string,
+    at: string
+  ): Promise<boolean> {
     const client = await this.connect();
     try {
       await client.query("BEGIN");
@@ -230,9 +254,12 @@ export class PostgresAddressStore implements AddressStore {
       return true;
     } catch (error) {
       await rollback(client);
-      throw new DependencyUnavailableError("No fue posible cambiar la dirección principal.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible cambiar la dirección principal.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
@@ -246,15 +273,23 @@ export class PostgresAddressStore implements AddressStore {
     try {
       return await this.pool.connect();
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible conectar con la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible conectar con la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 }
 
-async function lockBuyer(client: PoolClient, compradorId: string): Promise<void> {
-  await client.query("SELECT id FROM buyers WHERE id = $1 FOR UPDATE", [compradorId]);
+async function lockBuyer(
+  client: PoolClient,
+  compradorId: string
+): Promise<void> {
+  await client.query("SELECT id FROM buyers WHERE id = $1 FOR UPDATE", [
+    compradorId
+  ]);
 }
 
 async function rollback(client: PoolClient): Promise<void> {

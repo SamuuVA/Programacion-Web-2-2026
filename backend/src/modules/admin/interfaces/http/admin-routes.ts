@@ -4,11 +4,14 @@ import { ValidationError } from "../../../../shared/domain/errors.js";
 import { isUuid } from "../../../../shared/domain/value-objects.js";
 import { CATEGORIAS_PRODUCTO } from "../../../catalog/domain/producto.js";
 import type { AuthenticatedUser } from "../../../identity/application/ports.js";
+import {
+  ACCIONES_ESTADO_USUARIO,
+  type UpdateUserAccessStatus
+} from "../../../identity/application/update-user-access-status.js";
 import type { SessionAuthenticator } from "../../../identity/interfaces/http/session.js";
 import {
   ESTADOS_BODEGA_ADMIN,
   ESTADOS_COMPRADOR_ADMIN,
-  ESTADOS_OPERADOR_ADMIN,
   ESTADOS_PAGO_ADMIN,
   ESTADOS_PEDIDO_ADMIN,
   ESTADOS_PRODUCTO_ADMIN,
@@ -65,14 +68,53 @@ const POST_ALLOWLIST = new Set([
   "/api/v1/admin/logistics-operators"
 ]);
 
+const UUID_SEGMENT = "[0-9a-fA-F-]{36}";
+const SELLER_APPLICATION_ACTION = new RegExp(
+  `^/api/v1/admin/seller-applications/${UUID_SEGMENT}/(approve|reject)$`
+);
+const USER_ACCESS_STATUS = new RegExp(
+  `^/api/v1/admin/users/${UUID_SEGMENT}/access-status$`
+);
+
+function isAllowedAdminWrite(method: string, path: string): boolean {
+  if (method === "POST") {
+    return POST_ALLOWLIST.has(path) || SELLER_APPLICATION_ACTION.test(path);
+  }
+  if (method === "PATCH") {
+    return USER_ACCESS_STATUS.test(path);
+  }
+  return false;
+}
+
+function allowedMethodsFor(path: string): string {
+  if (POST_ALLOWLIST.has(path) || SELLER_APPLICATION_ACTION.test(path)) {
+    return "GET, HEAD, POST";
+  }
+  if (USER_ACCESS_STATUS.test(path)) {
+    return "PATCH";
+  }
+  return "GET, HEAD";
+}
+
+const accessStatusSchema = z
+  .object({
+    accion: z.enum(ACCIONES_ESTADO_USUARIO),
+    motivo: z.string().max(500).optional()
+  })
+  .strict();
+
 const userIdParamsSchema = z
   .object({ userId: z.string().refine(isUuid, "El userId debe ser un UUID.") })
   .strict();
 const buyerIdParamsSchema = z
-  .object({ buyerId: z.string().refine(isUuid, "El buyerId debe ser un UUID.") })
+  .object({
+    buyerId: z.string().refine(isUuid, "El buyerId debe ser un UUID.")
+  })
   .strict();
 const sellerIdParamsSchema = z
-  .object({ sellerId: z.string().refine(isUuid, "El sellerId debe ser un UUID.") })
+  .object({
+    sellerId: z.string().refine(isUuid, "El sellerId debe ser un UUID.")
+  })
   .strict();
 const warehouseIdParamsSchema = z
   .object({
@@ -80,10 +122,14 @@ const warehouseIdParamsSchema = z
   })
   .strict();
 const productIdParamsSchema = z
-  .object({ productId: z.string().refine(isUuid, "El productId debe ser un UUID.") })
+  .object({
+    productId: z.string().refine(isUuid, "El productId debe ser un UUID.")
+  })
   .strict();
 const orderIdParamsSchema = z
-  .object({ orderId: z.string().refine(isUuid, "El orderId debe ser un UUID.") })
+  .object({
+    orderId: z.string().refine(isUuid, "El orderId debe ser un UUID.")
+  })
   .strict();
 
 const listUsersSchema = z
@@ -114,7 +160,10 @@ const listSellersSchema = z
 const listWarehousesSchema = z
   .object({
     estado: z.enum(ESTADOS_BODEGA_ADMIN).optional(),
-    vendedorId: z.string().refine(isUuid, "El vendedorId debe ser un UUID.").optional(),
+    vendedorId: z
+      .string()
+      .refine(isUuid, "El vendedorId debe ser un UUID.")
+      .optional(),
     search: SEARCH_FIELD,
     ...PAGE_FIELDS
   })
@@ -125,7 +174,10 @@ const listProductsSchema = z
     estado: z.enum(ESTADOS_PRODUCTO_ADMIN).optional(),
     categoria: z.enum(CATEGORIAS_PRODUCTO).optional(),
     tipoEntrega: z.enum(TIPOS_ENTREGA_ADMIN).optional(),
-    vendedorId: z.string().refine(isUuid, "El vendedorId debe ser un UUID.").optional(),
+    vendedorId: z
+      .string()
+      .refine(isUuid, "El vendedorId debe ser un UUID.")
+      .optional(),
     search: SEARCH_FIELD,
     ...PAGE_FIELDS
   })
@@ -133,9 +185,18 @@ const listProductsSchema = z
 
 const listInventorySchema = z
   .object({
-    bodegaId: z.string().refine(isUuid, "El bodegaId debe ser un UUID.").optional(),
-    productoId: z.string().refine(isUuid, "El productoId debe ser un UUID.").optional(),
-    vendedorId: z.string().refine(isUuid, "El vendedorId debe ser un UUID.").optional(),
+    bodegaId: z
+      .string()
+      .refine(isUuid, "El bodegaId debe ser un UUID.")
+      .optional(),
+    productoId: z
+      .string()
+      .refine(isUuid, "El productoId debe ser un UUID.")
+      .optional(),
+    vendedorId: z
+      .string()
+      .refine(isUuid, "El vendedorId debe ser un UUID.")
+      .optional(),
     search: SEARCH_FIELD,
     ...PAGE_FIELDS
   })
@@ -143,8 +204,14 @@ const listInventorySchema = z
 
 const listMovementsSchema = z
   .object({
-    bodegaId: z.string().refine(isUuid, "El bodegaId debe ser un UUID.").optional(),
-    productoId: z.string().refine(isUuid, "El productoId debe ser un UUID.").optional(),
+    bodegaId: z
+      .string()
+      .refine(isUuid, "El bodegaId debe ser un UUID.")
+      .optional(),
+    productoId: z
+      .string()
+      .refine(isUuid, "El productoId debe ser un UUID.")
+      .optional(),
     ...PAGE_FIELDS
   })
   .strict();
@@ -184,6 +251,7 @@ export interface AdminRoutesDependencies {
   readonly listOrders: ListAdminOrders;
   readonly getOrder: GetAdminOrder;
   readonly listPayments: ListAdminPayments;
+  readonly updateUserAccessStatus?: UpdateUserAccessStatus;
 }
 
 export function registerAdminRoutes(
@@ -202,18 +270,15 @@ export function registerAdminRoutes(
     ) {
       return;
     }
-    if (request.method === "POST" && POST_ALLOWLIST.has(path)) {
+    if (isAllowedAdminWrite(request.method, path)) {
       return;
     }
-    reply.header(
-      "allow",
-      POST_ALLOWLIST.has(path) ? "GET, HEAD, POST" : "GET, HEAD"
-    );
+    reply.header("allow", allowedMethodsFor(path));
     return reply.code(405).send({
       error: {
         codigo: "METODO_NO_PERMITIDO",
         mensaje:
-          "El espacio administrativo solo permite consultas y las altas administrativas definidas.",
+          "El espacio administrativo solo permite consultas y las operaciones administrativas definidas.",
         correlationId: request.id
       }
     });
@@ -250,6 +315,26 @@ export function registerAdminRoutes(
     const user = await dependencies.getUser.execute(actor, params.userId);
     return reply.code(200).send({ data: user });
   });
+
+  if (dependencies.updateUserAccessStatus) {
+    const updateUserAccessStatus = dependencies.updateUserAccessStatus;
+    app.patch(
+      "/api/v1/admin/users/:userId/access-status",
+      async (request, reply) => {
+        const actor = await adminOf(request, dependencies.authenticator);
+        const params = parse(userIdParamsSchema, request.params);
+        const body = parse(accessStatusSchema, request.body);
+        const result = await updateUserAccessStatus.execute({
+          actor,
+          usuarioId: params.userId,
+          accion: body.accion,
+          ...(body.motivo !== undefined ? { motivo: body.motivo } : {}),
+          correlationId: request.id
+        });
+        return reply.code(200).send({ data: result });
+      }
+    );
+  }
 
   app.get("/api/v1/admin/buyers", async (request, reply) => {
     const actor = await adminOf(request, dependencies.authenticator);
@@ -330,7 +415,10 @@ export function registerAdminRoutes(
   app.get("/api/v1/admin/products/:productId", async (request, reply) => {
     const actor = await adminOf(request, dependencies.authenticator);
     const params = parse(productIdParamsSchema, request.params);
-    const product = await dependencies.getProduct.execute(actor, params.productId);
+    const product = await dependencies.getProduct.execute(
+      actor,
+      params.productId
+    );
     return reply.code(200).send({ data: product });
   });
 

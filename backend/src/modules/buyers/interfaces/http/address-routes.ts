@@ -67,25 +67,31 @@ export function registerAddressRoutes(
     return reply.code(201).send({ data: serializeAddress(address) });
   });
 
-  app.patch("/api/v1/buyers/me/addresses/:direccionId", async (request, reply) => {
-    const user = await dependencies.authenticator.requireUser(request);
-    const compradorId = dependencies.authenticator.requireBuyer(user);
-    const params = parse(paramsSchema, request.params);
-    const body = parse(updateBodySchema, request.body);
-    const address = await dependencies.update.execute(compradorId, {
-      direccionId: params.direccionId,
-      ...body
-    });
-    return reply.code(200).send({ data: serializeAddress(address) });
-  });
+  app.patch(
+    "/api/v1/buyers/me/addresses/:direccionId",
+    async (request, reply) => {
+      const user = await dependencies.authenticator.requireUser(request);
+      const compradorId = dependencies.authenticator.requireBuyer(user);
+      const params = parse(paramsSchema, request.params);
+      const body = parse(updateBodySchema, request.body);
+      const address = await dependencies.update.execute(compradorId, {
+        direccionId: params.direccionId,
+        ...body
+      });
+      return reply.code(200).send({ data: serializeAddress(address) });
+    }
+  );
 
-  app.delete("/api/v1/buyers/me/addresses/:direccionId", async (request, reply) => {
-    const user = await dependencies.authenticator.requireUser(request);
-    const compradorId = dependencies.authenticator.requireBuyer(user);
-    const params = parse(paramsSchema, request.params);
-    await dependencies.remove.execute(compradorId, params.direccionId);
-    return reply.code(204).send();
-  });
+  app.delete(
+    "/api/v1/buyers/me/addresses/:direccionId",
+    async (request, reply) => {
+      const user = await dependencies.authenticator.requireUser(request);
+      const compradorId = dependencies.authenticator.requireBuyer(user);
+      const params = parse(paramsSchema, request.params);
+      await dependencies.remove.execute(compradorId, params.direccionId);
+      return reply.code(204).send();
+    }
+  );
 
   app.post(
     "/api/v1/buyers/me/addresses/:direccionId/principal",
@@ -99,7 +105,9 @@ export function registerAddressRoutes(
   );
 }
 
-export function serializeAddress(address: DireccionEntrega): Record<string, unknown> {
+export function serializeAddress(
+  address: DireccionEntrega
+): Record<string, unknown> {
   return {
     id: address.id,
     destinatario: address.destinatario,

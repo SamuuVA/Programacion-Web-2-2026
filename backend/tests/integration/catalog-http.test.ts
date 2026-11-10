@@ -195,7 +195,10 @@ describe("Contrato HTTP del catálogo público", () => {
 
   it("expone el catálogo controlado de categorías", async () => {
     app = await createApp();
-    const response = await app.inject({ method: "GET", url: "/api/v1/categories" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/categories"
+    });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -211,11 +214,16 @@ describe("Contrato HTTP del catálogo público", () => {
   it("mantiene el sobre de error uniforme si la persistencia falla", async () => {
     const failing = new FakeCatalogQueryRepository(sampleProducts());
     failing.searchPublic = async () => {
-      throw new DependencyUnavailableError("No fue posible consultar el catálogo.");
+      throw new DependencyUnavailableError(
+        "No fue posible consultar el catálogo."
+      );
     };
     app = await createApp(failing);
 
-    const response = await app.inject({ method: "GET", url: "/api/v1/products" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/products"
+    });
     expect(response.statusCode).toBe(503);
     expect(response.json().error.codigo).toBe("DEPENDENCIA_NO_DISPONIBLE");
   });

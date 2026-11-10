@@ -10,7 +10,11 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams: Promise<{ redirect?: string }>;
+  searchParams: Promise<{
+    redirect?: string;
+    registrado?: string;
+    correo?: string;
+  }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -21,6 +25,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const params = await searchParams;
   const redirectTo = safeRedirect(params.redirect ?? "/");
+  const registered = params.registrado === "1";
+  const registeredEmail = params.correo?.trim() ?? "";
 
   return (
     <>
@@ -37,7 +43,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       <section className="section-tight">
         <div className="container auth-layout">
-          <LoginForm redirectTo={redirectTo} />
+          <div>
+            {registered ? (
+              <p className="form-success" role="status">
+                Tu cuenta de comprador fue creada
+                {registeredEmail ? ` para ${registeredEmail}` : ""}. Inicia sesión
+                con tu correo y contraseña.
+              </p>
+            ) : null}
+            <LoginForm redirectTo={redirectTo} />
+          </div>
 
           <aside className="auth-aside">
             <span className="auth-aside-icon">
@@ -51,10 +66,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
             <p>
               ¿Todavía no tienes cuenta?{" "}
-              <Link className="text-link" href="/products">
-                Explora el catálogo
+              <Link className="text-link" href="/register">
+                Regístrate como comprador
               </Link>{" "}
-              mientras habilitamos el registro público.
+              y empieza a comprar en NexusMarket.
             </p>
           </aside>
         </div>

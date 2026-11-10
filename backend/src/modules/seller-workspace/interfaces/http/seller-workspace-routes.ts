@@ -174,7 +174,10 @@ export function registerSellerWorkspaceRoutes(
   app.get("/api/v1/seller/products/:productId", async (request, reply) => {
     const actor = await sellerOf(request, dependencies.authenticator);
     const params = parse(productParamsSchema, request.params);
-    const product = await dependencies.getProduct.execute(actor, params.productId);
+    const product = await dependencies.getProduct.execute(
+      actor,
+      params.productId
+    );
     return reply.code(200).send({ data: product });
   });
 
@@ -190,17 +193,20 @@ export function registerSellerWorkspaceRoutes(
     return reply.code(200).send({ data: product });
   });
 
-  app.post("/api/v1/seller/products/:productId/images", async (request, reply) => {
-    const actor = await sellerOf(request, dependencies.authenticator);
-    const params = parse(productParamsSchema, request.params);
-    const body = parse(addImageSchema, request.body);
-    const product = await dependencies.addImage.execute(
-      actor,
-      params.productId,
-      body
-    );
-    return reply.code(201).send({ data: product });
-  });
+  app.post(
+    "/api/v1/seller/products/:productId/images",
+    async (request, reply) => {
+      const actor = await sellerOf(request, dependencies.authenticator);
+      const params = parse(productParamsSchema, request.params);
+      const body = parse(addImageSchema, request.body);
+      const product = await dependencies.addImage.execute(
+        actor,
+        params.productId,
+        body
+      );
+      return reply.code(201).send({ data: product });
+    }
+  );
 
   app.delete(
     "/api/v1/seller/products/:productId/images/:imageId",
@@ -216,25 +222,31 @@ export function registerSellerWorkspaceRoutes(
     }
   );
 
-  app.post("/api/v1/seller/products/:productId/publish", async (request, reply) => {
-    const actor = await sellerOf(request, dependencies.authenticator);
-    const params = parse(productParamsSchema, request.params);
-    const product = await dependencies.publishProduct.execute(
-      actor,
-      params.productId
-    );
-    return reply.code(200).send({ data: product });
-  });
+  app.post(
+    "/api/v1/seller/products/:productId/publish",
+    async (request, reply) => {
+      const actor = await sellerOf(request, dependencies.authenticator);
+      const params = parse(productParamsSchema, request.params);
+      const product = await dependencies.publishProduct.execute(
+        actor,
+        params.productId
+      );
+      return reply.code(200).send({ data: product });
+    }
+  );
 
-  app.post("/api/v1/seller/products/:productId/suspend", async (request, reply) => {
-    const actor = await sellerOf(request, dependencies.authenticator);
-    const params = parse(productParamsSchema, request.params);
-    const product = await dependencies.suspendProduct.execute(
-      actor,
-      params.productId
-    );
-    return reply.code(200).send({ data: product });
-  });
+  app.post(
+    "/api/v1/seller/products/:productId/suspend",
+    async (request, reply) => {
+      const actor = await sellerOf(request, dependencies.authenticator);
+      const params = parse(productParamsSchema, request.params);
+      const product = await dependencies.suspendProduct.execute(
+        actor,
+        params.productId
+      );
+      return reply.code(200).send({ data: product });
+    }
+  );
 
   app.post(
     "/api/v1/seller/products/:productId/discontinue",
@@ -262,17 +274,20 @@ export function registerSellerWorkspaceRoutes(
     return reply.code(201).send({ data: warehouse });
   });
 
-  app.patch("/api/v1/seller/warehouses/:warehouseId", async (request, reply) => {
-    const actor = await sellerOf(request, dependencies.authenticator);
-    const params = parse(warehouseParamsSchema, request.params);
-    const body = parse(updateWarehouseSchema, request.body);
-    const warehouse = await dependencies.updateWarehouse.execute(
-      actor,
-      params.warehouseId,
-      body
-    );
-    return reply.code(200).send({ data: warehouse });
-  });
+  app.patch(
+    "/api/v1/seller/warehouses/:warehouseId",
+    async (request, reply) => {
+      const actor = await sellerOf(request, dependencies.authenticator);
+      const params = parse(warehouseParamsSchema, request.params);
+      const body = parse(updateWarehouseSchema, request.body);
+      const warehouse = await dependencies.updateWarehouse.execute(
+        actor,
+        params.warehouseId,
+        body
+      );
+      return reply.code(200).send({ data: warehouse });
+    }
+  );
 
   app.get("/api/v1/seller/inventory", async (request, reply) => {
     const actor = await sellerOf(request, dependencies.authenticator);

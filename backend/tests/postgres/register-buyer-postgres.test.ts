@@ -151,7 +151,10 @@ function buildRegistration(
   };
 }
 
-function requestPayload(label: string, overrides: Record<string, unknown> = {}) {
+function requestPayload(
+  label: string,
+  overrides: Record<string, unknown> = {}
+) {
   return {
     nombreCompleto: `Comprador ${label}`,
     correoElectronico: `race-${runId}@example.com`,
@@ -305,10 +308,13 @@ describe("PI-01 contra PostgreSQL real", () => {
 
   it("bloquea secretos anidados y claves alternativas en auditoría", async () => {
     const cases: Array<{ label: string; details: Record<string, unknown> }> = [
-      { label: "nested-password", details: { contexto: { password: "secreto" } } },
+      {
+        label: "nested-password",
+        details: { contexto: { password: "secreto" } }
+      },
       {
         label: "nested-credential",
-        details: { pila: [{ "hash_credencial": "hash" }] }
+        details: { pila: [{ hash_credencial: "hash" }] }
       },
       {
         label: "alternative-token",
@@ -322,12 +328,14 @@ describe("PI-01 contra PostgreSQL real", () => {
       });
       created.push(failed.ids);
 
-      await expect(store.saveRegistration(failed.record)).rejects.toMatchObject({
-        code: "DEPENDENCIA_NO_DISPONIBLE"
-      });
-      await expect(countRegistrationRows(adminPool, failed.ids)).resolves.toEqual(
-        ALL_ZEROS
+      await expect(store.saveRegistration(failed.record)).rejects.toMatchObject(
+        {
+          code: "DEPENDENCIA_NO_DISPONIBLE"
+        }
       );
+      await expect(
+        countRegistrationRows(adminPool, failed.ids)
+      ).resolves.toEqual(ALL_ZEROS);
     }
   });
 });

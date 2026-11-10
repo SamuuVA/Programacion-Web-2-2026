@@ -31,7 +31,8 @@ const BUYER = {
   documento: "DEMO-BUYER-001"
 } as const;
 
-const SELLERS = [  {
+const SELLERS = [
+  {
     usuarioId: "10000000-0000-4000-8000-000000000001",
     sellerId: "20000000-0000-4000-8000-000000000001",
     warehouseId: "30000000-0000-4000-8000-000000000001",
@@ -186,7 +187,9 @@ const PRODUCTS = [
 
 const DATABASE_URL = process.env.DATABASE_URL?.trim();
 if (!DATABASE_URL) {
-  console.error("DATABASE_URL es obligatoria para ejecutar el seed de demostración.");
+  console.error(
+    "DATABASE_URL es obligatoria para ejecutar el seed de demostración."
+  );
   process.exit(1);
 }
 
@@ -475,10 +478,14 @@ try {
     }
 
     await client.query("COMMIT");
-    console.log(`Seed de demostración aplicado: ${PRODUCTS.length} productos publicados.`);
+    console.log(
+      `Seed de demostración aplicado: ${PRODUCTS.length} productos publicados.`
+    );
     console.log("Administrador demo: admin@nexusmarket.demo");
     console.log("Comprador demo: comprador@nexusmarket.demo");
-    console.log("Vendedores demo: aurora@nexusmarket.demo / nido@nexusmarket.demo");
+    console.log(
+      "Vendedores demo: aurora@nexusmarket.demo / nido@nexusmarket.demo"
+    );
     console.log("Operador logístico demo: logistica@nexusmarket.demo");
     console.log("Supervisor demo: supervisor@nexusmarket.demo");
     console.log(`Contraseña demo (todos): ${DEMO_PASSWORD}`);

@@ -299,6 +299,45 @@ Un comprador tiene un único carrito activo y cero o más pedidos. Solo puede co
 
 **Estado inicial (`DEC-W1-007`):** el `PerfilVendedor` creado por `PI-02` nace `ACTIVO` y su primera `BodegaVendedor` nace `ACTIVA`. La incorporación administrativa es el acto de aprobación; no existe un puerto separado de activación de vendedor en V1. Si se requiere revisión previa, debe añadirse un caso de uso/puerto y revisarse esta decisión.
 
+## 6.4.1 `SolicitudVendedor` (agregado de onboarding)
+
+La solicitud de incorporación es un agregado propio, separado del `Usuario` y del `PerfilVendedor`. Su estado no se mezcla con el estado de acceso de la cuenta.
+
+| Atributo | Tipo | Obligatorio | Regla |
+|---|---|---:|---|
+| `id` | `SolicitudVendedorId` | Sí | Identificador estable. |
+| `usuarioId` | `UsuarioId` | Sí | Solicitante; se conserva la misma identidad. |
+| `nombreComercial` | `NombreComercial` | Sí | Propuesto por el solicitante. |
+| `nombreBodega` | `NombreBodega` | Sí | Nombre de la primera bodega propuesta. |
+| `ubicacionBodega` | `UbicacionBodega` | Sí | Ubicación declarada. |
+| `estado` | `EstadoSolicitudVendedor` | Sí | `PENDIENTE`, `APROBADA` o `RECHAZADA`. |
+| `motivoRechazo` | `Motivo` | No | Obligatorio al rechazar. |
+| `revisadoPor` | `UsuarioId` | No | Administrador que resuelve. |
+| `revisadoEn` | `Instant` | No | Momento de la decisión. |
+| `vendedorId` | `VendedorId` | No | Derivado de `sellers` tras la aprobación (no se duplica en la tabla). |
+| `bodegaId` | `BodegaId` | No | Primera bodega de `warehouses` creada al aprobar; se deriva por `vendedor_id`. |
+| `creadoEn` | `Instant` | Sí | Momento de la solicitud. |
+
+**Invariantes:**
+
+- `SOL-01`: solo un `Usuario` con rol `COMPRADOR` y estado `ACTIVO` puede crear una solicitud.
+- `SOL-02`: como máximo una solicitud `PENDIENTE` por usuario.
+- `SOL-03`: la solicitud es independiente del estado de acceso; una cuenta `BLOQUEADA` no queda habilitada por tener una solicitud pendiente.
+- `SOL-04`: solo un `Administrador` resuelve; no puede resolver su propia solicitud.
+- `SOL-05`: la aprobación solo procede desde `PENDIENTE`; un reintento sobre `APROBADA` devuelve los identificadores existentes sin duplicar.
+- `SOL-06`: el rechazo exige motivo y no crea `PerfilVendedor` ni `BodegaVendedor` ni cambia el estado de acceso.
+
+**Estados y transiciones:**
+
+| Estado actual | Evento | Estado resultante | Actor autorizado | Condición |
+|---|---|---|---|---|
+| — | Enviar solicitud | PENDIENTE | Comprador ACTIVO | No existe otra solicitud PENDIENTE. |
+| PENDIENTE | Aprobar | APROBADA | Administrador (no el solicitante) | Crea vendedor + primera bodega y cambia el rol principal a VENDEDOR en una transacción. |
+| PENDIENTE | Rechazar | RECHAZADA | Administrador (no el solicitante) | Motivo obligatorio; sin efectos de incorporación. |
+| RECHAZADA | Reenviar/editar | No definido | — | Política pendiente de decisión; la UI no lo ofrece. |
+
+La aprobación conserva `users.id`, no crea una segunda cuenta y no elimina el `PerfilComprador` ni el historial de pedidos. El rol principal `VENDEDOR` gobierna las autorizaciones posteriores; conservar el perfil de comprador no concede permisos de comprador.
+
 ## 6.5 `OperadorLogistico`, `Administrador` y `Supervisor`
 
 Son perfiles de autorización asociados a cuentas cuyo rol es, respectivamente, `OPERADOR_LOGISTICO`, `ADMINISTRADOR` o `SUPERVISOR`. No necesitan una jerarquía de herencia de dominio para representar permisos.
@@ -991,11 +1030,24 @@ Los eventos deben incluir identificador, fecha UTC, versión de esquema, correla
 
 ## 22.1 Incorporación de vendedor
 
+Existen dos caminos que convergen en el mismo estado final (un `PerfilVendedor` y su primera `BodegaVendedor`):
+
+### 22.1.1 Alta administrativa directa
+
 **Actor:** Administrador.  
 **Precondiciones:** cuenta activa con rol ADMINISTRADOR; datos comerciales válidos; correo y documento no duplicados.  
 **Flujo:** validar datos → crear Usuario con rol VENDEDOR → crear PerfilVendedor → crear primera BodegaVendedor → registrar auditoría/outbox → confirmar operación.  
 **Postcondiciones:** vendedor y bodega existen de forma consistente; el vendedor puede comenzar a crear productos según su estado.  
 **Fallos:** si falla la creación de la bodega, no se considera completada la incorporación; no se deja un vendedor operativo sin bodega inicial.
+
+### 22.1.2 Solicitud del comprador y aprobación administrativa
+
+**Actor:** Comprador solicitante y Administrador revisor.  
+**Precondiciones:** cuenta `ACTIVO` con rol `COMPRADOR`; datos comerciales y de bodega válidos; no existe otra solicitud `PENDIENTE` del mismo usuario.  
+**Flujo:** el comprador envía `SolicitudVendedor` (`PENDIENTE`) → el administrador la revisa → aprueba o rechaza con motivo. La aprobación, en una única transacción, crea `PerfilVendedor` + primera `BodegaVendedor`, cambia `users.rol` a `VENDEDOR`, marca la solicitud `APROBADA`, registra revisor y auditoría/outbox.  
+**Postcondiciones (aprobación):** el mismo `users.id` pasa a operar como vendedor; el `PerfilComprador` y el historial de pedidos se conservan; un reintento devuelve los identificadores existentes sin duplicar.  
+**Postcondiciones (rechazo):** la solicitud queda `RECHAZADA` con motivo; no se crea vendedor ni bodega; el estado de acceso y el perfil de comprador no cambian.  
+**Restricciones:** el administrador no puede aprobar ni rechazar su propia solicitud. El reenvío o la edición tras un rechazo no están definidos y no se ofrecen en la interfaz.
 
 ## 22.2 Publicación de producto físico
 

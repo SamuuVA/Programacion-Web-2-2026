@@ -125,9 +125,7 @@ function checkSchema(schema: unknown, location: string): void {
     if (Array.isArray(schema.required)) {
       for (const required of schema.required) {
         if (typeof required === "string" && !(required in properties)) {
-          fail(
-            `${location}: required "${required}" no existe en properties`
-          );
+          fail(`${location}: required "${required}" no existe en properties`);
         }
       }
     }
@@ -149,12 +147,19 @@ function checkSchema(schema: unknown, location: string): void {
     checkSchema(schema.items, `${location}.items`);
   }
   if (isObject(schema.additionalProperties)) {
-    checkSchema(schema.additionalProperties, `${location}.additionalProperties`);
+    checkSchema(
+      schema.additionalProperties,
+      `${location}.additionalProperties`
+    );
   }
 
   const minimum = schema.minimum;
   const maximum = schema.maximum;
-  if (typeof minimum === "number" && typeof maximum === "number" && minimum > maximum) {
+  if (
+    typeof minimum === "number" &&
+    typeof maximum === "number" &&
+    minimum > maximum
+  ) {
     fail(`${location}: minimum es mayor que maximum`);
   }
   const minLength = schema.minLength;
@@ -228,7 +233,10 @@ async function main(): Promise<void> {
   try {
     document = parse(source);
   } catch (error) {
-    console.error("YAML inválido:", error instanceof Error ? error.message : error);
+    console.error(
+      "YAML inválido:",
+      error instanceof Error ? error.message : error
+    );
     process.exit(1);
   }
 
@@ -237,8 +245,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (typeof document.openapi !== "string" || !/^3\.1\.\d+$/.test(document.openapi)) {
-    fail(`openapi debe ser una versión 3.1.x, recibido: ${String(document.openapi)}`);
+  if (
+    typeof document.openapi !== "string" ||
+    !/^3\.1\.\d+$/.test(document.openapi)
+  ) {
+    fail(
+      `openapi debe ser una versión 3.1.x, recibido: ${String(document.openapi)}`
+    );
   }
 
   const info = document.info;
@@ -323,7 +336,9 @@ async function main(): Promise<void> {
               fail(`${location}.responses.${status}: falta description`);
             }
             if (isObject(response.content)) {
-              for (const [mediaType, media] of Object.entries(response.content)) {
+              for (const [mediaType, media] of Object.entries(
+                response.content
+              )) {
                 if (!isObject(media)) {
                   fail(
                     `${location}.responses.${status}.content.${mediaType}: media inválida`
@@ -348,15 +363,22 @@ async function main(): Promise<void> {
         const allDeclared = new Set([...pathParameters, ...declaredParameters]);
         for (const parameter of templateParameters) {
           if (!allDeclared.has(parameter)) {
-            fail(`${location}: falta declarar el parámetro de ruta "${parameter}"`);
+            fail(
+              `${location}: falta declarar el parámetro de ruta "${parameter}"`
+            );
           }
         }
 
         const requestBody = dereference(document, operation.requestBody);
         if (isObject(requestBody) && isObject(requestBody.content)) {
-          for (const [mediaType, media] of Object.entries(requestBody.content)) {
+          for (const [mediaType, media] of Object.entries(
+            requestBody.content
+          )) {
             if (isObject(media)) {
-              checkSchema(media.schema, `${location}.requestBody.${mediaType}.schema`);
+              checkSchema(
+                media.schema,
+                `${location}.requestBody.${mediaType}.schema`
+              );
             }
           }
         }

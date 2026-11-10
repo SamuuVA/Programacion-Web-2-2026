@@ -60,7 +60,11 @@ export class DireccionEntrega {
       linea2: optionalText(input.linea2, "linea2", MAX.linea2),
       ciudad: text(input.ciudad, "ciudad", MAX.ciudad),
       region: text(input.region, "region", MAX.region),
-      codigoPostal: optionalText(input.codigoPostal, "codigoPostal", MAX.codigoPostal),
+      codigoPostal: optionalText(
+        input.codigoPostal,
+        "codigoPostal",
+        MAX.codigoPostal
+      ),
       pais: country(input.pais),
       esPrincipal: Boolean(input.esPrincipal),
       creadaEn: required(input.creadaEn, "creadaEn"),
@@ -126,7 +130,12 @@ export class DireccionEntrega {
   }
 
   withUpdatedFields(
-    input: Partial<Omit<DireccionEntregaProps, "id" | "compradorId" | "creadaEn" | "esPrincipal">>
+    input: Partial<
+      Omit<
+        DireccionEntregaProps,
+        "id" | "compradorId" | "creadaEn" | "esPrincipal"
+      >
+    >
   ): DireccionEntrega {
     return DireccionEntrega.create({
       ...this.props,
@@ -179,7 +188,11 @@ function text(value: string, label: string, max: number): string {
   return normalized;
 }
 
-function optionalText(value: string | null | undefined, label: string, max: number): string | null {
+function optionalText(
+  value: string | null | undefined,
+  label: string,
+  max: number
+): string | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -202,7 +215,9 @@ function country(value: string): string {
   }
   const normalized = value.trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(normalized)) {
-    throw new ValidationError("El país debe usar el código ISO de dos letras (por ejemplo CO).");
+    throw new ValidationError(
+      "El país debe usar el código ISO de dos letras (por ejemplo CO)."
+    );
   }
   return normalized;
 }

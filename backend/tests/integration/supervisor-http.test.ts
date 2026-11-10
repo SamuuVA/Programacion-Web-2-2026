@@ -571,7 +571,11 @@ describe("HTTP del espacio de supervisión", () => {
       `/api/v1/supervisor/orders/${ORDER_ID}`,
       "/api/v1/supervisor/sellers"
     ]) {
-      const response = await harness.app.inject({ method: "GET", url, headers });
+      const response = await harness.app.inject({
+        method: "GET",
+        url,
+        headers
+      });
       expect(response.statusCode).toBe(200);
       const body = response.body;
       for (const forbidden of [
@@ -582,7 +586,9 @@ describe("HTTP del espacio de supervisión", () => {
         "nombreCompleto",
         "actorId"
       ]) {
-        expect(body, `${url} no debe contener ${forbidden}`).not.toContain(forbidden);
+        expect(body, `${url} no debe contener ${forbidden}`).not.toContain(
+          forbidden
+        );
       }
     }
   });

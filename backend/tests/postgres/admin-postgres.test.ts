@@ -189,7 +189,14 @@ async function seedScenario(): Promise<Scenario> {
        id, pedido_id, producto_id, vendedor_id, nombre_producto, sku,
        tipo_entrega, cantidad, precio_unitario_centavos, moneda, subtotal_centavos
      ) VALUES ($1, $2, $3, $4, $5, $6, 'FISICA', 2, 25000, 'COP', 50000)`,
-    [randomUUID(), orderId, productId, sellerId, `Producto ${runId}`, `ADM-${runId}`]
+    [
+      randomUUID(),
+      orderId,
+      productId,
+      sellerId,
+      `Producto ${runId}`,
+      `ADM-${runId}`
+    ]
   );
   const paymentId = randomUUID();
   await pool.query(
@@ -211,7 +218,14 @@ async function seedScenario(): Promise<Scenario> {
        ocurrido_en, referencia_tipo, referencia_id, correlation_id
      ) VALUES ($1, $2, 'PAGADO', 'EN_PREPARACION', $3, 'OPERADOR_LOGISTICO',
                $4, 'ENVIO', $5, $6)`,
-    [randomUUID(), orderId, sellerUser, at(1), `envio-${runId}`, `corr-${runId}`]
+    [
+      randomUUID(),
+      orderId,
+      sellerUser,
+      at(1),
+      `envio-${runId}`,
+      `corr-${runId}`
+    ]
   );
 
   const shipmentId = randomUUID();
@@ -278,9 +292,10 @@ async function cleanup(): Promise<void> {
        )`,
       [orderIds]
     );
-    await pool.query("DELETE FROM shipments WHERE pedido_id = ANY($1::uuid[])", [
-      orderIds
-    ]);
+    await pool.query(
+      "DELETE FROM shipments WHERE pedido_id = ANY($1::uuid[])",
+      [orderIds]
+    );
     await pool.query(
       "DELETE FROM inventory_reservations WHERE pedido_id = ANY($1::uuid[])",
       [orderIds]
@@ -292,19 +307,23 @@ async function cleanup(): Promise<void> {
     await pool.query("DELETE FROM payments WHERE pedido_id = ANY($1::uuid[])", [
       orderIds
     ]);
-    await pool.query("DELETE FROM order_items WHERE pedido_id = ANY($1::uuid[])", [
+    await pool.query(
+      "DELETE FROM order_items WHERE pedido_id = ANY($1::uuid[])",
+      [orderIds]
+    );
+    await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [
       orderIds
     ]);
-    await pool.query("DELETE FROM orders WHERE id = ANY($1::uuid[])", [orderIds]);
   }
   if (productIds.length > 0) {
     await pool.query(
       "DELETE FROM inventory_movements WHERE producto_id = ANY($1::uuid[])",
       [productIds]
     );
-    await pool.query("DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])", [
-      productIds
-    ]);
+    await pool.query(
+      "DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])",
+      [productIds]
+    );
   }
   if (operatorIds.length > 0 || warehouseIds.length > 0) {
     await pool.query(
@@ -318,7 +337,9 @@ async function cleanup(): Promise<void> {
     );
   }
   if (productIds.length > 0) {
-    await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [productIds]);
+    await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [
+      productIds
+    ]);
   }
   if (warehouseIds.length > 0) {
     await pool.query("DELETE FROM warehouses WHERE id = ANY($1::uuid[])", [
@@ -326,18 +347,25 @@ async function cleanup(): Promise<void> {
     ]);
   }
   if (checkoutIds.length > 0) {
-    await pool.query("DELETE FROM checkout_attempts WHERE id = ANY($1::uuid[])", [
-      checkoutIds
-    ]);
+    await pool.query(
+      "DELETE FROM checkout_attempts WHERE id = ANY($1::uuid[])",
+      [checkoutIds]
+    );
   }
   if (sellerIds.length > 0) {
-    await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [sellerIds]);
+    await pool.query("DELETE FROM sellers WHERE id = ANY($1::uuid[])", [
+      sellerIds
+    ]);
   }
   if (buyerIds.length > 0) {
-    await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [buyerIds]);
+    await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [
+      buyerIds
+    ]);
   }
   if (usuarioIds.length > 0) {
-    await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [usuarioIds]);
+    await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [
+      usuarioIds
+    ]);
   }
 }
 
@@ -364,7 +392,8 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
       const after = await store.reports();
       expect(after.usuarios.total - before.usuarios.total).toBe(4);
       expect(
-        after.usuarios.porRol.ADMINISTRADOR - before.usuarios.porRol.ADMINISTRADOR
+        after.usuarios.porRol.ADMINISTRADOR -
+          before.usuarios.porRol.ADMINISTRADOR
       ).toBe(1);
       expect(
         after.usuarios.porRol.OPERADOR_LOGISTICO -
@@ -372,17 +401,27 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
       ).toBe(1);
       expect(after.compradores.total - before.compradores.total).toBe(1);
       expect(after.vendedores.total - before.vendedores.total).toBe(1);
-      expect(after.operadoresLogisticos.total - before.operadoresLogisticos.total).toBe(1);
+      expect(
+        after.operadoresLogisticos.total - before.operadoresLogisticos.total
+      ).toBe(1);
       expect(after.bodegas.total - before.bodegas.total).toBe(1);
       expect(after.catalogo.total - before.catalogo.total).toBe(1);
-      expect(after.catalogo.porCategoria.ELECTRONICA - before.catalogo.porCategoria.ELECTRONICA).toBe(1);
+      expect(
+        after.catalogo.porCategoria.ELECTRONICA -
+          before.catalogo.porCategoria.ELECTRONICA
+      ).toBe(1);
       expect(after.inventario.onHand - before.inventario.onHand).toBe(10);
       expect(after.inventario.reserved - before.inventario.reserved).toBe(2);
-      expect(after.inventario.unavailable - before.inventario.unavailable).toBe(1);
-      expect(after.inventario.disponible - before.inventario.disponible).toBe(7);
+      expect(after.inventario.unavailable - before.inventario.unavailable).toBe(
+        1
+      );
+      expect(after.inventario.disponible - before.inventario.disponible).toBe(
+        7
+      );
       expect(after.pedidos.total - before.pedidos.total).toBe(1);
       expect(
-        after.pedidos.porEstado.EN_PREPARACION - before.pedidos.porEstado.EN_PREPARACION
+        after.pedidos.porEstado.EN_PREPARACION -
+          before.pedidos.porEstado.EN_PREPARACION
       ).toBe(1);
       expect(after.pagos.total - before.pagos.total).toBe(1);
       expect(
@@ -397,12 +436,17 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
         page: 1,
         pageSize: 100
       });
-      expect(users.items.find((item) => item.id === scenario.adminUser)).toMatchObject({
+      expect(
+        users.items.find((item) => item.id === scenario.adminUser)
+      ).toMatchObject({
         rol: "ADMINISTRADOR",
         perfilId: null
       });
       const adminDetail = await store.findUser(scenario.adminUser);
-      expect(adminDetail).toMatchObject({ id: scenario.adminUser, perfil: null });
+      expect(adminDetail).toMatchObject({
+        id: scenario.adminUser,
+        perfil: null
+      });
 
       const buyer = await store.findBuyer(scenario.buyerId);
       expect(buyer).toMatchObject({
@@ -418,9 +462,17 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
         productosPublicadosCount: 1,
         bodegasCount: 1,
         inventarioDisponible: 7,
-        inventario: { posiciones: 1, onHand: 10, reserved: 2, unavailable: 1, disponible: 7 }
+        inventario: {
+          posiciones: 1,
+          onHand: 10,
+          reserved: 2,
+          unavailable: 1,
+          disponible: 7
+        }
       });
-      expect(seller?.bodegas.find((item) => item.id === scenario.warehouseId)).toMatchObject({
+      expect(
+        seller?.bodegas.find((item) => item.id === scenario.warehouseId)
+      ).toMatchObject({
         vendedorNombre: `Comercio ${runId}`,
         productosCount: 1,
         inventarioDisponible: 7
@@ -430,7 +482,9 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
       expect(warehouse).toMatchObject({
         id: scenario.warehouseId,
         inventario: [{ disponible: 7 }],
-        movimientos: [{ id: scenario.movementId, tipo: "INGRESO", cantidad: 10 }],
+        movimientos: [
+          { id: scenario.movementId, tipo: "INGRESO", cantidad: 10 }
+        ],
         operadores: [{ nombreOperador: `Operador ${runId}` }]
       });
 
@@ -459,7 +513,9 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
         page: 1,
         pageSize: 100
       });
-      expect(movements.items.find((item) => item.id === scenario.movementId)).toMatchObject({
+      expect(
+        movements.items.find((item) => item.id === scenario.movementId)
+      ).toMatchObject({
         tipo: "INGRESO",
         cantidad: 10
       });
@@ -470,7 +526,9 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
         page: 1,
         pageSize: 100
       });
-      expect(orders.items.find((item) => item.id === scenario.orderId)).toMatchObject({
+      expect(
+        orders.items.find((item) => item.id === scenario.orderId)
+      ).toMatchObject({
         numero: `NM-ADM-${runId}`,
         itemsCount: 1,
         compradorId: scenario.buyerId,
@@ -496,7 +554,9 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
         page: 1,
         pageSize: 100
       });
-      expect(payments.items.find((item) => item.id === scenario.paymentId)).toMatchObject({
+      expect(
+        payments.items.find((item) => item.id === scenario.paymentId)
+      ).toMatchObject({
         pedidoNumero: `NM-ADM-${runId}`,
         montoCentavos: 50000
       });
@@ -513,7 +573,10 @@ describe("Consultas del administrador contra PostgreSQL real", () => {
   it("el adaptador no contiene sentencias de escritura", async () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const source = await readFile(
-      resolve(here, "../../src/modules/admin/infrastructure/postgres-admin-store.ts"),
+      resolve(
+        here,
+        "../../src/modules/admin/infrastructure/postgres-admin-store.ts"
+      ),
       "utf8"
     );
     for (const keyword of ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ALTER"]) {

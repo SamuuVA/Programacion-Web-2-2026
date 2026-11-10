@@ -7,7 +7,10 @@ import {
   UniquenessConflictError
 } from "../../../shared/domain/errors.js";
 import type { DireccionSnapshot } from "../../buyers/domain/direccion-entrega.js";
-import type { EstadoPago, EstadoPedido } from "../../orders/application/ports.js";
+import type {
+  EstadoPago,
+  EstadoPedido
+} from "../../orders/application/ports.js";
 import {
   assertEnvioEntregable,
   assertEnvioPreparable,
@@ -364,7 +367,10 @@ export class PostgresLogisticsStore implements LogisticsStore {
         [command.operadorId, command.idempotencyKey]
       );
       if (existing.rows[0]) {
-        const envio = await this.loadShipment(client, existing.rows[0].envio_id);
+        const envio = await this.loadShipment(
+          client,
+          existing.rows[0].envio_id
+        );
         if (
           envio === null ||
           envio.pedidoId !== command.pedidoId ||
@@ -384,7 +390,11 @@ export class PostgresLogisticsStore implements LogisticsStore {
         return { envio, pedido, duplicado: true };
       }
 
-      await this.assertWarehouseInScope(client, command.operadorId, command.bodegaId);
+      await this.assertWarehouseInScope(
+        client,
+        command.operadorId,
+        command.bodegaId
+      );
 
       const order = await client.query<OrderRow>(
         `SELECT o.id, o.numero, o.vendedor_id, o.estado, o.estado_pago, o.moneda, o.total_centavos,
@@ -406,7 +416,10 @@ export class PostgresLogisticsStore implements LogisticsStore {
       }
       assertPedidoPreparable(orderRow.estado);
 
-      const reservations = await client.query<{ producto_id: string; cantidad: number }>(
+      const reservations = await client.query<{
+        producto_id: string;
+        cantidad: number;
+      }>(
         `SELECT producto_id, SUM(cantidad)::int AS cantidad
            FROM inventory_reservations
           WHERE pedido_id = $1 AND bodega_id = $2 AND estado = 'ACTIVA'
@@ -499,7 +512,9 @@ export class PostgresLogisticsStore implements LogisticsStore {
         command.pedidoId
       );
       if (envio === null) {
-        throw new DependencyUnavailableError("El envío preparado no pudo recuperarse.");
+        throw new DependencyUnavailableError(
+          "El envío preparado no pudo recuperarse."
+        );
       }
       await client.query("COMMIT");
       return { envio, pedido, duplicado: false };
@@ -582,9 +597,12 @@ export class PostgresLogisticsStore implements LogisticsStore {
         [command.envioId]
       );
       if (items.rows.length === 0) {
-        throw new BusinessRuleError("El envío no tiene líneas para despachar.", {
-          motivo: "ENVIO_SIN_ITEMS"
-        });
+        throw new BusinessRuleError(
+          "El envío no tiene líneas para despachar.",
+          {
+            motivo: "ENVIO_SIN_ITEMS"
+          }
+        );
       }
 
       const movimientoIds: string[] = [];
@@ -621,7 +639,10 @@ export class PostgresLogisticsStore implements LogisticsStore {
             { motivo: "SIN_INVENTARIO" }
           );
         }
-        if (position.on_hand < item.cantidad || position.reserved < item.cantidad) {
+        if (
+          position.on_hand < item.cantidad ||
+          position.reserved < item.cantidad
+        ) {
           throw new BusinessRuleError(
             "El inventario reservado no cubre la cantidad a despachar.",
             { motivo: "STOCK_INSUFICIENTE" }
@@ -685,7 +706,12 @@ export class PostgresLogisticsStore implements LogisticsStore {
                 actualizado_en = $4,
                 version = version + 1
           WHERE id = $1`,
-        [command.envioId, command.transportista, command.trackingNumber, command.now]
+        [
+          command.envioId,
+          command.transportista,
+          command.trackingNumber,
+          command.now
+        ]
       );
       await this.insertShipmentEvent(client, {
         envioId: command.envioId,
@@ -705,7 +731,10 @@ export class PostgresLogisticsStore implements LogisticsStore {
         now: command.now
       });
 
-      const pending = await client.query<{ pendientes: number; reservas: number }>(
+      const pending = await client.query<{
+        pendientes: number;
+        reservas: number;
+      }>(
         `SELECT
            (SELECT COUNT(*)::int FROM shipments
              WHERE pedido_id = $1 AND estado IN ('PREPARACION', 'EMPACADO')) AS pendientes,
@@ -737,7 +766,9 @@ export class PostgresLogisticsStore implements LogisticsStore {
         shipment.pedido_id
       );
       if (envio === null) {
-        throw new DependencyUnavailableError("El envío despachado no pudo recuperarse.");
+        throw new DependencyUnavailableError(
+          "El envío despachado no pudo recuperarse."
+        );
       }
       await client.query("COMMIT");
       return { envio, pedido, movimientoIds, duplicado: false };
@@ -853,7 +884,10 @@ export class PostgresLogisticsStore implements LogisticsStore {
       });
 
       if (entregado && orderRow.estado !== "ENTREGADO") {
-        const pending = await client.query<{ pendientes: number; reservas: number }>(
+        const pending = await client.query<{
+          pendientes: number;
+          reservas: number;
+        }>(
           `SELECT
              (SELECT COUNT(*)::int FROM shipments
                WHERE pedido_id = $1 AND estado <> 'ENTREGADO') AS pendientes,
@@ -980,7 +1014,12 @@ export class PostgresLogisticsStore implements LogisticsStore {
         `INSERT INTO logistics_operators (
            id, usuario_id, nombre_operador, estado, creado_en
          ) VALUES ($1, $2, $3, 'ACTIVO', $4)`,
-        [command.operadorId, command.usuarioId, command.nombreOperador, command.now]
+        [
+          command.operadorId,
+          command.usuarioId,
+          command.nombreOperador,
+          command.now
+        ]
       );
 
       for (const bodegaId of command.bodegaIds) {
@@ -1051,10 +1090,9 @@ export class PostgresLogisticsStore implements LogisticsStore {
       );
     }
     if (row.estado !== "ACTIVA") {
-      throw new BusinessRuleError(
-        "La bodega del envío no está activa.",
-        { motivo: "BODEGA_INACTIVA" }
-      );
+      throw new BusinessRuleError("La bodega del envío no está activa.", {
+        motivo: "BODEGA_INACTIVA"
+      });
     }
   }
 

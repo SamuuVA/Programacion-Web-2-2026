@@ -106,24 +106,24 @@ describe("Casos de uso del Administrador", () => {
 
   it("convierte un recurso inexistente en 404 de aplicación", async () => {
     const id = "00000000-0000-4000-8000-000000000000";
-    await expect(new GetAdminUser(store()).execute(ADMIN, id)).rejects.toBeInstanceOf(
-      ResourceNotFoundError
-    );
-    await expect(new GetAdminBuyer(store()).execute(ADMIN, id)).rejects.toBeInstanceOf(
-      ResourceNotFoundError
-    );
-    await expect(new GetAdminSeller(store()).execute(ADMIN, id)).rejects.toBeInstanceOf(
-      ResourceNotFoundError
-    );
+    await expect(
+      new GetAdminUser(store()).execute(ADMIN, id)
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+    await expect(
+      new GetAdminBuyer(store()).execute(ADMIN, id)
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+    await expect(
+      new GetAdminSeller(store()).execute(ADMIN, id)
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
     await expect(
       new GetAdminWarehouse(store()).execute(ADMIN, id)
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
     await expect(
       new GetAdminProduct(store()).execute(ADMIN, id)
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
-    await expect(new GetAdminOrder(store()).execute(ADMIN, id)).rejects.toBeInstanceOf(
-      ResourceNotFoundError
-    );
+    await expect(
+      new GetAdminOrder(store()).execute(ADMIN, id)
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
   });
 
   it("expone todas las consultas administrativas", async () => {
@@ -207,7 +207,9 @@ describe("Casos de uso del Administrador", () => {
         pageSize: 20
       })
     ).resolves.toMatchObject({ total: 0 });
-    await expect(new GetAdminReports(fake).execute(ADMIN)).resolves.toMatchObject({
+    await expect(
+      new GetAdminReports(fake).execute(ADMIN)
+    ).resolves.toMatchObject({
       usuarios: { total: 0 },
       inventario: { disponible: 0 }
     });

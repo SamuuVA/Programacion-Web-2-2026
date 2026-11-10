@@ -43,11 +43,15 @@ export class Carrito {
 
   static create(input: CarritoProps): Carrito {
     if (!Number.isInteger(input.version) || input.version < 1) {
-      throw new ValidationError("La versión del carrito debe ser un entero positivo.");
+      throw new ValidationError(
+        "La versión del carrito debe ser un entero positivo."
+      );
     }
     for (const item of input.items) {
       if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
-        throw new ValidationError("La cantidad del carrito debe ser un entero positivo.");
+        throw new ValidationError(
+          "La cantidad del carrito debe ser un entero positivo."
+        );
       }
     }
     return new Carrito({ ...input, items: [...input.items] });

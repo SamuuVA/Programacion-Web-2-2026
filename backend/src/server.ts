@@ -11,7 +11,9 @@ import {
   createSellerRegistrationStore,
   createSellerWorkspaceStore,
   createSupervisorStore,
-  createAdminStore
+  createAdminStore,
+  createSellerApplicationStore,
+  createUserAccessStore
 } from "./infrastructure/factory.js";
 import { Argon2PasswordHasher } from "./modules/identity/infrastructure/argon2-password-hasher.js";
 import { SystemClock } from "./shared/infrastructure/system-clock.js";
@@ -35,7 +37,9 @@ const app = await buildApp(config, {
   sellerWorkspace: createSellerWorkspaceStore(config),
   logistics: createLogisticsStore(config, ids),
   supervisor: createSupervisorStore(config),
-  admin: createAdminStore(config)
+  admin: createAdminStore(config),
+  sellerApplications: createSellerApplicationStore(config),
+  userAccess: createUserAccessStore(config)
 });
 
 const shutdown = async (signal: string): Promise<void> => {

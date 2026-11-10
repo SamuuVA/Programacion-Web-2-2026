@@ -3,7 +3,10 @@ import { RegisterBuyer } from "../../src/modules/buyers/application/register-buy
 import type { RegisterBuyerCommand } from "../../src/modules/buyers/application/register-buyer.js";
 import { FakeBuyerRegistrationStore } from "../support/fake-buyer-registration-store.js";
 import { Argon2PasswordHasher } from "../../src/modules/identity/infrastructure/argon2-password-hasher.js";
-import { UniquenessConflictError, ValidationError } from "../../src/shared/domain/errors.js";
+import {
+  UniquenessConflictError,
+  ValidationError
+} from "../../src/shared/domain/errors.js";
 import { FixedClock, SequentialIds } from "../support/doubles.js";
 
 const PASSWORD = "correct horse battery staple";
@@ -19,7 +22,9 @@ function createSubject() {
   return { store, useCase };
 }
 
-function command(overrides: Partial<RegisterBuyerCommand> = {}): RegisterBuyerCommand {
+function command(
+  overrides: Partial<RegisterBuyerCommand> = {}
+): RegisterBuyerCommand {
   return {
     nombreCompleto: "Ana María Pérez",
     correoElectronico: "Ana.Perez@Example.COM",
@@ -122,9 +127,9 @@ describe("PI-01 RegisterBuyer", () => {
   it("rechaza credenciales fuera de 12–128 caracteres antes de persistir", async () => {
     const { store, useCase } = createSubject();
 
-    await expect(useCase.execute(command({ credencial: "corta" }))).rejects.toBeInstanceOf(
-      ValidationError
-    );
+    await expect(
+      useCase.execute(command({ credencial: "corta" }))
+    ).rejects.toBeInstanceOf(ValidationError);
     await expect(
       useCase.execute(command({ credencial: "x".repeat(129) }))
     ).rejects.toBeInstanceOf(ValidationError);

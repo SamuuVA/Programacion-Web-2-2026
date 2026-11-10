@@ -21,7 +21,12 @@ class DeterministicTokens implements SessionTokenGenerator {
   }
 }
 
-function createHarness(overrides: Partial<Parameters<typeof buildSeed>[0]> = {}) {
+interface SeedOverrides {
+  estado?: "ACTIVO" | "INACTIVO" | "BLOQUEADO";
+  rol?: "COMPRADOR" | "VENDEDOR" | "ADMINISTRADOR";
+}
+
+function createHarness(overrides: Partial<SeedOverrides> = {}) {
   const store = new FakeIdentityStore([
     {
       usuarioId: USER_ID,
@@ -42,13 +47,6 @@ function createHarness(overrides: Partial<Parameters<typeof buildSeed>[0]> = {})
   const getSession = new GetSession(store, clock);
   const logout = new LogoutUser(store, clock);
   return { store, login, getSession, logout };
-}
-
-function buildSeed(overrides: {
-  estado?: "ACTIVO" | "INACTIVO" | "BLOQUEADO";
-  rol?: "COMPRADOR" | "VENDEDOR" | "ADMINISTRADOR";
-}) {
-  return overrides;
 }
 
 describe("ADR-004 autenticación con sesiones opacas", () => {
@@ -138,7 +136,9 @@ describe("ADR-004 autenticación con sesiones opacas", () => {
     });
 
     await expect(getSession.execute(token)).resolves.toBeNull();
-    await expect(store.findSessionByTokenHash(hashSessionToken(token))).resolves.toBeNull();
+    await expect(
+      store.findSessionByTokenHash(hashSessionToken(token))
+    ).resolves.toBeNull();
   });
 
   it("ignora tokens ausentes o vacíos", async () => {

@@ -24,9 +24,12 @@ export class GetSession {
     try {
       stored = await this.store.findSessionByTokenHash(tokenHash);
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar la sesión.", {
-        cause: error instanceof Error ? error.message : "unknown"
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar la sesión.",
+        {
+          cause: error instanceof Error ? error.message : "unknown"
+        }
+      );
     }
     if (stored === null) {
       return null;

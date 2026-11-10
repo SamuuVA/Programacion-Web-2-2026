@@ -14,6 +14,7 @@ import type {
   ProductImageId,
   ProductoId,
   ReservationId,
+  SellerApplicationId,
   SellerId,
   SessionId,
   ShipmentEventId,
@@ -39,6 +40,7 @@ export interface IdGenerator {
   eventId(): EventId;
   sessionId(): SessionId;
   sellerId(): SellerId;
+  sellerApplicationId(): SellerApplicationId;
   warehouseId(): WarehouseId;
   addressId(): AddressId;
   checkoutId(): CheckoutId;

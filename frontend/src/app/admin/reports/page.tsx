@@ -4,7 +4,6 @@ import { getSessionToken, requireAdmin } from "@/features/auth/session";
 import { fetchAdminReports } from "@/features/admin/api";
 import {
   CATEGORIA_LABEL,
-  ESTADO_BODEGA_LABEL,
   ESTADO_COMPRADOR_LABEL,
   ESTADO_ENVIO_LABEL,
   ESTADO_PAGO_LABEL,

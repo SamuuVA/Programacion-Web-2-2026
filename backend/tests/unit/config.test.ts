@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig, parseCorsOrigins } from "../../src/config.js";
 
-const DATABASE_URL = "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket";
+const DATABASE_URL =
+  "postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket";
 
 describe("Configuración", () => {
   it("desactiva CORS por defecto", () => {
@@ -34,7 +35,10 @@ describe("Configuración", () => {
     expect(() =>
       loadConfig({ DATABASE_URL, PERSISTENCE: "memory" } as NodeJS.ProcessEnv)
     ).not.toThrow();
-    const config = loadConfig({ DATABASE_URL, PERSISTENCE: "memory" } as NodeJS.ProcessEnv);
+    const config = loadConfig({
+      DATABASE_URL,
+      PERSISTENCE: "memory"
+    } as NodeJS.ProcessEnv);
     expect(config).not.toHaveProperty("PERSISTENCE");
   });
 });

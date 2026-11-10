@@ -120,8 +120,10 @@ export class FakeAdminStore implements AdminStore {
       compradores: {
         total: buyers.length,
         porEstado: {
-          HABILITADO: buyers.filter((b) => b.estadoComercial === "HABILITADO").length,
-          RESTRINGIDO: buyers.filter((b) => b.estadoComercial === "RESTRINGIDO").length
+          HABILITADO: buyers.filter((b) => b.estadoComercial === "HABILITADO")
+            .length,
+          RESTRINGIDO: buyers.filter((b) => b.estadoComercial === "RESTRINGIDO")
+            .length
         }
       },
       vendedores: {
@@ -147,7 +149,8 @@ export class FakeAdminStore implements AdminStore {
           INACTIVA: warehouses.filter((w) => w.estado === "INACTIVA").length
         },
         porTipo: {
-          MARKETPLACE: warehouses.filter((w) => w.tipo === "MARKETPLACE").length,
+          MARKETPLACE: warehouses.filter((w) => w.tipo === "MARKETPLACE")
+            .length,
           VENDEDOR: warehouses.filter((w) => w.tipo === "VENDEDOR").length
         }
       },
@@ -157,10 +160,12 @@ export class FakeAdminStore implements AdminStore {
           BORRADOR: products.filter((p) => p.estado === "BORRADOR").length,
           PUBLICADO: products.filter((p) => p.estado === "PUBLICADO").length,
           SUSPENDIDO: products.filter((p) => p.estado === "SUSPENDIDO").length,
-          DESCONTINUADO: products.filter((p) => p.estado === "DESCONTINUADO").length
+          DESCONTINUADO: products.filter((p) => p.estado === "DESCONTINUADO")
+            .length
         },
         porCategoria: {
-          ELECTRONICA: products.filter((p) => p.categoria === "ELECTRONICA").length,
+          ELECTRONICA: products.filter((p) => p.categoria === "ELECTRONICA")
+            .length,
           ROPA: products.filter((p) => p.categoria === "ROPA").length,
           HOGAR: products.filter((p) => p.categoria === "HOGAR").length,
           DIGITAL: products.filter((p) => p.categoria === "DIGITAL").length
@@ -180,9 +185,12 @@ export class FakeAdminStore implements AdminStore {
       pedidos: {
         total: orders.length,
         porEstado: {
-          PENDIENTE_DE_PAGO: orders.filter((o) => o.estado === "PENDIENTE_DE_PAGO").length,
+          PENDIENTE_DE_PAGO: orders.filter(
+            (o) => o.estado === "PENDIENTE_DE_PAGO"
+          ).length,
           PAGADO: orders.filter((o) => o.estado === "PAGADO").length,
-          EN_PREPARACION: orders.filter((o) => o.estado === "EN_PREPARACION").length,
+          EN_PREPARACION: orders.filter((o) => o.estado === "EN_PREPARACION")
+            .length,
           DESPACHADO: orders.filter((o) => o.estado === "DESPACHADO").length,
           ENTREGADO: orders.filter((o) => o.estado === "ENTREGADO").length,
           CANCELADO: orders.filter((o) => o.estado === "CANCELADO").length,
@@ -192,15 +200,21 @@ export class FakeAdminStore implements AdminStore {
       pagos: {
         total: this.payments.length,
         porEstado: {
-          PENDIENTE: this.payments.filter((p) => p.estado === "PENDIENTE").length,
-          AUTORIZADO: this.payments.filter((p) => p.estado === "AUTORIZADO").length,
-          CAPTURADO: this.payments.filter((p) => p.estado === "CAPTURADO").length,
-          RECHAZADO: this.payments.filter((p) => p.estado === "RECHAZADO").length,
-          CANCELADO: this.payments.filter((p) => p.estado === "CANCELADO").length,
+          PENDIENTE: this.payments.filter((p) => p.estado === "PENDIENTE")
+            .length,
+          AUTORIZADO: this.payments.filter((p) => p.estado === "AUTORIZADO")
+            .length,
+          CAPTURADO: this.payments.filter((p) => p.estado === "CAPTURADO")
+            .length,
+          RECHAZADO: this.payments.filter((p) => p.estado === "RECHAZADO")
+            .length,
+          CANCELADO: this.payments.filter((p) => p.estado === "CANCELADO")
+            .length,
           REEMBOLSO_PARCIAL: this.payments.filter(
             (p) => p.estado === "REEMBOLSO_PARCIAL"
           ).length,
-          REEMBOLSADO: this.payments.filter((p) => p.estado === "REEMBOLSADO").length
+          REEMBOLSADO: this.payments.filter((p) => p.estado === "REEMBOLSADO")
+            .length
         }
       },
       envios: {
@@ -218,11 +232,17 @@ export class FakeAdminStore implements AdminStore {
     };
   }
 
-  async listUsers(filter: AdminUserFilter): Promise<AdminPage<AdminUserSummary>> {
+  async listUsers(
+    filter: AdminUserFilter
+  ): Promise<AdminPage<AdminUserSummary>> {
     const items = [...this.users.values()]
       .filter((user) => (filter.rol === null ? true : user.rol === filter.rol))
-      .filter((user) => (filter.estado === null ? true : user.estado === filter.estado))
-      .filter((user) => matches(filter.search, user.nombreCompleto, user.correoElectronico));
+      .filter((user) =>
+        filter.estado === null ? true : user.estado === filter.estado
+      )
+      .filter((user) =>
+        matches(filter.search, user.nombreCompleto, user.correoElectronico)
+      );
     return paginate(items, filter);
   }
 
@@ -253,13 +273,11 @@ export class FakeAdminStore implements AdminStore {
     filter: AdminSellerFilter
   ): Promise<AdminPage<AdminSellerSummary>> {
     const items = [...this.sellers.values()]
-      .filter((seller) => (filter.estado === null ? true : seller.estado === filter.estado))
       .filter((seller) =>
-        matches(
-          filter.search,
-          seller.nombreComercial,
-          seller.correoElectronico
-        )
+        filter.estado === null ? true : seller.estado === filter.estado
+      )
+      .filter((seller) =>
+        matches(filter.search, seller.nombreComercial, seller.correoElectronico)
       );
     return paginate(items, filter);
   }
@@ -276,7 +294,9 @@ export class FakeAdminStore implements AdminStore {
         filter.estado === null ? true : warehouse.estado === filter.estado
       )
       .filter((warehouse) =>
-        filter.vendedorId === null ? true : warehouse.vendedorId === filter.vendedorId
+        filter.vendedorId === null
+          ? true
+          : warehouse.vendedorId === filter.vendedorId
       )
       .filter((warehouse) =>
         matches(
@@ -289,7 +309,9 @@ export class FakeAdminStore implements AdminStore {
     return paginate(items, filter);
   }
 
-  async findWarehouse(warehouseId: string): Promise<AdminWarehouseDetail | null> {
+  async findWarehouse(
+    warehouseId: string
+  ): Promise<AdminWarehouseDetail | null> {
     return this.warehouses.get(warehouseId) ?? null;
   }
 
@@ -297,9 +319,13 @@ export class FakeAdminStore implements AdminStore {
     filter: AdminProductFilter
   ): Promise<AdminPage<AdminProductSummary>> {
     const items = [...this.products.values()]
-      .filter((product) => (filter.estado === null ? true : product.estado === filter.estado))
       .filter((product) =>
-        filter.categoria === null ? true : product.categoria === filter.categoria
+        filter.estado === null ? true : product.estado === filter.estado
+      )
+      .filter((product) =>
+        filter.categoria === null
+          ? true
+          : product.categoria === filter.categoria
       )
       .filter((product) =>
         filter.tipoEntrega === null
@@ -307,10 +333,17 @@ export class FakeAdminStore implements AdminStore {
           : product.tipoEntrega === filter.tipoEntrega
       )
       .filter((product) =>
-        filter.vendedorId === null ? true : product.vendedorId === filter.vendedorId
+        filter.vendedorId === null
+          ? true
+          : product.vendedorId === filter.vendedorId
       )
       .filter((product) =>
-        matches(filter.search, product.nombre, product.sku, product.vendedorNombre)
+        matches(
+          filter.search,
+          product.nombre,
+          product.sku,
+          product.vendedorNombre
+        )
       );
     return paginate(items, filter);
   }
@@ -327,10 +360,14 @@ export class FakeAdminStore implements AdminStore {
         filter.bodegaId === null ? true : position.bodegaId === filter.bodegaId
       )
       .filter((position) =>
-        filter.productoId === null ? true : position.productoId === filter.productoId
+        filter.productoId === null
+          ? true
+          : position.productoId === filter.productoId
       )
       .filter((position) =>
-        filter.vendedorId === null ? true : position.vendedorId === filter.vendedorId
+        filter.vendedorId === null
+          ? true
+          : position.vendedorId === filter.vendedorId
       )
       .filter((position) =>
         matches(
@@ -352,7 +389,9 @@ export class FakeAdminStore implements AdminStore {
         filter.bodegaId === null ? true : movement.bodegaId === filter.bodegaId
       )
       .filter((movement) =>
-        filter.productoId === null ? true : movement.productoId === filter.productoId
+        filter.productoId === null
+          ? true
+          : movement.productoId === filter.productoId
       );
     return paginate(items, filter);
   }
@@ -361,7 +400,9 @@ export class FakeAdminStore implements AdminStore {
     filter: AdminOrderFilter
   ): Promise<AdminPage<AdminOrderSummary>> {
     const items = [...this.orders.values()]
-      .filter((order) => (filter.estado === null ? true : order.estado === filter.estado))
+      .filter((order) =>
+        filter.estado === null ? true : order.estado === filter.estado
+      )
       .filter((order) =>
         matches(
           filter.search,
@@ -381,7 +422,9 @@ export class FakeAdminStore implements AdminStore {
     filter: AdminPaymentFilter
   ): Promise<AdminPage<AdminPaymentSummary>> {
     const items = this.payments
-      .filter((payment) => (filter.estado === null ? true : payment.estado === filter.estado))
+      .filter((payment) =>
+        filter.estado === null ? true : payment.estado === filter.estado
+      )
       .filter((payment) =>
         matches(filter.search, payment.pedidoNumero, payment.compradorNombre)
       );
@@ -401,12 +444,17 @@ function sum<T>(items: readonly T[], pick: (item: T) => number): number {
   return items.reduce((total, item) => total + pick(item), 0);
 }
 
-function matches(search: string | null, ...values: readonly (string | null)[]): boolean {
+function matches(
+  search: string | null,
+  ...values: readonly (string | null)[]
+): boolean {
   if (search === null) {
     return true;
   }
   const needle = search.toLowerCase();
-  return values.some((value) => value !== null && value.toLowerCase().includes(needle));
+  return values.some(
+    (value) => value !== null && value.toLowerCase().includes(needle)
+  );
 }
 
 function paginate<T>(

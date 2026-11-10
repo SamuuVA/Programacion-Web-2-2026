@@ -197,7 +197,9 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
         this.pool,
         products.rows.map((row) => row.id)
       );
-      return products.rows.map((row) => toProduct(row, images.get(row.id) ?? []));
+      return products.rows.map((row) =>
+        toProduct(row, images.get(row.id) ?? [])
+      );
     } catch (error) {
       throw readError(error);
     }
@@ -236,10 +238,21 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
         await client.query(
           `INSERT INTO product_images (id, producto_id, url, alt, orden, creado_en)
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [imagen.id, record.id, imagen.url, imagen.alt, imagen.orden, record.creadoEn]
+          [
+            imagen.id,
+            record.id,
+            imagen.url,
+            imagen.alt,
+            imagen.orden,
+            record.creadoEn
+          ]
         );
       }
-      const product = await this.loadProduct(client, record.vendedorId, record.id);
+      const product = await this.loadProduct(
+        client,
+        record.vendedorId,
+        record.id
+      );
       if (product === null) {
         throw new ResourceNotFoundError("El producto no pudo recuperarse.");
       }
@@ -328,7 +341,9 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
     }
   }
 
-  async addProductImage(record: AddImageRecord): Promise<SellerProductView | null> {
+  async addProductImage(
+    record: AddImageRecord
+  ): Promise<SellerProductView | null> {
     const client = await this.connect();
     try {
       await client.query("BEGIN");
@@ -358,7 +373,11 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
           record.creadoEn
         ]
       );
-      const product = await this.loadProduct(client, record.vendedorId, record.productoId);
+      const product = await this.loadProduct(
+        client,
+        record.vendedorId,
+        record.productoId
+      );
       await client.query("COMMIT");
       return product;
     } catch (error) {
@@ -419,14 +438,22 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
     }
   }
 
-  async createWarehouse(record: CreateWarehouseRecord): Promise<SellerWarehouseView> {
+  async createWarehouse(
+    record: CreateWarehouseRecord
+  ): Promise<SellerWarehouseView> {
     try {
       const result = await this.pool.query<WarehouseRow>(
         `INSERT INTO warehouses (
            id, vendedor_id, nombre, ubicacion, tipo, estado, creada_en
          ) VALUES ($1, $2, $3, $4, 'VENDEDOR', 'ACTIVA', $5)
          RETURNING id, vendedor_id, nombre, ubicacion, estado, creada_en`,
-        [record.id, record.vendedorId, record.nombre, record.ubicacion, record.creadaEn]
+        [
+          record.id,
+          record.vendedorId,
+          record.nombre,
+          record.ubicacion,
+          record.creadaEn
+        ]
       );
       const row = result.rows[0];
       if (!row) {
@@ -450,7 +477,12 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
                 ubicacion = COALESCE($4, ubicacion)
           WHERE id = $1 AND vendedor_id = $2 AND tipo = 'VENDEDOR'
           RETURNING id, vendedor_id, nombre, ubicacion, estado, creada_en`,
-        [warehouseId, sellerId, changes.nombre ?? null, changes.ubicacion ?? null]
+        [
+          warehouseId,
+          sellerId,
+          changes.nombre ?? null,
+          changes.ubicacion ?? null
+        ]
       );
       const row = result.rows[0];
       return row ? toWarehouse(row) : null;
@@ -486,10 +518,9 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
         `seller-ingress:${command.vendedorId}:${command.idempotencyKey}`
       ]);
 
-      const seller = await client.query<{ estado: SellerProfileView["estado"] }>(
-        "SELECT estado FROM sellers WHERE id = $1",
-        [command.vendedorId]
-      );
+      const seller = await client.query<{
+        estado: SellerProfileView["estado"];
+      }>("SELECT estado FROM sellers WHERE id = $1", [command.vendedorId]);
       if (!seller.rows[0]) {
         throw new ResourceNotFoundError("El perfil de vendedor no existe.");
       }
@@ -630,7 +661,8 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
           onHand: position.on_hand,
           reserved: position.reserved,
           unavailable: position.unavailable,
-          disponible: position.on_hand - position.reserved - position.unavailable,
+          disponible:
+            position.on_hand - position.reserved - position.unavailable,
           actualizadoEn: position.actualizado_en.toISOString()
         }
       };
@@ -748,7 +780,12 @@ export class PostgresSellerWorkspaceStore implements SellerWorkspaceStore {
     );
     for (const row of result.rows) {
       const current = grouped.get(row.producto_id) ?? [];
-      current.push({ id: row.id, url: row.url, alt: row.alt, orden: row.orden });
+      current.push({
+        id: row.id,
+        url: row.url,
+        alt: row.alt,
+        orden: row.orden
+      });
       grouped.set(row.producto_id, current);
     }
     return grouped;
@@ -897,9 +934,12 @@ function readError(error: unknown): ApplicationError {
   if (error instanceof ApplicationError) {
     return error;
   }
-  return new DependencyUnavailableError("No fue posible consultar el espacio del vendedor.", {
-    cause: messageOf(error)
-  });
+  return new DependencyUnavailableError(
+    "No fue posible consultar el espacio del vendedor.",
+    {
+      cause: messageOf(error)
+    }
+  );
 }
 
 function writeError(error: unknown): ApplicationError {
@@ -912,9 +952,12 @@ function writeError(error: unknown): ApplicationError {
       { motivo: "SKU_DUPLICADO" }
     );
   }
-  return new DependencyUnavailableError("No fue posible guardar el cambio del vendedor.", {
-    cause: messageOf(error)
-  });
+  return new DependencyUnavailableError(
+    "No fue posible guardar el cambio del vendedor.",
+    {
+      cause: messageOf(error)
+    }
+  );
 }
 
 function ingressError(error: unknown): ApplicationError {

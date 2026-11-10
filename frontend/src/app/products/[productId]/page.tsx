@@ -29,7 +29,7 @@ export async function generateMetadata({
     notFound();
   }
 
-  let product: Awaited<ReturnType<typeof fetchProduct>> = null;
+  let product: Awaited<ReturnType<typeof fetchProduct>>;
   try {
     product = await fetchProduct(productId);
   } catch {

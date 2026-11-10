@@ -21,6 +21,10 @@ import type { SupervisorStore } from "../modules/supervisor/application/ports.js
 import { PostgresSupervisorStore } from "../modules/supervisor/infrastructure/postgres-supervisor-store.js";
 import type { AdminStore } from "../modules/admin/application/ports.js";
 import { PostgresAdminStore } from "../modules/admin/infrastructure/postgres-admin-store.js";
+import type { SellerApplicationStore } from "../modules/seller-applications/application/ports.js";
+import { PostgresSellerApplicationStore } from "../modules/seller-applications/infrastructure/postgres-seller-application-store.js";
+import type { UserAccessStore } from "../modules/identity/application/update-user-access-status.js";
+import { PostgresUserAccessStore } from "../modules/identity/infrastructure/postgres-user-access-store.js";
 import type { IdGenerator } from "../shared/application/ports.js";
 
 /**
@@ -30,7 +34,9 @@ import type { IdGenerator } from "../shared/application/ports.js";
  * memoria: un entorno sin base de datos debe fallar al arrancar en vez de
  * aceptar datos que se perderían al reiniciar.
  */
-export function createBuyerRegistrationStore(config: AppConfig): BuyerRegistrationStore {
+export function createBuyerRegistrationStore(
+  config: AppConfig
+): BuyerRegistrationStore {
   return new PostgresBuyerRegistrationStore(config.DATABASE_URL);
 }
 
@@ -48,7 +54,9 @@ export function createAddressStore(config: AppConfig): AddressStore {
   return new PostgresAddressStore(config.DATABASE_URL);
 }
 
-export function createSellerRegistrationStore(config: AppConfig): SellerRegistrationStore {
+export function createSellerRegistrationStore(
+  config: AppConfig
+): SellerRegistrationStore {
   return new PostgresSellerRegistrationStore(config.DATABASE_URL);
 }
 
@@ -56,11 +64,16 @@ export function createCartStore(config: AppConfig): CartStore {
   return new PostgresCartStore(config.DATABASE_URL);
 }
 
-export function createCheckoutStore(config: AppConfig, ids: IdGenerator): CheckoutStore {
+export function createCheckoutStore(
+  config: AppConfig,
+  ids: IdGenerator
+): CheckoutStore {
   return new PostgresCheckoutStore(config.DATABASE_URL, ids);
 }
 
-export function createSellerWorkspaceStore(config: AppConfig): SellerWorkspaceStore {
+export function createSellerWorkspaceStore(
+  config: AppConfig
+): SellerWorkspaceStore {
   return new PostgresSellerWorkspaceStore(config.DATABASE_URL);
 }
 
@@ -77,4 +90,14 @@ export function createSupervisorStore(config: AppConfig): SupervisorStore {
 
 export function createAdminStore(config: AppConfig): AdminStore {
   return new PostgresAdminStore(config.DATABASE_URL);
+}
+
+export function createSellerApplicationStore(
+  config: AppConfig
+): SellerApplicationStore {
+  return new PostgresSellerApplicationStore(config.DATABASE_URL);
+}
+
+export function createUserAccessStore(config: AppConfig): UserAccessStore {
+  return new PostgresUserAccessStore(config.DATABASE_URL);
 }

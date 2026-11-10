@@ -15,6 +15,7 @@ import {
   productImageId,
   productoId,
   reservationId,
+  sellerApplicationId,
   sellerId,
   sessionId,
   shipmentEventId,
@@ -46,75 +47,115 @@ export class SequentialIds implements IdGenerator {
 
   usuarioId() {
     this.user += 1;
-    return usuarioId(`00000000-0000-4000-8000-${String(this.user).padStart(12, "0")}`);
+    return usuarioId(
+      `00000000-0000-4000-8000-${String(this.user).padStart(12, "0")}`
+    );
   }
 
   compradorId() {
     this.buyer += 1;
-    return compradorId(`00000000-0000-4000-8001-${String(this.buyer).padStart(12, "0")}`);
+    return compradorId(
+      `00000000-0000-4000-8001-${String(this.buyer).padStart(12, "0")}`
+    );
   }
 
   carritoId() {
     this.cart += 1;
-    return carritoId(`00000000-0000-4000-8002-${String(this.cart).padStart(12, "0")}`);
+    return carritoId(
+      `00000000-0000-4000-8002-${String(this.cart).padStart(12, "0")}`
+    );
   }
 
   auditId() {
     this.audit += 1;
-    return auditId(`00000000-0000-4000-8003-${String(this.audit).padStart(12, "0")}`);
+    return auditId(
+      `00000000-0000-4000-8003-${String(this.audit).padStart(12, "0")}`
+    );
   }
 
   eventId() {
     this.event += 1;
-    return eventId(`00000000-0000-4000-8004-${String(this.event).padStart(12, "0")}`);
+    return eventId(
+      `00000000-0000-4000-8004-${String(this.event).padStart(12, "0")}`
+    );
   }
 
   sessionId() {
-    return sessionId(`00000000-0000-4000-8005-${String(++this.sequence).padStart(12, "0")}`);
+    return sessionId(
+      `00000000-0000-4000-8005-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   sellerId() {
-    return sellerId(`00000000-0000-4000-8006-${String(++this.sequence).padStart(12, "0")}`);
+    return sellerId(
+      `00000000-0000-4000-8006-${String(++this.sequence).padStart(12, "0")}`
+    );
+  }
+
+  sellerApplicationId() {
+    return sellerApplicationId(
+      `00000000-0000-4000-8025-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   warehouseId() {
-    return warehouseId(`00000000-0000-4000-8007-${String(++this.sequence).padStart(12, "0")}`);
+    return warehouseId(
+      `00000000-0000-4000-8007-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   addressId() {
-    return addressId(`00000000-0000-4000-8008-${String(++this.sequence).padStart(12, "0")}`);
+    return addressId(
+      `00000000-0000-4000-8008-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   checkoutId() {
-    return checkoutId(`00000000-0000-4000-8009-${String(++this.sequence).padStart(12, "0")}`);
+    return checkoutId(
+      `00000000-0000-4000-8009-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   orderId() {
-    return orderId(`00000000-0000-4000-8010-${String(++this.sequence).padStart(12, "0")}`);
+    return orderId(
+      `00000000-0000-4000-8010-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   orderItemId() {
-    return orderItemId(`00000000-0000-4000-8011-${String(++this.sequence).padStart(12, "0")}`);
+    return orderItemId(
+      `00000000-0000-4000-8011-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   paymentId() {
-    return paymentId(`00000000-0000-4000-8012-${String(++this.sequence).padStart(12, "0")}`);
+    return paymentId(
+      `00000000-0000-4000-8012-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   reservationId() {
-    return reservationId(`00000000-0000-4000-8013-${String(++this.sequence).padStart(12, "0")}`);
+    return reservationId(
+      `00000000-0000-4000-8013-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   productoId() {
-    return productoId(`00000000-0000-4000-8014-${String(++this.sequence).padStart(12, "0")}`);
+    return productoId(
+      `00000000-0000-4000-8014-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   productImageId() {
-    return productImageId(`00000000-0000-4000-8015-${String(++this.sequence).padStart(12, "0")}`);
+    return productImageId(
+      `00000000-0000-4000-8015-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   inventarioId() {
-    return inventarioId(`00000000-0000-4000-8016-${String(++this.sequence).padStart(12, "0")}`);
+    return inventarioId(
+      `00000000-0000-4000-8016-${String(++this.sequence).padStart(12, "0")}`
+    );
   }
 
   movimientoInventarioId() {

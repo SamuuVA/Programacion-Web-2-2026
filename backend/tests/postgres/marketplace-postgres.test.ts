@@ -13,16 +13,11 @@ import {
   SetPrincipalAddress,
   UpdateAddress
 } from "../../src/modules/buyers/application/address-use-cases.js";
-import {
-  RegisterSeller
-} from "../../src/modules/sellers/application/register-seller.js";
+import { RegisterSeller } from "../../src/modules/sellers/application/register-seller.js";
 import type { AuthenticatedUser } from "../../src/modules/identity/application/ports.js";
 import { PostgresSellerRegistrationStore } from "../../src/modules/sellers/infrastructure/postgres-seller-registration-store.js";
 import { PostgresCheckoutStore } from "../../src/modules/orders/infrastructure/postgres-checkout-store.js";
-import type {
-  CheckoutCommand,
-  ResultadoPagoSimulado
-} from "../../src/modules/orders/application/ports.js";
+import type { CheckoutCommand } from "../../src/modules/orders/application/ports.js";
 import { FixedClock } from "../support/doubles.js";
 import { ensureTestSchema, requireTestDatabaseUrl } from "./support.js";
 
@@ -156,7 +151,14 @@ async function addSellerWithProduct(
        sku, precio_centavos, moneda, creado_en, actualizado_en
      ) VALUES ($1, $2, $3, 'Producto de prueba', 'ELECTRONICA', 'PUBLICADO',
                'FISICA', $4, $5, 'COP', $6, $6)`,
-    [productoId, sellerId, `Producto ${label} ${runId}`, `SKU-${label}-${fixture.compradorId}`, priceCentavos, NOW]
+    [
+      productoId,
+      sellerId,
+      `Producto ${label} ${runId}`,
+      `SKU-${label}-${fixture.compradorId}`,
+      priceCentavos,
+      NOW
+    ]
   );
   await pool.query(
     `INSERT INTO inventory (
@@ -352,6 +354,7 @@ describe("Marketplace contra PostgreSQL real", () => {
           captured.push(value);
           return value;
         },
+        sellerApplicationId: () => base.sellerApplicationId(),
         warehouseId: () => warehouseId(existingWarehouseId),
         addressId: () => base.addressId(),
         checkoutId: () => base.checkoutId(),
@@ -542,9 +545,10 @@ describe("Marketplace contra PostgreSQL real", () => {
       expect(afterDelete).toHaveLength(1);
       expect(afterDelete[0]).toMatchObject({ id: first.id, esPrincipal: true });
 
-      await pool.query("DELETE FROM buyer_addresses WHERE comprador_id = ANY($1::uuid[])", [
-        [compradorId, otherCompradorId]
-      ]);
+      await pool.query(
+        "DELETE FROM buyer_addresses WHERE comprador_id = ANY($1::uuid[])",
+        [[compradorId, otherCompradorId]]
+      );
       await pool.query("DELETE FROM buyers WHERE id = ANY($1::uuid[])", [
         [compradorId, otherCompradorId]
       ]);
@@ -559,7 +563,9 @@ describe("Marketplace contra PostgreSQL real", () => {
       const fixture = await createCheckoutFixture();
       await addCartItem(fixture, fixture.productoIds[0]!, 2, 100000);
 
-      const result = await checkoutStore.executeCheckout(checkoutCommand(fixture));
+      const result = await checkoutStore.executeCheckout(
+        checkoutCommand(fixture)
+      );
 
       expect(result.estado).toBe("CONFIRMADO");
       expect(result.pedidos).toHaveLength(1);
@@ -570,7 +576,10 @@ describe("Marketplace contra PostgreSQL real", () => {
         totalCentavos: 200000,
         itemsCount: 1
       });
-      expect(order.pago).toMatchObject({ estado: "CAPTURADO", montoCentavos: 200000 });
+      expect(order.pago).toMatchObject({
+        estado: "CAPTURADO",
+        montoCentavos: 200000
+      });
       expect(order.direccionEntrega).toMatchObject({
         direccionId: fixture.addressId,
         linea1: "Calle 1 # 2-3",
@@ -584,7 +593,10 @@ describe("Marketplace contra PostgreSQL real", () => {
       );
       expect(inventory.rows[0]?.reserved).toBe(2);
 
-      const reservations = await pool.query<{ estado: string; cantidad: number }>(
+      const reservations = await pool.query<{
+        estado: string;
+        cantidad: number;
+      }>(
         "SELECT estado, cantidad FROM inventory_reservations WHERE checkout_id = $1",
         [result.checkoutId]
       );
@@ -783,14 +795,17 @@ describe("Marketplace contra PostgreSQL real", () => {
       await addCartItem(fixture, fixture.productoIds[0]!, 2, 100000);
       await addCartItem(fixture, fixture.productoIds[1]!, 1, 250000);
 
-      const result = await checkoutStore.executeCheckout(checkoutCommand(fixture));
+      const result = await checkoutStore.executeCheckout(
+        checkoutCommand(fixture)
+      );
 
       expect(result.pedidos).toHaveLength(2);
-      expect(new Set(result.pedidos.map((order) => order.vendedorId)).size).toBe(2);
-      expect(result.pedidos.map((order) => order.totalCentavos).sort()).toEqual([
-        200000,
-        250000
-      ]);
+      expect(
+        new Set(result.pedidos.map((order) => order.vendedorId)).size
+      ).toBe(2);
+      expect(result.pedidos.map((order) => order.totalCentavos).sort()).toEqual(
+        [200000, 250000]
+      );
 
       const reservations = await pool.query<{ count: number }>(
         "SELECT COUNT(*)::int AS count FROM inventory_reservations WHERE checkout_id = $1",

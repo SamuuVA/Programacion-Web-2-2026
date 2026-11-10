@@ -22,10 +22,14 @@ export class PerfilComprador {
 
   static create(input: PerfilCompradorProps): PerfilComprador {
     if (!ESTADOS_COMERCIALES.includes(input.estadoComercial)) {
-      throw new ValidationError("El estado comercial del comprador no es válido.");
+      throw new ValidationError(
+        "El estado comercial del comprador no es válido."
+      );
     }
     if (!Array.isArray(input.direcciones)) {
-      throw new ValidationError("Las direcciones del comprador deben ser una lista.");
+      throw new ValidationError(
+        "Las direcciones del comprador deben ser una lista."
+      );
     }
     return new PerfilComprador(input);
   }

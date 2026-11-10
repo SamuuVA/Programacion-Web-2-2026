@@ -188,12 +188,14 @@ describe("PI-07 QueryCatalog contra PostgreSQL real", () => {
 
   afterAll(async () => {
     if (pool && fixture) {
-      await pool.query("DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])", [
-        fixture.products
-      ]);
-      await pool.query("DELETE FROM product_images WHERE producto_id = ANY($1::uuid[])", [
-        fixture.products
-      ]);
+      await pool.query(
+        "DELETE FROM inventory WHERE producto_id = ANY($1::uuid[])",
+        [fixture.products]
+      );
+      await pool.query(
+        "DELETE FROM product_images WHERE producto_id = ANY($1::uuid[])",
+        [fixture.products]
+      );
       await pool.query("DELETE FROM products WHERE id = ANY($1::uuid[])", [
         fixture.products
       ]);
@@ -245,7 +247,9 @@ describe("PI-07 QueryCatalog contra PostgreSQL real", () => {
       pageSize: 12,
       orden: "recientes"
     });
-    expect(category.items.map((item) => item.nombre)).toEqual(["Producto Nido"]);
+    expect(category.items.map((item) => item.nombre)).toEqual([
+      "Producto Nido"
+    ]);
 
     const search = await repository.searchPublic({
       search: "guia",
@@ -313,7 +317,11 @@ describe("PI-07 QueryCatalog contra PostgreSQL real", () => {
   });
 
   it("no devuelve productos suspendidos ni de vendedores suspendidos", async () => {
-    await expect(repository.findPublicById(fixture.products[3]!)).resolves.toBeNull();
-    await expect(repository.findPublicById(fixture.products[4]!)).resolves.toBeNull();
+    await expect(
+      repository.findPublicById(fixture.products[3]!)
+    ).resolves.toBeNull();
+    await expect(
+      repository.findPublicById(fixture.products[4]!)
+    ).resolves.toBeNull();
   });
 });

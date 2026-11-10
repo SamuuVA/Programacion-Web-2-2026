@@ -7,7 +7,10 @@ import {
   DependencyUnavailableError,
   ResourceNotFoundError
 } from "../../../shared/domain/errors.js";
-import { DireccionEntrega, type DireccionSnapshot } from "../../buyers/domain/direccion-entrega.js";
+import {
+  DireccionEntrega,
+  type DireccionSnapshot
+} from "../../buyers/domain/direccion-entrega.js";
 import type {
   CheckoutCommand,
   CheckoutResult,
@@ -114,7 +117,9 @@ export class PostgresCheckoutStore implements CheckoutStore {
       );
       const cartRow = cart.rows[0];
       if (!cartRow) {
-        throw new ResourceNotFoundError("El comprador no tiene un carrito activo.");
+        throw new ResourceNotFoundError(
+          "El comprador no tiene un carrito activo."
+        );
       }
       const cartId = cartRow.id;
 
@@ -155,13 +160,16 @@ export class PostgresCheckoutStore implements CheckoutStore {
 
       const lines = await this.loadCartLines(client, cartId);
       if (lines.length === 0) {
-        throw new BusinessRuleError("El carrito está vacío.", { motivo: "CARRITO_VACIO" });
+        throw new BusinessRuleError("El carrito está vacío.", {
+          motivo: "CARRITO_VACIO"
+        });
       }
 
       this.validateLines(lines);
       const priceChanges = lines.filter(
         (line) =>
-          toInteger(line.precio_referencial_centavos) !== toInteger(line.precio_centavos) ||
+          toInteger(line.precio_referencial_centavos) !==
+            toInteger(line.precio_centavos) ||
           line.moneda_referencial !== line.moneda
       );
       if (priceChanges.length > 0 && !command.confirmarPrecio) {
@@ -172,7 +180,9 @@ export class PostgresCheckoutStore implements CheckoutStore {
             cambios: priceChanges.map((line) => ({
               productoId: line.producto_id,
               nombre: line.nombre,
-              precioAnteriorCentavos: toInteger(line.precio_referencial_centavos),
+              precioAnteriorCentavos: toInteger(
+                line.precio_referencial_centavos
+              ),
               precioActualCentavos: toInteger(line.precio_centavos),
               monedaAnterior: line.moneda_referencial,
               monedaActual: line.moneda
@@ -183,9 +193,12 @@ export class PostgresCheckoutStore implements CheckoutStore {
 
       const currencies = new Set(lines.map((line) => line.moneda));
       if (currencies.size > 1) {
-        throw new BusinessRuleError("El carrito mezcla monedas y no puede procesarse.", {
-          motivo: "MONEDA_NO_SOPORTADA"
-        });
+        throw new BusinessRuleError(
+          "El carrito mezcla monedas y no puede procesarse.",
+          {
+            motivo: "MONEDA_NO_SOPORTADA"
+          }
+        );
       }
 
       const needsAddress = lines.some((line) => line.tipo_entrega === "FISICA");
@@ -213,7 +226,9 @@ export class PostgresCheckoutStore implements CheckoutStore {
           (sum, line) => sum + toInteger(line.precio_centavos) * line.cantidad,
           0
         );
-        const groupNeedsAddress = group.some((line) => line.tipo_entrega === "FISICA");
+        const groupNeedsAddress = group.some(
+          (line) => line.tipo_entrega === "FISICA"
+        );
         const orderAddress = groupNeedsAddress ? addressSnapshot : null;
         const orderNumber = makeOrderNumber(command.now);
 
@@ -258,7 +273,13 @@ export class PostgresCheckoutStore implements CheckoutStore {
             ]
           );
           if (line.tipo_entrega === "FISICA") {
-            await this.reserveInventory(client, checkoutId, orderId, line, command.now);
+            await this.reserveInventory(
+              client,
+              checkoutId,
+              orderId,
+              line,
+              command.now
+            );
           }
         }
 
@@ -304,7 +325,11 @@ export class PostgresCheckoutStore implements CheckoutStore {
 
       const pedidos: OrderDetail[] = [];
       for (const orderId of orderIds) {
-        const order = await this.loadOrder(client, command.compradorId, orderId);
+        const order = await this.loadOrder(
+          client,
+          command.compradorId,
+          orderId
+        );
         if (order !== null) {
           pedidos.push(order);
         }
@@ -323,7 +348,12 @@ export class PostgresCheckoutStore implements CheckoutStore {
                 resultado = $3,
                 actualizado_en = $4
           WHERE id = $1`,
-        [checkoutId, command.resultadoPagoSimulado, JSON.stringify(result), command.now]
+        [
+          checkoutId,
+          command.resultadoPagoSimulado,
+          JSON.stringify(result),
+          command.now
+        ]
       );
 
       await client.query("COMMIT");
@@ -333,9 +363,12 @@ export class PostgresCheckoutStore implements CheckoutStore {
       if (error instanceof ApplicationError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible completar el checkout.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible completar el checkout.",
+        {
+          cause: messageOf(error)
+        }
+      );
     } finally {
       client.release();
     }
@@ -363,22 +396,31 @@ export class PostgresCheckoutStore implements CheckoutStore {
       );
       return result.rows.map(toSummary);
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible consultar los pedidos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar los pedidos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
-  async findOrder(compradorId: string, orderId: string): Promise<OrderDetail | null> {
+  async findOrder(
+    compradorId: string,
+    orderId: string
+  ): Promise<OrderDetail | null> {
     try {
       return await this.loadOrder(this.pool, compradorId, orderId);
     } catch (error) {
       if (error instanceof DependencyUnavailableError) {
         throw error;
       }
-      throw new DependencyUnavailableError("No fue posible consultar el pedido.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible consultar el pedido.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 
@@ -386,7 +428,10 @@ export class PostgresCheckoutStore implements CheckoutStore {
     await this.pool.end();
   }
 
-  private async loadCartLines(client: PoolClient, cartId: string): Promise<CartLineRow[]> {
+  private async loadCartLines(
+    client: PoolClient,
+    cartId: string
+  ): Promise<CartLineRow[]> {
     const result = await client.query<CartLineRow>(
       `SELECT ci.producto_id,
               ci.cantidad,
@@ -697,8 +742,14 @@ export class PostgresCheckoutStore implements CheckoutStore {
     );
   }
 
-  private async clearCart(client: PoolClient, cartId: string, now: string): Promise<void> {
-    await client.query(`DELETE FROM cart_items WHERE carrito_id = $1`, [cartId]);
+  private async clearCart(
+    client: PoolClient,
+    cartId: string,
+    now: string
+  ): Promise<void> {
+    await client.query(`DELETE FROM cart_items WHERE carrito_id = $1`, [
+      cartId
+    ]);
     await client.query(
       `UPDATE carts
           SET actualizado_en = $2,
@@ -793,14 +844,19 @@ export class PostgresCheckoutStore implements CheckoutStore {
     try {
       return await this.pool.connect();
     } catch (error) {
-      throw new DependencyUnavailableError("No fue posible conectar con la base de datos.", {
-        cause: messageOf(error)
-      });
+      throw new DependencyUnavailableError(
+        "No fue posible conectar con la base de datos.",
+        {
+          cause: messageOf(error)
+        }
+      );
     }
   }
 }
 
-function groupBySeller(lines: readonly CartLineRow[]): Map<string, CartLineRow[]> {
+function groupBySeller(
+  lines: readonly CartLineRow[]
+): Map<string, CartLineRow[]> {
   const groups = new Map<string, CartLineRow[]>();
   for (const line of lines) {
     const current = groups.get(line.vendedor_id);

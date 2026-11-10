@@ -1,5 +1,8 @@
 import { UniquenessConflictError } from "../../src/shared/domain/errors.js";
-import type { RegistroAuditoria, EventoDominio } from "../../src/shared/domain/audit.js";
+import type {
+  RegistroAuditoria,
+  EventoDominio
+} from "../../src/shared/domain/audit.js";
 import type {
   CorreoElectronico,
   DocumentoIdentidad
@@ -36,13 +39,22 @@ export class FakeBuyerRegistrationStore implements BuyerRegistrationStore {
 
   async saveRegistration(record: BuyerRegistrationRecord): Promise<void> {
     if (this.findUserByEmail(record.usuario.correoElectronico.value)) {
-      throw new UniquenessConflictError("El correo electrónico ya está registrado.");
+      throw new UniquenessConflictError(
+        "El correo electrónico ya está registrado."
+      );
     }
     if (this.findUserByDocument(record.usuario.documentoIdentidad)) {
-      throw new UniquenessConflictError("El documento de identidad ya está registrado.");
+      throw new UniquenessConflictError(
+        "El documento de identidad ya está registrado."
+      );
     }
-    if (this.buyers.has(record.comprador.id) || this.carts.has(record.carrito.id)) {
-      throw new UniquenessConflictError("El identificador del registro ya existe.");
+    if (
+      this.buyers.has(record.comprador.id) ||
+      this.carts.has(record.carrito.id)
+    ) {
+      throw new UniquenessConflictError(
+        "El identificador del registro ya existe."
+      );
     }
 
     this.users.set(record.usuario.id, record.usuario);
@@ -74,11 +86,15 @@ export class FakeBuyerRegistrationStore implements BuyerRegistrationStore {
   }
 
   getBuyerByUserId(usuarioId: string): PerfilComprador | undefined {
-    return [...this.buyers.values()].find((buyer) => buyer.usuarioId === usuarioId);
+    return [...this.buyers.values()].find(
+      (buyer) => buyer.usuarioId === usuarioId
+    );
   }
 
   getCartByBuyerId(compradorId: string): Carrito | undefined {
-    return [...this.carts.values()].find((cart) => cart.compradorId === compradorId);
+    return [...this.carts.values()].find(
+      (cart) => cart.compradorId === compradorId
+    );
   }
 
   getAuditRecords(): readonly RegistroAuditoria[] {
@@ -95,7 +111,9 @@ export class FakeBuyerRegistrationStore implements BuyerRegistrationStore {
     );
   }
 
-  private findUserByDocument(documento: DocumentoIdentidad): Usuario | undefined {
+  private findUserByDocument(
+    documento: DocumentoIdentidad
+  ): Usuario | undefined {
     return [...this.users.values()].find((user) =>
       user.documentoIdentidad.equals(documento)
     );

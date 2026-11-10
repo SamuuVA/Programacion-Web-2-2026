@@ -13,6 +13,9 @@ export class LogoutUser {
     if (typeof token !== "string" || token.trim().length === 0) {
       return;
     }
-    await this.store.revokeSession(hashSessionToken(token), this.clock.now().value);
+    await this.store.revokeSession(
+      hashSessionToken(token),
+      this.clock.now().value
+    );
   }
 }

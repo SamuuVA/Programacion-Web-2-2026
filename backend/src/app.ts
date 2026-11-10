@@ -97,6 +97,20 @@ import {
   ListSupervisorWarehouses
 } from "./modules/supervisor/application/use-cases.js";
 import { registerSupervisorRoutes } from "./modules/supervisor/interfaces/http/supervisor-routes.js";
+import type { SellerApplicationStore } from "./modules/seller-applications/application/ports.js";
+import {
+  ApproveSellerApplication,
+  GetAdminSellerApplication,
+  GetOwnSellerApplication,
+  ListAdminSellerApplications,
+  RejectSellerApplication,
+  SubmitSellerApplication
+} from "./modules/seller-applications/application/use-cases.js";
+import { registerSellerApplicationRoutes } from "./modules/seller-applications/interfaces/http/seller-application-routes.js";
+import {
+  UpdateUserAccessStatus,
+  type UserAccessStore
+} from "./modules/identity/application/update-user-access-status.js";
 import type { AdminStore } from "./modules/admin/application/ports.js";
 import {
   GetAdminBuyer,
@@ -137,6 +151,8 @@ export interface AppDependencies {
   readonly logistics?: LogisticsStore;
   readonly supervisor?: SupervisorStore;
   readonly admin?: AdminStore;
+  readonly sellerApplications?: SellerApplicationStore;
+  readonly userAccess?: UserAccessStore;
 }
 
 export async function buildApp(
@@ -190,8 +206,12 @@ export async function buildApp(
         dependencies.sellerWorkspace?.close(),
         dependencies.logistics?.close(),
         dependencies.supervisor?.close(),
-        dependencies.admin?.close()
-      ].filter((operation): operation is Promise<void> => operation !== undefined)
+        dependencies.admin?.close(),
+        dependencies.sellerApplications?.close(),
+        dependencies.userAccess?.close()
+      ].filter(
+        (operation): operation is Promise<void> => operation !== undefined
+      )
     );
   });
 
@@ -270,8 +290,12 @@ export async function buildApp(
           dependencies.sellerWorkspace?.healthCheck(),
           dependencies.logistics?.healthCheck(),
           dependencies.supervisor?.healthCheck(),
-          dependencies.admin?.healthCheck()
-        ].filter((operation): operation is Promise<void> => operation !== undefined)
+          dependencies.admin?.healthCheck(),
+          dependencies.sellerApplications?.healthCheck(),
+          dependencies.userAccess?.healthCheck()
+        ].filter(
+          (operation): operation is Promise<void> => operation !== undefined
+        )
       );
       return { status: "ready" };
     } catch {
@@ -313,10 +337,17 @@ export async function buildApp(
       registerAddressRoutes(app, {
         authenticator,
         list: new ListAddresses(dependencies.addresses),
-        create: new CreateAddress(dependencies.addresses, dependencies.clock, dependencies.ids),
+        create: new CreateAddress(
+          dependencies.addresses,
+          dependencies.clock,
+          dependencies.ids
+        ),
         update: new UpdateAddress(dependencies.addresses, dependencies.clock),
         remove: new DeleteAddress(dependencies.addresses),
-        setPrincipal: new SetPrincipalAddress(dependencies.addresses, dependencies.clock)
+        setPrincipal: new SetPrincipalAddress(
+          dependencies.addresses,
+          dependencies.clock
+        )
       });
       routeMethods.set("/api/v1/buyers/me/addresses", ["GET", "HEAD", "POST"]);
     }
@@ -333,6 +364,39 @@ export async function buildApp(
         )
       );
       routeMethods.set("/api/v1/admin/sellers", ["GET", "HEAD", "POST"]);
+    }
+
+    if (dependencies.sellerApplications) {
+      registerSellerApplicationRoutes(app, {
+        authenticator,
+        submit: new SubmitSellerApplication(
+          dependencies.sellerApplications,
+          dependencies.clock,
+          dependencies.ids
+        ),
+        getOwn: new GetOwnSellerApplication(dependencies.sellerApplications),
+        listAdmin: new ListAdminSellerApplications(
+          dependencies.sellerApplications
+        ),
+        getAdmin: new GetAdminSellerApplication(
+          dependencies.sellerApplications
+        ),
+        approve: new ApproveSellerApplication(
+          dependencies.sellerApplications,
+          dependencies.clock,
+          dependencies.ids
+        ),
+        reject: new RejectSellerApplication(
+          dependencies.sellerApplications,
+          dependencies.clock,
+          dependencies.ids
+        )
+      });
+      routeMethods.set("/api/v1/buyer/seller-application", [
+        "GET",
+        "HEAD",
+        "POST"
+      ]);
     }
 
     if (dependencies.cart) {
@@ -401,7 +465,9 @@ export async function buildApp(
           dependencies.clock,
           dependencies.ids
         ),
-        updateWarehouse: new UpdateSellerWarehouse(dependencies.sellerWorkspace),
+        updateWarehouse: new UpdateSellerWarehouse(
+          dependencies.sellerWorkspace
+        ),
         listInventory: new ListSellerInventory(dependencies.sellerWorkspace),
         registerIngress: new RegisterInventoryIngress(
           dependencies.sellerWorkspace,
@@ -428,9 +494,15 @@ export async function buildApp(
         getSummary: new GetLogisticsSummary(dependencies.logistics),
         listOrders: new ListLogisticsOrders(dependencies.logistics),
         getOrder: new GetLogisticsOrder(dependencies.logistics),
-        prepare: new PrepareShipment(dependencies.logistics, dependencies.clock),
+        prepare: new PrepareShipment(
+          dependencies.logistics,
+          dependencies.clock
+        ),
         dispatch: new DispatchOrder(dependencies.logistics, dependencies.clock),
-        deliver: new ConfirmDelivery(dependencies.logistics, dependencies.clock),
+        deliver: new ConfirmDelivery(
+          dependencies.logistics,
+          dependencies.clock
+        ),
         registerOperator: new RegisterLogisticsOperator(
           dependencies.logistics,
           dependencies.hasher,
@@ -487,7 +559,16 @@ export async function buildApp(
         listMovements: new ListAdminMovements(dependencies.admin),
         listOrders: new ListAdminOrders(dependencies.admin),
         getOrder: new GetAdminOrder(dependencies.admin),
-        listPayments: new ListAdminPayments(dependencies.admin)
+        listPayments: new ListAdminPayments(dependencies.admin),
+        ...(dependencies.userAccess
+          ? {
+              updateUserAccessStatus: new UpdateUserAccessStatus(
+                dependencies.userAccess,
+                dependencies.clock,
+                dependencies.ids
+              )
+            }
+          : {})
       });
       routeMethods.set("/api/v1/admin/dashboard", ["GET", "HEAD"]);
       routeMethods.set("/api/v1/admin/reports", ["GET", "HEAD"]);
@@ -505,7 +586,10 @@ export async function buildApp(
   app.setNotFoundHandler((request, reply) => {
     const path = request.url.split("?")[0] ?? "/";
     const declaredMethods = routeMethods.get(path);
-    if (declaredMethods !== undefined && !declaredMethods.includes(request.method)) {
+    if (
+      declaredMethods !== undefined &&
+      !declaredMethods.includes(request.method)
+    ) {
       const allowed = [...declaredMethods];
       if (config.CORS_ORIGINS.length > 0) {
         allowed.push("OPTIONS");

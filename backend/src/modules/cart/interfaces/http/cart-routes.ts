@@ -69,7 +69,10 @@ export function registerCartRoutes(
   app.delete("/api/v1/cart/items/:productoId", async (request, reply) => {
     const compradorId = await buyerOf(request, dependencies.authenticator);
     const params = parse(productParamsSchema, request.params);
-    const cart = await dependencies.removeItem.execute(compradorId, params.productoId);
+    const cart = await dependencies.removeItem.execute(
+      compradorId,
+      params.productoId
+    );
     return reply.code(200).send({ data: cart });
   });
 }

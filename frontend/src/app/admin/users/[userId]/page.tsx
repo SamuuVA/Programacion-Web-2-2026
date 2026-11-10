@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRightIcon, UserIcon } from "@/components/icons";
+import { ArrowRightIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/error-state";
 import { getSessionToken, requireAdmin } from "@/features/auth/session";
 import { fetchAdminUser } from "@/features/admin/api";
+import { AccessStatusForm } from "@/features/seller-applications/components/access-status-form";
 import {
   ESTADO_COMPRADOR_LABEL,
   ESTADO_OPERADOR_LABEL,
@@ -41,7 +42,7 @@ export default async function AdminUserDetailPage({ params }: UserPageProps) {
     notFound();
   }
 
-  await requireAdmin(`/admin/users/${userId}`);
+  const admin = await requireAdmin(`/admin/users/${userId}`);
   const token = await getSessionToken();
   if (!token) {
     return null;
@@ -184,14 +185,11 @@ export default async function AdminUserDetailPage({ params }: UserPageProps) {
           </div>
 
           <aside className="seller-detail-aside">
-            <section className="checkout-block">
-              <h2>Consulta de solo lectura</h2>
-              <p className="form-hint">
-                <UserIcon width={16} height={16} /> Esta vista no permite cambiar
-                el rol, el estado ni eliminar la cuenta. Esas operaciones no están
-                definidas ni autorizadas en esta fase.
-              </p>
-            </section>
+            <AccessStatusForm
+              usuarioId={user.id}
+              estadoActual={user.estado}
+              isSelf={admin.usuarioId === user.id}
+            />
 
             <section className="checkout-block">
               <h2>Datos minimizados</h2>

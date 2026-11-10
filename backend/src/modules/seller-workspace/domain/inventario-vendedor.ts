@@ -1,4 +1,7 @@
-import { BusinessRuleError, ValidationError } from "../../../shared/domain/errors.js";
+import {
+  BusinessRuleError,
+  ValidationError
+} from "../../../shared/domain/errors.js";
 import type { TipoEntregaVendedor } from "./producto-vendedor.js";
 
 /**
@@ -45,9 +48,10 @@ export function normalizarIngreso(input: {
     bodegaId: input.bodegaId,
     cantidad: input.cantidad,
     idempotencyKey,
-    motivo: typeof input.motivo === "string" && input.motivo.trim().length > 0
-      ? input.motivo.trim()
-      : null
+    motivo:
+      typeof input.motivo === "string" && input.motivo.trim().length > 0
+        ? input.motivo.trim()
+        : null
   };
 }
 

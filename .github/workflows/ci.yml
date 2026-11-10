@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   backend-static:
-    name: Backend · typecheck, OpenAPI y build
+    name: Backend - lint, formato, tipos, OpenAPI y build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,7 +28,11 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Typecheck (análisis estático)
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Formato (Prettier)
+        run: npm run format:check
+      - name: Typecheck (analisis estatico)
         run: npm run typecheck
       - name: Validar contrato OpenAPI
         run: npm run validate:openapi
@@ -36,7 +40,7 @@ jobs:
         run: npm run build
 
   backend-tests:
-    name: Backend · pruebas unitarias e integración
+    name: Backend - pruebas unitarias e integracion
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,7 +56,7 @@ jobs:
       - run: npm test
 
   backend-postgres:
-    name: Backend · migraciones y pruebas PostgreSQL
+    name: Backend - migraciones y pruebas PostgreSQL
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -89,7 +93,7 @@ jobs:
         run: npm run test:postgres
 
   frontend:
-    name: Frontend · typecheck y build
+    name: Frontend - lint, typecheck y build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -102,7 +106,74 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - name: Typecheck (análisis estático)
+      - name: Lint (ESLint + Next + React Hooks)
+        run: npm run lint
+      - name: Typecheck (analisis estatico)
         run: npm run typecheck
-      - name: Compilar producción
+      - name: Compilar produccion
         run: npm run build
+
+  frontend-e2e:
+    name: Frontend - E2E Playwright
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nexusmarket
+          POSTGRES_PASSWORD: nexusmarket
+          POSTGRES_DB: nexusmarket
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexusmarket -d nexusmarket"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://nexusmarket:nexusmarket@127.0.0.1:5432/nexusmarket
+      API_URL: http://127.0.0.1:3000
+      E2E_BASE_URL: http://127.0.0.1:3001
+      E2E_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Migrar y sembrar la base demo
+        working-directory: backend
+        run: npm run db:migrate && npm run db:seed:demo
+      - name: Compilar backend
+        working-directory: backend
+        run: npm run build
+      - name: Instalar Chromium de Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Compilar frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Ejecutar E2E contra backend y frontend reales
+        working-directory: frontend
+        shell: bash
+        run: |
+          (cd ../backend && node dist/server.js &)
+          npx next start -p 3001 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/health > /dev/null; then break; fi
+            sleep 1
+          done
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3001 > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:e2e
