@@ -38,3 +38,11 @@ Adaptar al repositorio real; no mover código sin análisis.
 
 ## Reglas
 Separar UI de reglas de negocio. No dispersar fetch en componentes. No exponer secretos en NEXT_PUBLIC. Mantener caché conservadora para datos privados y compras. Evitar `any`, componentes monolíticos y estado global innecesario.
+
+## Tema visual (implementado)
+
+- `src/app/layout.tsx` es el único punto que inicializa el tema: inyecta `THEME_INIT_SCRIPT` en `<head>` para fijar `data-theme` antes del primer paint y evitar parpadeos e inconsistencias de hidratación.
+- `src/lib/theme.ts` centraliza la clave de persistencia, los tipos y los colores de `theme-color`; ninguna página implementa lógica de tema propia.
+- `src/components/theme-toggle.tsx` es un componente cliente montado en `SiteHeader`, por lo que el control está disponible en todas las rutas sin duplicar providers ni contextos.
+- `src/app/globals.css` contiene ambos temas como tokens; no hay estilos por página ni overrides de layout que dependan del tema.
+- No se añadieron dependencias ni librerías de tematización: la solución usa React, CSS variables y `localStorage`.

@@ -17,3 +17,7 @@
 | FE-13 | Revisión administrativa de solicitudes | `/admin/seller-applications` y detalle | `identity-onboarding.spec.ts` (aprobación/rechazo) |
 | FE-14 | Estado de acceso y revocación de sesión | `/admin/users/[userId]` | `identity-onboarding.spec.ts` (desactivación/reactivación) |
 | FE-15 | Lint del frontend | `frontend/eslint.config.mjs` | `npm run lint` |
+| FE-16 | Tema claro/oscuro con persistencia | `src/lib/theme.ts`, `src/components/theme-toggle.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `theme.spec.ts` (aplicación, rutas, recarga) |
+| FE-17 | Preferencia del sistema en primera visita | `src/lib/theme.ts` (`THEME_INIT_SCRIPT`) | `theme.spec.ts` (colorScheme dark) |
+| FE-18 | Catálogo, búsqueda, detalle y carrito en ambos temas | `src/features/catalog/*`, `src/features/cart/*` | `theme.spec.ts` (ambos temas) |
+| FE-19 | Determinismo de stock en E2E | `e2e/support/demo-stock.ts` | `logistics.spec.ts`, `supervisor.spec.ts`, `theme.spec.ts` |

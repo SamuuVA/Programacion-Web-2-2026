@@ -1,7 +1,7 @@
 # NexusMarket — Estado de implementación
 
-**Corte:** 2026-11-09
-**Estado global:** marketplace funcional local (autenticación, direcciones, alta de vendedor, carrito, checkout con pago simulado, frontend integrado, espacio de trabajo del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, autoregistro público de comprador, solicitud comprador → vendedor, revisión administrativa y gestión de estados de acceso) verificado con evidencia ejecutada.
+**Corte:** 2026-11-10
+**Estado global:** marketplace funcional local (autenticación, direcciones, alta de vendedor, carrito, checkout con pago simulado, frontend integrado, espacio de trabajo del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, autoregistro público de comprador, solicitud comprador → vendedor, revisión administrativa, gestión de estados de acceso y tema claro/oscuro con persistencia) verificado con evidencia ejecutada.
 **Fuente de verdad:** código del repositorio, PostgreSQL real y comandos ejecutados en este corte.
 
 ---
@@ -28,6 +28,7 @@
 | P | Supervisión de solo lectura (`GATE-V2-SUPERVISOR`) | `PASS` local | 9 rutas `GET /api/v1/supervisor/*` + guarda `405`; dashboard real; E2E 6/6; reportes `BLOQUEADO` (`L-19`) |
 | Q | Espacio administrativo (`GATE-V2-ADMIN`) | `PASS` local | 17 rutas `GET /api/v1/admin/*` + guarda de método; alta atómica de vendedor/logística intacta; 160 pruebas backend; 40 PostgreSQL; E2E 7/7; reportes solo agregados reales |
 | R | Identidad y onboarding (`GATE-V2-IDENTITY`) | `PASS` | Registro público, solicitud comprador → vendedor, aprobación atómica, rechazo sin efectos y estados de acceso con revocación de sesión; 187 pruebas backend; 46 PostgreSQL; E2E 10/10 local y 5/5 jobs en CI; lint y formato ejecutados |
+| S | Recuperación visual, tema y catálogo (`GATE-RECUPERACION-VISUAL`) | `PASS` local | Tokens CSS completos; tema claro/oscuro con persistencia y sin errores de hidratación; catálogo real con búsqueda, filtros, detalle y carrito en ambos temas; E2E 13/13 en 3001 y 3002; lint 0 errores, typecheck y build OK; backend `verify` y PostgreSQL OK |
 
 `PASS` significa “verificado con la evidencia listada”. El CI remoto se registra en el gate L; la revisión independiente de esta entrega sigue pendiente.
 
@@ -100,7 +101,8 @@ Desglose de `npm run test:postgres`:
 | `npm run build` | OK (Next.js 16.4.3, 56 rutas) |
 | Smoke HTTP del frontend (corte anterior) | 15/15 PASS |
 | E2E de navegador real del marketplace (corte anterior, Chrome CDP) | 13/13 PASS |
-| E2E de navegador real (Playwright + Microsoft Edge) | 10/10 PASS (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión de solo lectura, administración y onboarding de identidad) |
+| E2E de navegador real (Playwright + Microsoft Edge) | 13/13 PASS en 3001 (4.6 min) y 13/13 en 3002 (11.2 min): protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión, administración, onboarding de identidad y tema/catálogo en claro y oscuro |
+| E2E de tema (`theme.spec.ts`) | 3/3 PASS en 3001 (1.0 min): aplicación, persistencia entre rutas y recargas, preferencia del sistema y catálogo/búsqueda/detalle/carrito en ambos temas |
 | Smoke HTTP del vendedor | 33/33 PASS |
 
 ### Migraciones aplicadas
@@ -528,3 +530,38 @@ El CI remoto quedó en `PASS` con el run `42749289978`; el gate L ya no está pe
 5. Definir con negocio el catálogo de reportes (`L-19`): métricas, fórmulas, filtros, límites y exportaciones. Hasta entonces, el espacio admin solo muestra agregados reales.
 6. Definir con negocio el mecanismo de almacenamiento de imágenes y la estructura de entrega digital antes de ampliar el vendedor.
 7. No declarar reembolsos ni logística inversa hasta que exista decisión de negocio, persistencia y contrato; mantener bloqueadas la asignación automática, los transportistas externos, el tracking integrado y la evidencia del proveedor (`L-23`).
+
+---
+
+## 18. Gate S — Recuperación visual, tema y catálogo (`GATE-RECUPERACION-VISUAL`)
+
+### Diagnóstico verificado
+
+La implementación del tema claro/oscuro no era la causa de la pérdida de estilos. Los tokens CSS están completos (56 variables usadas, 0 sin definir; 435/435 llaves) y el build compila. Las causas reales fueron operativas:
+
+1. El contenedor `nexusmarket-postgres` estaba detenido (`Exited (255)`); el backend devolvía `503 DEPENDENCIA_NO_DISPONIBLE` en el catálogo.
+2. El `next start` del puerto 3001 servía un build anterior; su HTML referenciaba un CSS que devolvía `500` tras reconstruir `.next`.
+
+### Correcciones y cobertura
+
+- Se inició PostgreSQL y se reinició el servidor de 3001 desde el build actual; el catálogo y el CSS volvieron a responder `200`.
+- Se conservó la implementación del tema: tokens en `globals.css`, script pre-paint en `layout.tsx` y `ThemeToggle` en la cabecera; sin librerías nuevas.
+- Se añadió `frontend/e2e/theme.spec.ts` (3 pruebas) y `frontend/e2e/support/demo-stock.ts` (reposición de stock por API real del vendedor).
+- Se corrigió una condición de carrera de la prueba de tema: `body` anima el color de fondo 0.2 s y la prueba comparaba durante la transición; ahora espera con `expect.poll`.
+
+### Evidencia ejecutada
+
+| Comprobación | Resultado |
+|---|---|
+| Frontend `npm run lint` | 0 errores; 2 avisos preexistentes de `<img>` |
+| Frontend `npm run typecheck` | OK |
+| Frontend `npm run build` | OK; 56 rutas |
+| Frontend `npm run test:e2e` en 3001 | 13/13 en 4.6 min |
+| Frontend `npm run test:e2e` en 3002 | 13/13 en 11.2 min |
+| `theme.spec.ts` en 3001 | 3/3 en 1.0 min |
+| Backend `npm run verify` | 23 archivos / 187 pruebas; OpenAPI 74/83/984; build OK |
+| Backend `npm run test:postgres` | 9 archivos / 46 pruebas OK |
+
+### Límites
+
+Los pendientes de negocio e identidad de la sección 17 siguen vigentes. El proyecto usa TypeScript/Fastify/PostgreSQL; no hay backend Go y no se cambió el stack. Requisito operativo: PostgreSQL activo y reinicio del servidor de producción después de cada `next build`.

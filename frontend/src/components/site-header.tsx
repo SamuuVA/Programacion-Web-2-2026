@@ -10,6 +10,7 @@ import {
   StoreIcon,
   UserIcon
 } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { getSession } from "@/features/auth/session";
 
@@ -123,6 +124,8 @@ export async function SiteHeader() {
             <SearchIcon />
           </button>
         </form>
+
+        <ThemeToggle />
 
         <div className="header-account">
           {accountLinks.map((link) => (

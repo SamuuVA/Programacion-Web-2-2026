@@ -749,3 +749,64 @@ Escenarios E2E nuevos (`identity-onboarding.spec.ts`, 3/3):
 | Reconciliación de pagos `DESCONOCIDO`, reportes `L-19`, devoluciones/reembolsos/facturación y `CloseOrder` | Fuera de alcance; sin reglas inventadas |
 
 El CI remoto ejecutó los cinco jobs del workflow sobre el commit `73db5d6`. Los avisos de GitHub sobre Node.js 20 y la migración de `ubuntu-latest` son advertencias de la plataforma, no fallos del proyecto; no se cambiaron versiones de acciones en esta fase.
+
+## 14. Fase de recuperación visual y auditoría integral (2026-11-10)
+
+### 14.1 Punto de partida y diagnóstico
+
+Síntomas reportados: pérdida de estilos, componentes sin apariencia, catálogo sin funcionar y funcionalidades que dejaron de responder después del cambio de tema.
+
+Auditoría de Git: el trabajo del tema estaba sin confirmar en `frontend/src/app/globals.css`, `frontend/src/app/layout.tsx`, `frontend/src/components/icons.tsx` y `frontend/src/components/site-header.tsx`, más los nuevos `frontend/src/components/theme-toggle.tsx` y `frontend/src/lib/theme.ts`. No se encontraron providers duplicados, layouts que sobrescribieran estilos ni imports rotos.
+
+Hechos comprobados:
+
+1. **Tokens CSS completos.** 56 variables `var(--…)` usadas y 0 sin definir; 435 llaves de apertura y 435 de cierre; `next build` compila y genera 56 rutas.
+2. **PostgreSQL detenido.** `docker ps -a` mostró `nexusmarket-postgres` en `Exited (255)`. El backend respondía `503 {"codigo":"DEPENDENCIA_NO_DISPONIBLE"}` en `/api/v1/products`, por lo que home y catálogo se renderizaban sin productos. Eso se percibía como «catálogo roto».
+3. **Servidor de producción obsoleto.** El `next start -p 3001` llevaba horas activo. Tras un `next build` nuevo, su HTML seguía referenciando `/_next/static/chunks/1lzv8o5u9ne9u.css`, que devolvía `500`; por eso las páginas se veían sin estilos. El servidor de 3002, arrancado desde el build actual, servía `2js-7w_m967hp.css` con `200` y HTML con `data-theme`.
+4. **Fragilidad E2E por stock.** Ejecuciones repetidas agotaron el stock del producto demo (`disponible: 0`) y la suite logística falló al intentar comprarlo. Se repuso mediante la API real de ingresos del vendedor, no con SQL ni mocks.
+5. **Falso negativo del test de tema.** `body` tiene `transition: background-color 0.2s ease`; la prueba leía el color mientras animaba (`rgb(22, 41, 33)` en lugar de `rgb(13, 32, 24)`). No era un defecto del tema, sino una condición de carrera de la prueba.
+
+Conclusión: la implementación del tema era funcionalmente correcta. La apariencia rota provenía de un servidor sirviendo assets de un build anterior y de la base detenida; el catálogo «no funcionaba» por la dependencia PostgreSQL.
+
+### 14.2 Correcciones aplicadas
+
+- **Operativas, sin cambio de código:** `docker start nexusmarket-postgres` y reinicio del `next start` de 3001 desde el build actual. Verificado: `/api/v1/products` 200; HTML de 3001 con 6 referencias `data-theme`; CSS `2js-7w_m967hp.css` 200.
+- **Tema:** se conservó la implementación existente (tokens en `globals.css`, script pre-paint en `layout.tsx`, `ThemeToggle` en `site-header.tsx`). No se reescribió el sistema ni se añadieron librerías.
+- **E2E determinista:** `frontend/e2e/support/demo-stock.ts` repone stock con `POST /api/v1/seller/inventory/ingresos`; lo usan `logistics.spec.ts`, `supervisor.spec.ts` y `theme.spec.ts`.
+- **Cobertura nueva:** `frontend/e2e/theme.spec.ts` con 3 pruebas (aplicación/persistencia/recarga, preferencia del sistema y catálogo/búsqueda/detalle/carrito en ambos temas).
+- **Corrección de la prueba de tema:** helper `expectBodyBackground` con `expect.poll` para esperar el valor final de la transición CSS antes de comparar.
+
+### 14.3 Verificación visual y funcional
+
+Verificación asistida con Playwright sobre build de producción:
+
+- Tema claro y oscuro en `/`, `/login`, `/register`, `/products`, detalle de producto, `/cart`, `/admin`, `/seller`, `/logistics` y `/supervisor`; persistencia al navegar y recargar; preferencia del sistema en primera visita; móvil de 390 px sin desbordamiento (cabecera 75 px, selector 78×42, menú 42×42).
+- Catálogo real: 25 productos, búsqueda `Audífonos`, filtro `ELECTRONICA`, detalle con SKU, alta y eliminación en carrito, en ambos temas.
+- Roles: comprador, vendedor, operador logístico, administrador y supervisor; sin elementos invisibles (color igual al fondo) ni errores de consola o de página.
+
+### 14.4 Comandos ejecutados y resultados
+
+Desde `frontend/`:
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run lint` | 0 errores; 2 avisos preexistentes `@next/next/no-img-element` |
+| `npm run typecheck` | OK |
+| `npm run build` | OK; 56 rutas |
+| `npm run test:e2e` (3002) | 13/13 en 11.2 min |
+| `npm run test:e2e` (3001, servidor por defecto) | 13/13 en 4.6 min |
+| `npx playwright test e2e/theme.spec.ts` (3001) | 3/3 en 1.0 min |
+
+Desde `backend/`:
+
+| Comando | Resultado observado |
+|---|---|
+| `npm run verify` | OK: 23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias; build |
+| `npm run test:postgres` | 9 archivos / 46 pruebas contra PostgreSQL |
+
+El proyecto real es TypeScript + Fastify + PostgreSQL. No existe backend Go; se mantuvo el stack existente y no se introdujeron tecnologías nuevas.
+
+### 14.5 Límites y pendientes
+
+- Los pendientes de identidad y negocio no cambian: reenvío/edición tras rechazo, `CloseOrder`, reconciliación de pagos `DESCONOCIDO`, reportes `L-19`, devoluciones/reembolsos/facturación, notificaciones externas e imágenes binarias.
+- Requisito operativo documentado: PostgreSQL debe estar activo y, tras cada `next build`, hay que reiniciar el `next start` para no servir assets obsoletos.

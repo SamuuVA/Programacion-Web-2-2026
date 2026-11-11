@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  DEMO_PRODUCT_ID,
+  DEMO_PRODUCT_NAME,
+  ensureDemoProductStock
+} from "./support/demo-stock";
 
 const PASSWORD = process.env.NEXUS_DEMO_PASSWORD ?? "NexusMarketDemo2026!";
 const SUPERVISOR_EMAIL = "supervisor@nexusmarket.demo";
@@ -7,8 +12,6 @@ const BUYER_EMAIL = "comprador@nexusmarket.demo";
 const SELLER_EMAIL = "aurora@nexusmarket.demo";
 const LOGISTICS_EMAIL = "logistica@nexusmarket.demo";
 
-const DEMO_PRODUCT_ID = "40000000-0000-4000-8000-000000000001";
-const DEMO_PRODUCT_NAME = "Audífonos Aurora";
 const DEMO_SELLER_NAME = "Estudio Aurora";
 
 test.describe.configure({ mode: "serial" });
@@ -76,9 +79,14 @@ async function createOrder(page: Page): Promise<string> {
 }
 
 test("el supervisor consulta datos reales sin poder modificar nada", async ({
-  browser
+  browser,
+  request
 }) => {
   test.setTimeout(240_000);
+
+  // 0. Stock real suficiente para que la compra sea determinista aunque la
+  // base ya haya sido usada por ejecuciones anteriores.
+  await ensureDemoProductStock(request);
 
   // 1. Datos reales: el comprador crea un pedido antes de la consulta.
   const buyerContext = await browser.newContext();

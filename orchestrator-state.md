@@ -4,7 +4,7 @@
 >
 > **Regla:** este archivo registra hechos comprobados. Todo estado debe poder contrastarse con archivos, commits, comandos o decisiones identificables.
 >
-> **Lectura vigente (2026-11-08):** las secciones 1–3, 9–11, el registro de incidencias, las evidencias 13–14 y las plantillas S-007…S-014 describen el estado actual. Las secciones 4–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend”, el adaptador en memoria o la prueba PostgreSQL manual; no son el estado vigente.
+> **Lectura vigente (2026-11-10):** las secciones 1–3, 9–11, el registro de incidencias, las evidencias 13–14 y las plantillas S-007…S-014 describen el estado actual. Las secciones 4–8 y las plantillas S-001…S-006 conservan el registro histórico de W0/W1 y pueden mencionar “sin backend”, el adaptador en memoria o la prueba PostgreSQL manual; no son el estado vigente.
 
 ---
 
@@ -26,17 +26,17 @@
 |---|---|
 | Proyecto | NexusMarket |
 | Área | Backend |
-| Versión del estado | 3.5 |
+| Versión del estado | 3.6 |
 | Prompt aplicable | `prompt-orquestador-backend.md` (v1.0) |
 | Stack objetivo | TypeScript, Node.js, PostgreSQL, Next.js, MongoDB, Docker |
-| Rama Git comprobada | `entrega-1-catalogo` |
-| Commit HEAD comprobado | `9b10282` (base de la fase de identidad); árbol con trabajo de identidad, onboarding, lint y CI sin confirmar |
-| Fecha de actualización | 2026-11-09 |
+| Rama Git comprobada | `main` |
+| Commit HEAD comprobado | `dfa9fb4` (identidad y CI publicados); recuperación visual/tema verificada en local antes de confirmar |
+| Fecha de actualización | 2026-11-10 |
 | Agente coordinador actual | Backend Orchestrator (OpenCode / DeepSeek V4.1 Flash Free) |
 | Revisor independiente | Sesiones `ses_e7b1c7ddaffepca7fRH5CGMyTx` (1.ª), `ses_e7b113275ffeeAZmlHtptxtOfT` (2.ª), `ses_e7b0b9ec9ffeC6278fXU0TKf9M` (3.ª: `PASS`) y `ses_e7a3f8c7fffehdXpxCqxD8gVkc` (4.ª: `PASS`) |
-| Estado global | `IN_PROGRESS` (marketplace local con auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor y estados de acceso; gates A–H, N, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN` y `GATE-V2-IDENTITY` en `PASS`; CI remoto `PASS` en el run `42749289978`) |
-| Ola actual | V2: espacio del Vendedor, Operador Logístico, Supervisión, Administración e Identidad/onboarding — implementados, verificados localmente y cubiertos por CI remoto |
-| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A…H = PASS` (local); `GATE-V2-SELLER = PASS` (local); `GATE-V2-LOGISTICS = PASS` (local); `GATE-V2-SUPERVISOR = PASS` (local); `GATE-V2-ADMIN = PASS` (local); `GATE-V2-IDENTITY = PASS` (local + CI run `42749289978`) |
+| Estado global | `IN_PROGRESS` (marketplace local con auth, direcciones, alta de vendedor, carrito, checkout, pago simulado, frontend, espacio del vendedor, operación logística, supervisión de solo lectura, espacio administrativo de consulta, registro público de comprador, solicitud comprador → vendedor, estados de acceso y tema claro/oscuro persistente; gates A–H, N, `GATE-V2-SELLER`, `GATE-V2-LOGISTICS`, `GATE-V2-SUPERVISOR`, `GATE-V2-ADMIN`, `GATE-V2-IDENTITY` y `GATE-RECUPERACION-VISUAL` en `PASS`; CI remoto `PASS` en el run `42749289978`) |
+| Ola actual | V2: espacio del Vendedor, Operador Logístico, Supervisión, Administración e Identidad/onboarding — implementados y verificados; recuperación visual/tema y catálogo verificados localmente |
+| Gate actual | `GATE-W0 = PASS`; `GATE-W1-01 = PASS`; `GATE-PI01-CODE = PASS`; `GATE-PI01-CONTRACT = PASS_WITH_CONSTRAINTS`; `GATE-PI01-POSTGRES = PASS`; `GATE-V1-A…H = PASS` (local); `GATE-V2-SELLER = PASS` (local); `GATE-V2-LOGISTICS = PASS` (local); `GATE-V2-SUPERVISOR = PASS` (local); `GATE-V2-ADMIN = PASS` (local); `GATE-V2-IDENTITY = PASS` (local + CI run `42749289978`); `GATE-RECUPERACION-VISUAL = PASS` (local) |
 | Fuente de estado | Repositorio real + `backend/` + `frontend/` + PostgreSQL + `docs/implementation/*` + artefactos históricos `docs/backend/*` |
 
 ---
@@ -51,11 +51,13 @@ Consolidar el marketplace con identidad completa: registro público de comprador
 
 Corte del 2026-11-09: se completó la fase de **identidad y onboarding** (`GATE-V2-IDENTITY`). El backend reutiliza `RegisterBuyer` y `POST /api/v1/buyers` para el registro público (rol `COMPRADOR` fijado por el servidor) y añade el agregado `seller_applications` (migración `009`) con estados `PENDIENTE`/`APROBADA`/`RECHAZADA`, independiente del estado de acceso. La aprobación crea vendedor + primera bodega, cambia el rol principal a `VENDEDOR` y registra auditoría/outbox en una única transacción idempotente; el rechazo exige motivo y no crea vendedor ni bodega. `UpdateUserAccessStatus` implementa `ACTIVO`/`INACTIVO`/`BLOQUEADO` con transiciones explícitas, motivo obligatorio para desactivar/bloquear y revocación de sesiones en la misma transacción. El frontend añade `/register`, `/seller-application`, `/admin/seller-applications` (lista y detalle) y el formulario de estado en `/admin/users/[userId]`. Se incorporaron ESLint en ambos proyectos, Prettier en backend y un workflow de CI de 5 jobs con E2E. Ejecutados: backend `npm run verify` (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); `npm run test:postgres` 9 archivos / 46 pruebas; frontend lint/typecheck/build (56 rutas); E2E Playwright 10/10; CI remoto 5/5 jobs en el run `42749289978`. Evidencia en [`docs/implementation/IMPLEMENTATION-STATUS.md`](docs/implementation/IMPLEMENTATION-STATUS.md) y [`docs/implementation/EXECUTION-LOG.md`](docs/implementation/EXECUTION-LOG.md).
 
+Corte del 2026-11-10: se completó la **recuperación visual y la auditoría integral** posterior al cambio de tema (`GATE-RECUPERACION-VISUAL`). El diagnóstico descartó un defecto del tema: los tokens CSS estaban completos (56 variables usadas, 0 sin definir) y el build era correcto. Las causas reales fueron PostgreSQL detenido (`503 DEPENDENCIA_NO_DISPONIBLE`) y un `next start` de 3001 sirviendo un CSS de un build anterior (`500`). Se restauró el servicio y se añadieron cobertura E2E de tema (`theme.spec.ts`, 3 pruebas) y reposición de stock por API real (`demo-stock.ts`). Evidencia: frontend lint 0 errores (2 avisos preexistentes), typecheck y build OK (56 rutas); E2E 13/13 en 3001 (4.6 min) y 3002 (11.2 min); backend `npm run verify` 23 archivos / 187 pruebas y PostgreSQL 9 archivos / 46 pruebas.
+
 ### 2.3 Trabajo en curso
 
-- ID: cierre de la entrega de identidad y onboarding (`S-015`, `GATE-V2-IDENTITY`).
-- Último corte ejecutado: backend `npm run verify` OK (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); PostgreSQL 46 pruebas / 9 archivos; frontend lint/typecheck/build OK (56 rutas); E2E Playwright 10/10 (protección, recorrido del vendedor, aislamiento, recorrido cruzado, recorrido logístico completo, supervisión, administración y onboarding de identidad).
-- Próximo trabajo: revisión independiente del corte y decisión de los bloqueos documentados.
+- ID: cierre de la recuperación visual y del tema (`GATE-RECUPERACION-VISUAL`), posterior a `GATE-V2-IDENTITY`.
+- Último corte ejecutado: frontend lint 0 errores, typecheck OK, build OK (56 rutas), E2E Playwright 13/13 en 3001 y 3002; backend `npm run verify` OK (23 archivos / 187 pruebas; OpenAPI 74 rutas / 83 operaciones / 984 referencias); PostgreSQL 46 pruebas / 9 archivos.
+- Próximo trabajo: confirmar y publicar el corte de recuperación, revisión independiente y decisión de los bloqueos documentados.
 - Bloqueo actual: reenvío/edición de solicitudes rechazadas sin política definida; reportes admin/supervisor sin catálogo/fórmulas/filtros/límites (`L-19`); devoluciones, reembolsos y facturación sin persistencia; asignación automática de pedidos, transportistas externos, tracking integrado, evidencia del proveedor y `CloseOrder` (`ENTREGADO → CERRADO`) sin actor/proceso definido. Carga binaria de imágenes, ajustes negativos/logística del vendedor, entrega digital y notificaciones externas siguen bloqueados o pendientes. CI remoto en `PASS` (run `42749289978`, 5/5 jobs).
 - Riesgo operativo: espacio libre bajo en disco; ejecutar suites backend de forma secuencial.
 

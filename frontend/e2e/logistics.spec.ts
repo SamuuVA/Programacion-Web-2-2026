@@ -1,15 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  DEMO_PRODUCT_ID,
+  DEMO_PRODUCT_NAME,
+  ensureDemoProductStock
+} from "./support/demo-stock";
 
 const PASSWORD = process.env.NEXUS_DEMO_PASSWORD ?? "NexusMarketDemo2026!";
 const BUYER_EMAIL = "comprador@nexusmarket.demo";
 const LOGISTICS_EMAIL = "logistica@nexusmarket.demo";
-
-/**
- * Producto físico del seed demo cuya bodega (Aurora) está asignada al operador
- * logístico demo. Se usa un producto existente para no depender de otra suite.
- */
-const DEMO_PRODUCT_ID = "40000000-0000-4000-8000-000000000001";
-const DEMO_PRODUCT_NAME = "Audífonos Aurora";
 
 test.describe.configure({ mode: "serial" });
 
@@ -62,10 +60,15 @@ async function emptyCart(page: Page): Promise<void> {
  * registra la entrega con evidencia → el pedido queda ENTREGADO.
  */
 test("el operador logístico prepara, despacha y entrega un pedido de su ámbito", async ({
-  browser
+  browser,
+  request
 }) => {
   test.setTimeout(240_000);
   const stamp = Date.now().toString(36).toUpperCase();
+
+  // 0. Stock real suficiente para que la compra sea determinista aunque la
+  // base ya haya sido usada por ejecuciones anteriores.
+  await ensureDemoProductStock(request);
 
   // 1. El comprador compra un producto de una bodega del operador.
   const buyerContext = await browser.newContext();
