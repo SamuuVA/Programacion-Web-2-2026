@@ -806,6 +806,8 @@ Desde `backend/`:
 
 El proyecto real es TypeScript + Fastify + PostgreSQL. No existe backend Go; se mantuvo el stack existente y no se introdujeron tecnologías nuevas.
 
+Verificación remota: el commit `d3241ec` se publicó en `main` y el workflow de CI (run [`42949486233`](https://github.com/SamuuVA/Programa-Web-2-2026/actions/runs/42949486233)) terminó con `success` en sus 5 jobs: frontend lint/typecheck/build, backend lint/formato/tipos/OpenAPI/build, frontend E2E, pruebas backend y migraciones/pruebas PostgreSQL.
+
 ### 14.5 Límites y pendientes
 
 - Los pendientes de identidad y negocio no cambian: reenvío/edición tras rechazo, `CloseOrder`, reconciliación de pagos `DESCONOCIDO`, reportes `L-19`, devoluciones/reembolsos/facturación, notificaciones externas e imágenes binarias.

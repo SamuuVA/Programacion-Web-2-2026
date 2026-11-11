@@ -28,7 +28,7 @@
 | P | Supervisión de solo lectura (`GATE-V2-SUPERVISOR`) | `PASS` local | 9 rutas `GET /api/v1/supervisor/*` + guarda `405`; dashboard real; E2E 6/6; reportes `BLOQUEADO` (`L-19`) |
 | Q | Espacio administrativo (`GATE-V2-ADMIN`) | `PASS` local | 17 rutas `GET /api/v1/admin/*` + guarda de método; alta atómica de vendedor/logística intacta; 160 pruebas backend; 40 PostgreSQL; E2E 7/7; reportes solo agregados reales |
 | R | Identidad y onboarding (`GATE-V2-IDENTITY`) | `PASS` | Registro público, solicitud comprador → vendedor, aprobación atómica, rechazo sin efectos y estados de acceso con revocación de sesión; 187 pruebas backend; 46 PostgreSQL; E2E 10/10 local y 5/5 jobs en CI; lint y formato ejecutados |
-| S | Recuperación visual, tema y catálogo (`GATE-RECUPERACION-VISUAL`) | `PASS` local | Tokens CSS completos; tema claro/oscuro con persistencia y sin errores de hidratación; catálogo real con búsqueda, filtros, detalle y carrito en ambos temas; E2E 13/13 en 3001 y 3002; lint 0 errores, typecheck y build OK; backend `verify` y PostgreSQL OK |
+| S | Recuperación visual, tema y catálogo (`GATE-RECUPERACION-VISUAL`) | `PASS` local + CI | Tokens CSS completos; tema claro/oscuro con persistencia y sin errores de hidratación; catálogo real con búsqueda, filtros, detalle y carrito en ambos temas; E2E 13/13 en 3001 y 3002; lint 0 errores, typecheck y build OK; backend `verify` y PostgreSQL OK; CI run [`42949486233`](https://github.com/SamuuVA/Programa-Web-2-2026/actions/runs/42949486233) 5/5 jobs |
 
 `PASS` significa “verificado con la evidencia listada”. El CI remoto se registra en el gate L; la revisión independiente de esta entrega sigue pendiente.
 

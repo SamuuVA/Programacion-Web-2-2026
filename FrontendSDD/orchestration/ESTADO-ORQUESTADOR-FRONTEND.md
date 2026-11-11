@@ -21,7 +21,7 @@ Proyecto: NexusMarket. Versión: 1.1. Estado global: IN_PROGRESS (marketplace lo
 - Corrección: se inició PostgreSQL y se reinició 3001 desde el build actual; catálogo y CSS responden `200`.
 - Cobertura nueva: `frontend/e2e/theme.spec.ts` (3 pruebas: aplicación/persistencia/recarga, preferencia del sistema y catálogo/búsqueda/detalle/carrito en ambos temas) y `frontend/e2e/support/demo-stock.ts` (reposición de stock por API real del vendedor).
 - Corrección de prueba: `body` anima el color de fondo 0.2 s; la prueba ahora espera el valor final con `expect.poll`.
-- Evidencia ejecutada: `npm run lint` 0 errores (2 avisos `no-img-element`), `npm run typecheck` OK, `npm run build` OK (56 rutas), `npm run test:e2e` 13/13 en 3001 (4.6 min) y 13/13 en 3002 (11.2 min); `theme.spec.ts` 3/3 en 3001.
+- Evidencia ejecutada: `npm run lint` 0 errores (2 avisos `no-img-element`), `npm run typecheck` OK, `npm run build` OK (56 rutas), `npm run test:e2e` 13/13 en 3001 (4.6 min) y 13/13 en 3002 (11.2 min); `theme.spec.ts` 3/3 en 3001. Publicado en `main` como `d3241ec`; CI run [`42949486233`](https://github.com/SamuuVA/Programa-Web-2-2026/actions/runs/42949486233) 5/5 jobs en `success`.
 - Límites: pendientes de negocio e identidad sin cambios; requisito operativo: PostgreSQL activo y reinicio del servidor de producción tras cada `next build`.
 
 ## Corte 2026-11-09 — identidad y onboarding
